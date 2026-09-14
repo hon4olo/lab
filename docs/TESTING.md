@@ -12,7 +12,7 @@ successful build for an actual browser check.
 npm run typecheck
 npm test
 npm run build
-npm run dev
+npm run test:browser
 ```
 
 `npm run check` runs typecheck, unit tests, and production build. Browser/visual/performance checks
@@ -31,28 +31,36 @@ Vitest runs plain TypeScript tests for:
 Domain tests inject elapsed grill time and use no Phaser scene or browser object. Current coverage
 includes the base burger and post-assembly Extra Spicy modifier, perfect and burned cooking, missing
 ingredients, deterministic Flaming Business Cat resolution, ORDER/COOK/CHAOS scoring, payment, and
-stable production asset references.
+stable production asset references. Campaign/save tests cover V1 → V2 migration, valid save loading,
+corrupt-save fallback, staging/backup recovery, safe active-order restart, completed-shift restore,
+first discovery idempotency, duplicate settlement prevention, wallet persistence, and replay. Content
+registry tests cover duplicate IDs, broken references, recipe/order mismatches, prep requirements,
+customer compatibility, and unapproved assets. Patience tests cover expiry, pause/resume, and
+continuing an order after the timer reaches zero.
 
 ## Browser checks
 
-For each production flow milestone, verify startup and first interaction in a real browser with
-console and failed-resource inspection. Required viewport matrix:
+The automated Playwright smoke suite runs the complete authored order in Chromium at all required
+viewports:
 
 | Profile | Viewport | Purpose |
 |---|---:|---|
 | Small portrait | 360×640 | minimum touch composition and safe spacing |
-| Modern portrait | 390×844 | primary mobile layout |
 | Landscape mobile | 844×390 | rotation and compact-height behavior |
-| Tablet | 768×1024 | intermediate composition |
-| Desktop | 1440×900 | multi-column composition and canvas bounds |
+| 720p desktop | 1280×720 | desktop composition |
+| Large desktop | 1440×900 | wider desktop composition |
 
-The first order milestone also validates 1280×720 and completes the Business Cat order at
-360×640, 844×390, 1280×720, and 1440×900. The tested input path uses Phaser pointer events for
-base ingredient slots, the Prep Board, Grill, assembly, the Extra Spicy modifier, and serving.
+At each viewport it uses real pointer clicks to select ingredients, prepare the patty, stop a
+perfect-state patty, assemble the burger, add Extra Spicy, serve, wait through
+transformation/payment, reload the completed shift, and replay it. It asserts ORDER 100 and CHAOS
+140, a non-burned perfect cook state, one unique payment per run, balance equal to the persisted
+payment result after reload, first-time transformation discovery, localized shift completion, no
+failed asset requests, HTTP errors, page errors, console errors, document overflow, or repeated
+first-load asset requests. Replay must not request textures again. The deterministic domain test
+asserts the exact ideal-stop result ORDER 100 / COOK 100 / CHAOS 140 = 55 coins.
 
-Checks include pointer/touch equivalence, resize/orientation without reload, safe-area behavior,
-visibility pause/resume, audio unlock, keyboard focus for DOM controls, and no console errors or
-broken asset requests.
+Pointer/touch equivalence, resize/orientation without reload, audio unlock, keyboard behavior, and
+visual screenshot review remain separate follow-up checks.
 
 ## Visual regression
 
@@ -78,10 +86,10 @@ and effects. Profile before pooling, batching, or other optimization work.
 
 ## Save and migration
 
-Keep fixture saves from every shipped schema. For each release, test new save round-trip, old →
-current migration chain, unknown future version rejection, malformed/truncated primary fallback,
-removed content ID reconciliation, local fallback, and cloud conflict policy when platform storage
-exists.
+Keep fixture saves from every shipped schema. The current suite tests V1 → V2 migration, valid save
+round-trip, unknown future version rejection, malformed primary fallback to a valid backup or
+default, interrupted staging recovery, stale completion reconciliation, and active-order restart.
+Cloud conflict policy is not implemented because no cloud storage adapter exists.
 
 ## Platform tests (when adapters are implemented)
 
@@ -99,8 +107,8 @@ Current scaffold intentionally uses only the local provider and does not load a 
 ## DEV diagnostics and scenarios
 
 Development builds expose a read-only `window.SNACK_LAB.getSnapshot()` and named deterministic
-scenario registry. Production builds must not expose the bridge. The browser test suite should
-assert both conditions and use snapshots only as diagnostics, never as gameplay authority.
+scenario registry. `npm run build` verifies that bridge/asset-QA markers are absent from production
+JavaScript. The browser test suite uses the bridge only for diagnostics, never as gameplay authority.
 
 Initial scenario names: `basic-order`, `perfect-grill`, `burned-order`, `first-transformation`,
 `high-chaos`, `shift-end`, `mobile-layout`, and `rewarded-interruption`.
@@ -110,3 +118,16 @@ Initial scenario names: `basic-order`, `perfect-grill`, `burned-order`, `first-t
 Every milestone records exact commands and results, tested browser/viewports, screenshots reviewed,
 console/network findings, measured performance where representative, and any skipped check with a
 reason. A claim appears only if the check actually ran.
+
+## First-session baseline — 2026-09-15
+
+- `npm run check`: passed typecheck, 43 domain/content tests across 10 files, production build, and
+  the production-bundle DEV-tooling guard.
+- `npm run test:browser`: passed 4/4 complete order → Flaming reaction → payment → reload → replay
+  runs at 360×640, 844×390, 1280×720, and 1440×900. No failed requests, HTTP errors, uncaught page
+  errors, console errors, or document overflow were observed.
+- Production JavaScript: 1,458,061 bytes (1,458.06 kB); Vite reports 381.16 kB gzip. It remains a
+  single chunk above Vite's 500 kB warning threshold.
+- First-session preload requests all 38 production-approved PNGs: 6,292,360 bytes total on disk
+  (6.00 MiB), plus the manifest. The browser suite observed 39 unique asset/manifest requests on
+  first load, no duplicate texture requests, and no new asset requests during replay.
