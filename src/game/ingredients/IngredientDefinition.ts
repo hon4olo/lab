@@ -12,4 +12,6 @@ export interface IngredientDefinition {
   readonly rarity: IngredientRarity;
   readonly cookingBehaviors: readonly string[];
   readonly visualProperties: Readonly<Record<string, string | number | boolean>>;
+  readonly chaosContribution: number;
+  readonly requiresPrep: boolean;
 }

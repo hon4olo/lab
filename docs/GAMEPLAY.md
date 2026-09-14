@@ -1,0 +1,82 @@
+# First playable order
+
+## Scope
+
+The first vertical slice is a single authored order: Business Cat asks for a Hot Cheese Burger —
+Extra Spicy. It does not start a second customer or expose a general shift loop. The current
+completion state is `next-order-ready`.
+
+The content is data-driven in `src/content/ingredients/hotCheeseBurger.ts`,
+`src/content/orders/hotCheeseBurgerExtraSpicy.ts`, and `src/content/transformations.ts`. Every image
+reference is a stable ID from `public/assets/manifest.json`.
+
+## Flow and ownership
+
+```text
+customer-entering → ingredient-selection → prep-board → grilling → assembly
+→ modifier-selection → assembly/serve → anticipation → payment → customer-leaving
+→ next-order-ready
+```
+
+`OrderSession` is renderer-free authoritative order state. It composes ingredient selection, Prep
+Board state, `GrillSession`, the burger assembler, customer lifecycle, scoring, payment, and the
+transformation resolver. `OrderScene` coordinates actions and presentation. Phaser owns pointer
+events, the elapsed-frame input to the grill, sprites, tweens, and effect playback; no Phaser object
+is stored in domain state.
+
+Players first select the five base ingredients: bottom bun, patty, cheese, sauce, and top bun. They
+prepare the patty on the Prep Board, grill it, and stop the grill before it burns. The assembled
+base burger is shown before the player adds the requested Extra Spicy modifier. Adding the chili
+updates the FoodInstance tags, Chaos, ingredient order, and finished-burger asset. The grill exposes
+the same large tap target as its start/stop button; the order can be served after the modifier is
+added.
+
+## Cooking
+
+`GrillSession` advances only from elapsed time supplied by the scene:
+
+| Elapsed time | State | Quality |
+|---:|---|---:|
+| 0–1199 ms | raw | 25 |
+| 1200–2499 ms | cooked | 60 |
+| 2500–5999 ms | perfect | 60–100, peaking at 3600 ms |
+| 6000 ms and later | burned | 0 |
+
+Stopping records the cook state, elapsed processing time, heat quality, and grill visit in the
+`FoodInstance`. Leaving the patty on the grill crosses deterministically into `burned`.
+
+## Tags and transformation
+
+The extra-spicy ingredient contributes 70 Chaos and the `HOT` and `FIRE` tags to the FoodInstance
+when added after assembly. `transformation.business-cat.flaming` is eligible when all its authored requirements
+match: `HOT` and `FIRE`, at least 60 Chaos, compatible customer type `business-cat`, no `ICE`, and
+all required unlocks. It prefers `CAT`. `resolveTransformation` ranks eligible definitions by
+priority, preferred-tag matches, rarity, and stable ID, so selection is deterministic and does not
+branch on a customer/recipe pair.
+
+The appearance keeps the neutral Business Cat stack and adds its manifest-defined fire accents,
+glow eyes, and singed tie. The presentation plays an anticipation beat, transformation flash/fire
+burst (suppressed under reduced motion), then coin sparkle and customer exit.
+
+## Scoring and payment
+
+- **ORDER** starts at 100. Subtract 18 per missing required ingredient, 6 per extra ingredient, 10
+  per selected but unprepared required ingredient, and 20 if not assembled; clamp to 0–100.
+- **COOK** is the recorded FoodInstance cook quality from 0–100.
+- **CHAOS** is `round(food.chaosScore / order.chaosTarget × 100)`. It can exceed 100%; payment
+  normalizes its bonus at a maximum of 200%.
+- Quality bonus is `floor(basePayment × (ORDER + COOK) / 500)`.
+- Chaos bonus is `floor(basePayment × min(CHAOS, 200) / 1000)`.
+- The transformation modifier multiplies base payment plus quality and Chaos bonuses; the displayed
+  transformation bonus is the difference after rounding.
+- Tip is `floor(baseTip × (ORDER + COOK) / 200)`. Total payment is modified payment plus tip.
+
+For a fully correct order, a 100 COOK, and the 140 CHAOS result produced by the prepared chili, the
+payment is 55 coins: 24 base, 9 quality, 3 Chaos, 9 transformation, and 10 tip.
+
+## Localization and diagnostics
+
+All runtime UI copy is keyed in the RU/EN dictionaries. In development,
+`window.SNACK_LAB.getSnapshot()` returns a cloned read-only snapshot of order phase, selected
+ingredients, prepared ingredients, FoodInstance, grill state, scores, transformation result,
+payment, and coins. The bridge is loaded only when `import.meta.env.DEV` is true.

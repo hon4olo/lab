@@ -28,7 +28,10 @@ Vitest runs plain TypeScript tests for:
 - FoodInstance state transitions and station command results;
 - save validation and every sequential migration from retained historical fixtures.
 
-Tests inject time and seeded RNG. No Phaser scene or browser object is required for domain rules.
+Domain tests inject elapsed grill time and use no Phaser scene or browser object. Current coverage
+includes the base burger and post-assembly Extra Spicy modifier, perfect and burned cooking, missing
+ingredients, deterministic Flaming Business Cat resolution, ORDER/COOK/CHAOS scoring, payment, and
+stable production asset references.
 
 ## Browser checks
 
@@ -42,6 +45,10 @@ console and failed-resource inspection. Required viewport matrix:
 | Landscape mobile | 844×390 | rotation and compact-height behavior |
 | Tablet | 768×1024 | intermediate composition |
 | Desktop | 1440×900 | multi-column composition and canvas bounds |
+
+The first order milestone also validates 1280×720 and completes the Business Cat order at
+360×640, 844×390, 1280×720, and 1440×900. The tested input path uses Phaser pointer events for
+base ingredient slots, the Prep Board, Grill, assembly, the Extra Spicy modifier, and serving.
 
 Checks include pointer/touch equivalence, resize/orientation without reload, safe-area behavior,
 visibility pause/resume, audio unlock, keyboard focus for DOM controls, and no console errors or

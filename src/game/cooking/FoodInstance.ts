@@ -1,7 +1,9 @@
 import type { GameplayTag } from '../ingredients/GameplayTag';
+import type { CookState } from './GrillSession';
 
 export interface IngredientCookState {
   readonly ingredientId: string;
+  readonly cookState: CookState;
   readonly heat: number;
   readonly cold: number;
   readonly processing: number;

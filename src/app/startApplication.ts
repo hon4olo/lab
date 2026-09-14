@@ -14,10 +14,12 @@ export async function startApplication(): Promise<void> {
   const locale = resolveLocale(platform.environment.language, navigator.language);
   const translate = createTranslator(locale);
   document.documentElement.lang = locale;
+  const title = document.querySelector<HTMLElement>('#game-title');
+  if (title) title.textContent = translate('game.title');
   if (status) status.textContent = translate('shell.loading');
 
-  const game = createGame();
-  await waitForShell(game);
+  const game = createGame(translate);
+  await waitForGameReady(game);
   await platform.gameReady();
 
   if (status) status.textContent = translate('shell.ready');
@@ -29,6 +31,6 @@ export async function startApplication(): Promise<void> {
   }
 }
 
-function waitForShell(game: Phaser.Game): Promise<void> {
-  return new Promise((resolve) => game.events.once(APP_EVENTS.shellReady, resolve));
+function waitForGameReady(game: Phaser.Game): Promise<void> {
+  return new Promise((resolve) => game.events.once(APP_EVENTS.gameReady, resolve));
 }

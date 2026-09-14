@@ -2,9 +2,10 @@ import Phaser from 'phaser';
 import { RUNTIME_CONFIG } from '../config/runtimeConfig';
 import { BootScene } from './scenes/BootScene';
 import { PreloadScene } from './scenes/PreloadScene';
-import { ShellScene } from './scenes/ShellScene';
+import { OrderScene } from './scenes/OrderScene';
+import type { TranslationKey } from '../localization/createTranslator';
 
-export function createGame(): Phaser.Game {
+export function createGame(translate: (key: TranslationKey) => string): Phaser.Game {
   return new Phaser.Game({
     type: Phaser.AUTO,
     parent: RUNTIME_CONFIG.canvasParentId,
@@ -21,6 +22,6 @@ export function createGame(): Phaser.Game {
       mode: Phaser.Scale.RESIZE,
       autoCenter: Phaser.Scale.CENTER_BOTH,
     },
-    scene: [BootScene, PreloadScene, ShellScene],
+    scene: [BootScene, PreloadScene, new OrderScene(translate)],
   });
 }

@@ -1,4 +1,8 @@
 import { describe, expect, it } from 'vitest';
+import manifest from '../../public/assets/manifest.json';
+import { HOT_CHEESE_BURGER_INGREDIENTS } from '../../src/content/ingredients/hotCheeseBurger';
+import { HOT_CHEESE_BURGER_EXTRA_SPICY } from '../../src/content/orders/hotCheeseBurgerExtraSpicy';
+import { TRANSFORMATIONS } from '../../src/content/transformations';
 import { getProductionAssets } from '../../src/assets/assetManifest';
 
 describe('getProductionAssets', () => {
@@ -36,5 +40,18 @@ describe('getProductionAssets', () => {
         assets: [{ id: 'unsafe', path: 'assets/../private.png', status: 'production-approved' }],
       }),
     ).toThrow('invalid public asset path');
+  });
+});
+
+describe('first order content asset references', () => {
+  it('references only stable production-approved manifest IDs', () => {
+    const approvedIds = new Set(getProductionAssets(manifest).map((asset) => asset.id));
+    const referencedIds = [
+      ...HOT_CHEESE_BURGER_INGREDIENTS.map((ingredient) => ingredient.assetKey),
+      HOT_CHEESE_BURGER_EXTRA_SPICY.baseAssembledAssetKey,
+      HOT_CHEESE_BURGER_EXTRA_SPICY.assembledAssetKey,
+      ...TRANSFORMATIONS.flatMap((transformation) => transformation.appearanceAssets),
+    ];
+    expect(referencedIds.every((assetId) => approvedIds.has(assetId))).toBe(true);
   });
 });

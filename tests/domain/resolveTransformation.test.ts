@@ -38,6 +38,7 @@ function definition(
     rarity: 'common',
     compatibleCustomerTypes: [],
     resultAppearance: `${id}.appearance`,
+    appearanceAssets: [],
     reactionSequence: `${id}.reaction`,
     rewardModifier: 1,
     requiredUnlocks: [],

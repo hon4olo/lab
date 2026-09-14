@@ -12,6 +12,7 @@ export interface TransformationDefinition {
   readonly rarity: TransformationRarity;
   readonly compatibleCustomerTypes: readonly string[];
   readonly resultAppearance: string;
+  readonly appearanceAssets: readonly string[];
   readonly reactionSequence: string;
   readonly rewardModifier: number;
   readonly requiredUnlocks: readonly string[];

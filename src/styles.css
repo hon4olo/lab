@@ -61,6 +61,10 @@ body {
   pointer-events: none;
 }
 
+#app[aria-busy='false'] .system-shell {
+  display: none;
+}
+
 html[data-snack-lab-asset-preview='active'] .system-shell,
 html[data-snack-lab-asset-preview='active'] [data-snack-lab-qa-control] {
   display: none;

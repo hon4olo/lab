@@ -20,7 +20,7 @@ export class PreloadScene extends Phaser.Scene {
 
       const productionAssets = getProductionAssets(await response.json());
       if (productionAssets.length === 0) {
-        this.startShell();
+        this.startOrderScene();
         return;
       }
 
@@ -28,18 +28,18 @@ export class PreloadScene extends Phaser.Scene {
         this.load.image(asset.id, `${import.meta.env.BASE_URL}${asset.path}`);
       }
 
-      this.load.once(Phaser.Loader.Events.COMPLETE, this.startShell, this);
+      this.load.once(Phaser.Loader.Events.COMPLETE, this.startOrderScene, this);
       this.load.once(Phaser.Loader.Events.FILE_LOAD_ERROR, (file: Phaser.Loader.File) => {
         console.error(`Failed to load production asset "${file.key}" from "${file.src}".`);
       });
       this.load.start();
     } catch (error) {
       console.error('Could not load the production asset manifest.', error);
-      this.startShell();
+      this.startOrderScene();
     }
   }
 
-  private startShell(): void {
-    this.scene.start('ShellScene');
+  private startOrderScene(): void {
+    this.scene.start('OrderScene');
   }
 }

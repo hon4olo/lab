@@ -52,7 +52,7 @@ export class AssetPreviewScene extends Phaser.Scene {
     if (assets.length > 0) this.load.start();
     else this.renderPreview(assets);
 
-    this.input.keyboard?.once('keydown-ESC', () => this.scene.start('ShellScene'));
+    this.input.keyboard?.once('keydown-ESC', () => this.scene.start('OrderScene'));
   }
 
   private renderPreview(assets: ReturnType<typeof getManifestAssets>): void {

@@ -1,3 +1,3 @@
 export const APP_EVENTS = {
-  shellReady: 'snack-lab:shell-ready',
+  gameReady: 'snack-lab:game-ready',
 } as const;

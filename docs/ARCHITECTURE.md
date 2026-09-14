@@ -48,7 +48,7 @@ named actions/gestures before reaching station logic.
 ```text
 src/
   app/                     composition root and lifecycle
-    scenes/                Boot, Preload, Shell; later Shift and meta scenes
+    scenes/                Boot, Preload, first-order coordinator; later shift/meta scenes
   game/
     orders/                order state, requirements, scoring inputs
     ingredients/           typed tags and definitions
@@ -87,12 +87,14 @@ extra engine-specific mirror tree.
 
 - `main.ts` creates the application composition root.
 - `BootScene` performs synchronous engine setup and immediately starts preload.
-- `PreloadScene` will load the current manifest bundle and report progress to the DOM shell. The
-  initial scaffold intentionally has an empty asset catalog.
-- `ShellScene` proves the renderer lifecycle and responsive canvas without presenting fake
-  gameplay. It becomes the route into the future title/restaurant flow.
-- Future `ShiftScene` coordinates `ShiftController`, `OrderCoordinator`, `CustomerQueue`,
-  `StationNavigator`, and presenters; it does not implement their rules.
+- `PreloadScene` loads the production-approved manifest bundle by stable ID.
+- `OrderScene` coordinates the first Business Cat order by composing the plain TypeScript
+  `OrderSession` with focused Phaser presenters and a feedback director. It does not own recipe,
+  cooking, scoring, transformation, or payment rules.
+
+The initial production slice is documented in `GAMEPLAY.md`. It includes one Business Cat order
+and does not yet start a second customer. A future shift coordinator may compose order sessions,
+customer queues, and station navigation without moving their rules into a scene.
 
 Both DOM and canvas fill the available safe viewport. Portrait and landscape/desktop select
 different layout compositions through CSS/container sizing, not a stretched fixed screenshot.
@@ -117,6 +119,10 @@ content lookups fail at validation/load boundaries rather than deep inside a sce
 `FoodInstance` is plain serializable data containing ordered ingredient IDs, cook states, station
 history, quality, tags, Chaos score, mistakes, and visual variant. Definitions are immutable;
 instances hold runtime state.
+
+The first order session composes focused domain systems for ingredient selection, prep, grilling,
+burger assembly, scoring, payment, and customer lifecycle. `OrderSnapshot` is a cloned,
+renderer-free diagnostic view of the current order.
 
 ## Data-driven transformations
 
@@ -213,10 +219,10 @@ separate decision.
 
 ## DEV inspectability
 
-Development builds may expose `window.SNACK_LAB.getSnapshot()` with safe, cloned read-only data:
-scene, shift, customer, order, FoodInstance, station, score, coins, unlock IDs, FPS, and platform
-state. `import.meta.env.DEV` gates installation, and production build tests assert the symbol/string
-is absent from generated JavaScript.
+Development builds expose `window.SNACK_LAB.getSnapshot()` with safe, cloned read-only data:
+scene, order ID and phase, selected ingredients, FoodInstance, grill state, ORDER/COOK/CHAOS scores,
+transformation result, coins, FPS, and platform capabilities. `import.meta.env.DEV` gates
+installation. The asset preview and diagnostics bridge are development-only.
 
 Named deterministic scenarios are registered data/setup functions: `basic-order`, `perfect-grill`,
 `burned-order`, `first-transformation`, `high-chaos`, `shift-end`, `mobile-layout`, and

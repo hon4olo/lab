@@ -1,0 +1,36 @@
+import type { OrderDefinition } from '../../game/orders/OrderDefinition';
+
+export const HOT_CHEESE_BURGER_EXTRA_SPICY: OrderDefinition = {
+  id: 'order.hot-cheese-burger.extra-spicy',
+  foodInstanceId: 'food.hot-cheese-burger.order-01',
+  displayNameKey: 'order.hot-cheese-burger',
+  modifierKey: 'order.extra-spicy',
+  modifierIngredientId: 'ingredient.extra-spicy',
+  grillIngredientId: 'ingredient.patty',
+  customerType: 'business-cat',
+  recipeId: 'recipe.hot-cheese-burger',
+  requiredIngredientIds: [
+    'ingredient.bun-bottom',
+    'ingredient.patty',
+    'ingredient.cheese',
+    'ingredient.sauce',
+    'ingredient.extra-spicy',
+    'ingredient.bun-top',
+  ],
+  expectedIngredientOrder: [
+    'ingredient.bun-bottom',
+    'ingredient.patty',
+    'ingredient.cheese',
+    'ingredient.sauce',
+    'ingredient.extra-spicy',
+    'ingredient.bun-top',
+  ],
+  requiredPrepIngredientIds: ['ingredient.patty'],
+  requiredStations: ['station.prep-board.street', 'station.grill.street'],
+  requiredTags: ['HOT', 'FIRE'],
+  chaosTarget: 50,
+  basePayment: 24,
+  baseTip: 10,
+  baseAssembledAssetKey: 'food.burger.finished',
+  assembledAssetKey: 'food.burger.extra-spicy',
+};
