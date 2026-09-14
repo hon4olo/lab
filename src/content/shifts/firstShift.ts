@@ -1,0 +1,13 @@
+import type { ShiftDefinition } from '../../game/shifts/ShiftDefinition';
+
+export const FIRST_SHIFT: ShiftDefinition = {
+  id: 'shift.street-snack-bar.first',
+  orderSequence: [
+    {
+      id: 'shift.street-snack-bar.first.order-01',
+      orderId: 'order.hot-cheese-burger.extra-spicy',
+      customerId: 'customer.business-cat',
+      customerInstanceId: 'customer.business-cat.first-shift-order-01',
+    },
+  ],
+};

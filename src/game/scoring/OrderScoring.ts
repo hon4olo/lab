@@ -1,5 +1,6 @@
 import type { FoodInstance } from '../cooking/FoodInstance';
 import type { OrderDefinition } from '../orders/OrderDefinition';
+import { DEFAULT_BALANCE_CONFIG, type BalanceConfig } from '../balance/BalanceConfig';
 
 export interface ScoreResult {
   readonly order: number;
@@ -15,7 +16,10 @@ export interface ScoreInput {
   readonly food: FoodInstance;
 }
 
-export function scoreOrder(input: ScoreInput): ScoreResult {
+export function scoreOrder(
+  input: ScoreInput,
+  balance: BalanceConfig = DEFAULT_BALANCE_CONFIG,
+): ScoreResult {
   const selected = new Set(input.selectedIngredients);
   const prepared = new Set(input.preparedIngredients);
   const missing = input.order.requiredIngredientIds.filter((id) => !selected.has(id)).length;
@@ -24,7 +28,8 @@ export function scoreOrder(input: ScoreInput): ScoreResult {
     (id) => selected.has(id) && !prepared.has(id),
   ).length;
   const orderScore = clamp(
-    100 - missing * 18 - extras * 6 - unprepared * 10 - Number(!input.assembled) * 20,
+    100 - missing * balance.missingIngredientPenalty - extras * balance.extraIngredientPenalty -
+      unprepared * balance.unpreparedIngredientPenalty - Number(!input.assembled) * balance.unassembledPenalty,
     0,
     100,
   );

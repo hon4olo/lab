@@ -16,6 +16,7 @@ export const en = {
   'order.phase.payment': 'Order complete',
   'order.phase.customer-leaving': 'Business Cat is heading out',
   'order.phase.next-order-ready': 'Next order ready',
+  'shift.completed': 'Shift complete',
   'ingredient.bun-bottom': 'Bottom bun',
   'ingredient.patty': 'Patty',
   'ingredient.cheese': 'Cheese',

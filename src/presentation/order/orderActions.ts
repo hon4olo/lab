@@ -63,6 +63,5 @@ export function createEmptyOrderSnapshot(orderId: string): OrderSnapshot {
     scores: null,
     transformationResult: null,
     payment: null,
-    coins: 0,
   };
 }

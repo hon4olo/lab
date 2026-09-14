@@ -7,7 +7,6 @@ export const HOT_CHEESE_BURGER_EXTRA_SPICY: OrderDefinition = {
   modifierKey: 'order.extra-spicy',
   modifierIngredientId: 'ingredient.extra-spicy',
   grillIngredientId: 'ingredient.patty',
-  customerType: 'business-cat',
   recipeId: 'recipe.hot-cheese-burger',
   requiredIngredientIds: [
     'ingredient.bun-bottom',

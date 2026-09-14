@@ -18,6 +18,7 @@ export const ru: Record<keyof typeof en, string> = {
   'order.phase.payment': 'Заказ готов',
   'order.phase.customer-leaving': 'Деловой Кот уходит',
   'order.phase.next-order-ready': 'Готовы к следующему заказу',
+  'shift.completed': 'Смена завершена',
   'ingredient.bun-bottom': 'Нижняя булочка',
   'ingredient.patty': 'Котлета',
   'ingredient.cheese': 'Сыр',

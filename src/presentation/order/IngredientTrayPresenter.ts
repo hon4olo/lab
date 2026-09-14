@@ -69,6 +69,15 @@ export class IngredientTrayPresenter {
     }
   }
 
+  public destroy(): void {
+    for (const tile of this.tiles) {
+      tile.slot.destroy();
+      tile.icon.destroy();
+      tile.label.destroy();
+      tile.selected.destroy();
+    }
+  }
+
   private positionTiles(): void {
     const layout = this.layoutState;
     if (!layout) return;

@@ -1,8 +1,8 @@
 import Phaser from 'phaser';
-import { HOT_CHEESE_BURGER_INGREDIENTS } from '../../content/ingredients/hotCheeseBurger';
-import { HOT_CHEESE_BURGER_EXTRA_SPICY } from '../../content/orders/hotCheeseBurgerExtraSpicy';
-import { TRANSFORMATIONS } from '../../content/transformations';
-import { OrderSession, type OrderSnapshot } from '../../game/orders/OrderSession';
+import type { ShiftController } from '../../game/shifts/ShiftController';
+import type { ShiftControllerSnapshot } from '../../game/shifts/ShiftController';
+import type { OrderDefinition } from '../../game/orders/OrderDefinition';
+import type { OrderSnapshot } from '../../game/orders/OrderSession';
 import type { TranslationKey } from '../../localization/createTranslator';
 import { APP_EVENTS } from '../appEvents';
 import { FeedbackDirector } from '../../presentation/order/FeedbackDirector';
@@ -10,8 +10,6 @@ import { OrderSceneView } from '../../presentation/order/OrderSceneView';
 import type { OrderAction } from '../../presentation/order/orderActions';
 
 export class OrderScene extends Phaser.Scene {
-  private readonly order = HOT_CHEESE_BURGER_EXTRA_SPICY;
-  private session!: OrderSession;
   private view!: OrderSceneView;
   private feedback!: FeedbackDirector;
   private readonly translate: (key: TranslationKey) => string;
@@ -19,6 +17,7 @@ export class OrderScene extends Phaser.Scene {
 
   public constructor(
     translate: (key: TranslationKey) => string,
+    private readonly shift: ShiftController,
     reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches,
   ) {
     super('OrderScene');
@@ -26,82 +25,94 @@ export class OrderScene extends Phaser.Scene {
     this.reducedMotion = reducedMotion;
   }
 
+  private get order(): OrderDefinition {
+    return this.shift.orderContent.definition;
+  }
+
+  private get orderSnapshot(): OrderSnapshot {
+    return this.shift.orderSession.snapshot();
+  }
+
   public create(): void {
     this.cameras.main.setBackgroundColor('rgba(0,0,0,0)');
-    const customer = {
-      id: 'customer.business-cat.order-01',
-      type: this.order.customerType,
-      variantId: 'customer.business-cat.neutral',
-      patience: 1,
-    } as const;
-    this.session = new OrderSession(
-      this.order,
-      customer,
-      HOT_CHEESE_BURGER_INGREDIENTS,
-      TRANSFORMATIONS,
-    );
+    this.shift.start();
     this.feedback = new FeedbackDirector(this, this.reducedMotion);
-    this.view = new OrderSceneView(
-      this,
-      this.order,
-      HOT_CHEESE_BURGER_INGREDIENTS,
-      this.translate,
-      (action) => this.handleAction(action),
-      this.reducedMotion,
-    );
-    this.view.render(this.session.snapshot());
+    this.createCurrentView();
+    this.renderCurrentOrder();
     this.scale.on(Phaser.Scale.Events.RESIZE, this.handleResize, this);
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
       this.scale.off(Phaser.Scale.Events.RESIZE, this.handleResize, this);
+      this.view.destroy();
     });
 
-    this.view.playEntry(() => {
-      this.session.customerEntered();
-      this.view.render(this.session.snapshot());
-    });
+    this.playCustomerEntry();
     this.game.events.emit(APP_EVENTS.gameReady);
   }
 
   public update(_time: number, delta: number): void {
-    const before = this.session.snapshot();
+    const before = this.orderSnapshot;
     if (before.phase !== 'grilling' || !before.grill.active) return;
-    const grill = this.session.advanceGrill(delta);
+    const grill = this.shift.orderSession.advanceGrill(delta);
     if (grill.state !== before.grill.state) {
       const layout = this.viewLayout();
       this.feedback.grillStateChanged(grill.state, layout.x, layout.y);
     }
-    this.view.render(this.session.snapshot());
+    this.renderCurrentOrder();
   }
 
-  public getDiagnosticsSnapshot(): OrderSnapshot | null {
-    if (!import.meta.env.DEV || !this.session) return null;
-    return this.session.snapshot();
+  public getDiagnosticsSnapshot(): ShiftControllerSnapshot | null {
+    if (!import.meta.env.DEV) return null;
+    return this.shift.snapshot();
+  }
+
+  private createCurrentView(): void {
+    this.view = new OrderSceneView(
+      this,
+      this.order,
+      this.shift.customerDefinition,
+      this.shift.orderContent.ingredients,
+      this.translate,
+      (action) => this.handleAction(action),
+      this.reducedMotion,
+    );
+  }
+
+  private playCustomerEntry(): void {
+    this.view.playEntry(() => {
+      this.shift.orderSession.customerEntered();
+      this.renderCurrentOrder();
+    });
+  }
+
+  private renderCurrentOrder(): void {
+    this.view.render(this.orderSnapshot, this.shift.economy.snapshot().coins, this.shift.shiftSnapshot.phase);
   }
 
   private handleAction(action: OrderAction): void {
+    const session = this.shift.orderSession;
     switch (action.type) {
       case 'ingredient':
-        this.session.toggleIngredient(action.ingredientId);
+        session.toggleIngredient(action.ingredientId);
         this.feedback.ingredientSelected(action.x, action.y);
         break;
       case 'open-prep':
-        this.session.openPrepBoard();
+        session.openPrepBoard();
         break;
       case 'prepare-ingredient':
-        this.session.prepareIngredient(action.ingredientId);
+        session.prepareIngredient(action.ingredientId);
         break;
       case 'continue-grill':
-        this.session.continueToGrill();
+        session.continueToGrill();
         break;
       case 'toggle-grill':
         this.toggleGrill();
         break;
       case 'assemble':
-        this.session.assemble();
+        session.assemble();
         this.view.assembledBurger(this.order.baseAssembledAssetKey);
         break;
       case 'add-modifier':
-        this.session.addModifier(action.ingredientId);
+        session.addModifier(action.ingredientId);
         this.view.assembledBurger(this.order.assembledAssetKey);
         this.feedback.ingredientSelected(this.scale.width * 0.5, this.scale.height * 0.72);
         break;
@@ -109,50 +120,57 @@ export class OrderScene extends Phaser.Scene {
         this.serveOrder();
         break;
     }
-    this.view.render(this.session.snapshot());
+    this.renderCurrentOrder();
   }
 
   private toggleGrill(): void {
-    const snapshot = this.session.snapshot();
+    const session = this.shift.orderSession;
+    const snapshot = session.snapshot();
     if (snapshot.grill.active) {
-      const result = this.session.stopGrill();
+      const result = session.stopGrill();
       this.feedback.grillStateChanged(result.state, this.viewLayout().x, this.viewLayout().y);
       return;
     }
-    this.session.startGrill();
+    session.startGrill();
   }
 
   private serveOrder(): void {
-    this.session.serve();
+    this.shift.orderSession.serve();
     this.view.anticipate();
-    this.view.render(this.session.snapshot());
+    this.renderCurrentOrder();
     this.time.delayedCall(this.reducedMotion ? 300 : 850, () => this.revealReaction());
   }
 
   private revealReaction(): void {
-    this.session.resolveReaction();
-    const snapshot = this.session.snapshot();
-    this.view.render(snapshot);
+    this.shift.orderSession.resolveReaction();
+    const snapshot = this.orderSnapshot;
+    this.renderCurrentOrder();
     const customer = this.view.customerPosition();
-    if (snapshot.transformationResult) {
-      this.feedback.transformation(customer.x, customer.y);
-    }
+    if (snapshot.transformationResult) this.feedback.transformation(customer.x, customer.y);
     this.feedback.payment(customer.x, customer.y + 28);
     this.time.delayedCall(this.reducedMotion ? 500 : 1250, () => this.beginCustomerExit());
   }
 
   private beginCustomerExit(): void {
-    this.session.beginCustomerLeaving();
-    this.view.render(this.session.snapshot());
+    this.shift.orderSession.beginCustomerLeaving();
+    this.renderCurrentOrder();
     this.view.playCustomerExit(() => {
-      this.session.customerLeft();
-      this.view.render(this.session.snapshot());
+      this.shift.orderSession.customerLeft();
+      this.shift.completeActiveOrder();
+      if (this.shift.shiftSnapshot.phase === 'in-progress') {
+        this.view.destroy();
+        this.createCurrentView();
+        this.renderCurrentOrder();
+        this.playCustomerEntry();
+      } else {
+        this.renderCurrentOrder();
+      }
     });
   }
 
   private handleResize(gameSize: Phaser.Structs.Size): void {
     this.view.layout(gameSize.width, gameSize.height);
-    this.view.render(this.session.snapshot());
+    this.renderCurrentOrder();
   }
 
   private viewLayout(): { x: number; y: number } {

@@ -1,4 +1,5 @@
 import type { GameplayTag } from '../ingredients/GameplayTag';
+import type { ProgressionContext } from '../progression/ProgressionContext';
 
 export type TransformationRarity = 'common' | 'uncommon' | 'rare' | 'legendary';
 
@@ -18,6 +19,4 @@ export interface TransformationDefinition {
   readonly requiredUnlocks: readonly string[];
 }
 
-export interface TransformationContext {
-  readonly unlockedIds: ReadonlySet<string>;
-}
+export type TransformationContext = ProgressionContext;

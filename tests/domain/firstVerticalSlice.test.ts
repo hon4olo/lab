@@ -6,9 +6,11 @@ import type { FoodInstance } from '../../src/game/cooking/FoodInstance';
 import { GRILL_TIMING } from '../../src/game/cooking/GrillSession';
 import type { CustomerInstance } from '../../src/game/customers/CustomerInstance';
 import { calculatePayment } from '../../src/game/economy/PaymentCalculator';
+import { EconomySession } from '../../src/game/economy/EconomySession';
 import { scoreOrder } from '../../src/game/scoring/OrderScoring';
 import { resolveTransformation } from '../../src/game/transformations/resolveTransformation';
 import { OrderSession } from '../../src/game/orders/OrderSession';
+import { createProgressionContext } from '../../src/game/progression/ProgressionContext';
 
 const businessCat: CustomerInstance = {
   id: 'customer.business-cat.test',
@@ -35,9 +37,12 @@ describe('Snack Lab first order vertical slice domain', () => {
       scores: { order: 100, cook: 100, chaos: 140 },
       transformationResult: { id: 'transformation.business-cat.flaming' },
       payment: { total: 55 },
-      coins: 55,
     });
     expect(session.snapshot().food?.tags).toEqual(expect.arrayContaining(['HOT', 'FIRE', 'CAT']));
+    expect(session.snapshot()).not.toHaveProperty('coins');
+    const economy = new EconomySession(20);
+    expect(economy.applyPayment(session.snapshot().payment!)).toBe(true);
+    expect(economy.snapshot()).toMatchObject({ persistentCoins: 20, sessionCoins: 55, coins: 75 });
   });
 
   it('records a burned patty in the FoodInstance when cooking is left too long', () => {
@@ -100,14 +105,48 @@ describe('Snack Lab first order vertical slice domain', () => {
       total: 55,
     });
   });
+
+  it('passes injected unlocks through OrderSession into transformation resolution', () => {
+    const gatedTransformations = TRANSFORMATIONS.map((definition) => ({
+      ...definition,
+      requiredUnlocks: ['unlock.flame-reaction'],
+    }));
+    const session = createSession(['unlock.flame-reaction'], gatedTransformations);
+    prepareOrder(session);
+    session.startGrill();
+    session.advanceGrill(GRILL_TIMING.idealStopAtMs);
+    session.stopGrill();
+    session.assemble();
+    session.addModifier('ingredient.extra-spicy');
+    session.serve();
+    session.resolveReaction();
+    expect(session.snapshot().transformationResult?.id).toBe('transformation.business-cat.flaming');
+  });
 });
 
-function createSession(): OrderSession {
+function createSession(
+  unlockedIds: readonly string[] = [],
+  transformations = TRANSFORMATIONS,
+): OrderSession {
   return new OrderSession(
     HOT_CHEESE_BURGER_EXTRA_SPICY,
     businessCat,
     HOT_CHEESE_BURGER_INGREDIENTS,
-    TRANSFORMATIONS,
+    transformations,
+    {
+      transactionId: 'test.shift.order-01',
+      progression: createProgressionContext(unlockedIds),
+      balance: {
+        missingIngredientPenalty: 18,
+        extraIngredientPenalty: 6,
+        unpreparedIngredientPenalty: 10,
+        unassembledPenalty: 20,
+        qualityBonusScale: 500,
+        chaosBonusScale: 1000,
+        chaosBonusCap: 200,
+        tipScale: 200,
+      },
+    },
   );
 }
 

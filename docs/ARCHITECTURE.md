@@ -88,13 +88,16 @@ extra engine-specific mirror tree.
 - `main.ts` creates the application composition root.
 - `BootScene` performs synchronous engine setup and immediately starts preload.
 - `PreloadScene` loads the production-approved manifest bundle by stable ID.
-- `OrderScene` coordinates the first Business Cat order by composing the plain TypeScript
-  `OrderSession` with focused Phaser presenters and a feedback director. It does not own recipe,
-  cooking, scoring, transformation, or payment rules.
+- The application composition root injects an authored `ShiftController` into `OrderScene`.
+  `ShiftController` composes `ShiftSession`, the current plain TypeScript `OrderSession`, authored
+  order/customer content, a progression context, balance configuration, and the external
+  `EconomySession`. The scene coordinates the sequence and focused Phaser presenters; it does not
+  construct customer values or own recipe, cooking, scoring, transformation, or payment rules.
 
-The initial production slice is documented in `GAMEPLAY.md`. It includes one Business Cat order
-and does not yet start a second customer. A future shift coordinator may compose order sessions,
-customer queues, and station navigation without moving their rules into a scene.
+The initial production slice is documented in `GAMEPLAY.md`. The current authored shift includes
+one Business Cat order and finishes after it. `ShiftController` already sequences order sessions
+from content, so a later order can be added to the shift definition without putting order rules in
+the scene.
 
 Both DOM and canvas fill the available safe viewport. Portrait and landscape/desktop select
 different layout compositions through CSS/container sizing, not a stretched fixed screenshot.
@@ -120,16 +123,29 @@ content lookups fail at validation/load boundaries rather than deep inside a sce
 history, quality, tags, Chaos score, mistakes, and visual variant. Definitions are immutable;
 instances hold runtime state.
 
-The first order session composes focused domain systems for ingredient selection, prep, grilling,
-burger assembly, scoring, payment, and customer lifecycle. `OrderSnapshot` is a cloned,
-renderer-free diagnostic view of the current order.
+The first `OrderSession` composes focused domain systems for ingredient selection, prep, grilling,
+burger assembly, scoring, payment transaction creation, and customer lifecycle. It never owns player
+coins. `EconomySession` applies payment transactions once, owns the runtime wallet balance, and
+exposes a plain snapshot suitable for the save boundary. `ShiftSession` owns the authored order
+sequence, active index, completed slots, phase, and shift earnings; `ShiftController` coordinates
+those systems and creates the next order session from content. `OrderSnapshot` is a cloned,
+renderer-free view of one order.
+
+`CustomerDefinition` content stores authored customer type, variant, base patience, display key, and
+appearance asset IDs. `OrderScene` and the generic layered customer presenter receive that content
+through the shift controller. The first shift is authored in `src/content/shifts/firstShift.ts` and
+currently has exactly one Business Cat order.
 
 ## Data-driven transformations
 
 `TransformationResolver` filters incompatible definitions, verifies required/forbidden tags,
 minimum Chaos, customer compatibility, and unlock requirements, then ranks candidates by priority,
-preferred-tag matches, rarity weight, and stable ID tie-break. Random rarity selection, if later
-approved, receives an injected seeded RNG so named scenarios and replays stay deterministic.
+preferred-tag matches, rarity weight, and stable ID tie-break. The resolver receives
+`ProgressionContext` at the order boundary; it has no Phaser dependency. Random rarity selection, if
+later approved, receives an injected seeded RNG so named scenarios and replays stay deterministic.
+
+Shared scoring and payment tuning lives in typed `src/game/balance/BalanceConfig.ts`. Sessions
+receive that configuration as data instead of embedding tuning constants in score and payment code.
 
 Definitions carry appearance and reaction sequence IDs. The resolver never creates art and never
 switches on individual transformation names.

@@ -1,4 +1,5 @@
 import type Phaser from 'phaser';
+import type { ShiftControllerSnapshot } from '../game/shifts/ShiftController';
 import type { OrderSnapshot } from '../game/orders/OrderSession';
 import type { PlatformService } from '../platform/PlatformService';
 import { SCENARIO_NAMES, type ScenarioName } from './scenarios';
@@ -7,12 +8,17 @@ interface DebugSnapshot {
   readonly currentScene: string | null;
   readonly orderId: string | null;
   readonly orderPhase: OrderSnapshot['phase'] | null;
+  readonly shiftPhase: ShiftControllerSnapshot['shift']['phase'] | null;
+  readonly activeOrderIndex: number | null;
+  readonly shiftEarnings: number;
   readonly selectedIngredients: readonly string[];
-  readonly foodInstance: OrderSnapshot['food'];
+  readonly foodInstance: OrderSnapshot['food'] | null;
   readonly grillState: OrderSnapshot['grill'] | null;
   readonly scores: OrderSnapshot['scores'];
   readonly transformationResult: OrderSnapshot['transformationResult'];
   readonly coins: number;
+  readonly persistentCoins: number;
+  readonly sessionCoins: number;
   readonly fps: number;
   readonly platform: {
     readonly providerId: string;
@@ -80,19 +86,25 @@ function addAssetPreviewButton(onClick: () => void): void {
 function createSnapshot(game: Phaser.Game, platform: PlatformService): DebugSnapshot {
   const activeScene = game.scene.getScenes(true).at(-1);
   const orderScene = game.scene.getScene('OrderScene') as Phaser.Scene & {
-    getDiagnosticsSnapshot?: () => OrderSnapshot | null;
+    getDiagnosticsSnapshot?: () => ShiftControllerSnapshot | null;
   };
-  const order = orderScene.getDiagnosticsSnapshot?.() ?? null;
+  const state = orderScene.getDiagnosticsSnapshot?.() ?? null;
+  const order = state?.order ?? null;
   return structuredClone({
     currentScene: activeScene?.scene.key ?? null,
     orderId: order?.orderId ?? null,
     orderPhase: order?.phase ?? null,
+    shiftPhase: state?.shift.phase ?? null,
+    activeOrderIndex: state?.shift.activeOrderIndex ?? null,
+    shiftEarnings: state?.shift.earnings ?? 0,
     selectedIngredients: order?.selectedIngredients ?? [],
     foodInstance: order?.food ?? null,
     grillState: order?.grill ?? null,
     scores: order?.scores ?? null,
     transformationResult: order?.transformationResult ?? null,
-    coins: order?.coins ?? 0,
+    coins: state?.economy.coins ?? 0,
+    persistentCoins: state?.economy.persistentCoins ?? 0,
+    sessionCoins: state?.economy.sessionCoins ?? 0,
     fps: Math.round(game.loop.actualFps),
     platform: {
       providerId: platform.environment.providerId,

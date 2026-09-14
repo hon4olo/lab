@@ -2,8 +2,10 @@ import Phaser from 'phaser';
 import type { IngredientDefinition } from '../../game/ingredients/IngredientDefinition';
 import type { OrderDefinition } from '../../game/orders/OrderDefinition';
 import type { OrderSnapshot } from '../../game/orders/OrderSession';
+import type { CustomerDefinition } from '../../game/customers/CustomerDefinition';
+import type { ShiftPhase } from '../../game/shifts/ShiftSession';
 import type { TranslationKey } from '../../localization/createTranslator';
-import { BusinessCatPresenter } from './BusinessCatPresenter';
+import { CustomerPresenter } from './CustomerPresenter';
 import { BurgerPresenter } from './BurgerPresenter';
 import { IngredientTrayPresenter } from './IngredientTrayPresenter';
 import { OrderHudPresenter } from './OrderHudPresenter';
@@ -14,7 +16,7 @@ export class OrderSceneView {
   private readonly background: Phaser.GameObjects.Image;
   private readonly counter: Phaser.GameObjects.Image;
   private readonly station: Phaser.GameObjects.Image;
-  private readonly customer: BusinessCatPresenter;
+  private readonly customer: CustomerPresenter;
   private readonly burger: BurgerPresenter;
   private readonly tray: IngredientTrayPresenter;
   private readonly hud: OrderHudPresenter;
@@ -25,6 +27,7 @@ export class OrderSceneView {
   public constructor(
     private readonly scene: Phaser.Scene,
     private readonly order: OrderDefinition,
+    customerDefinition: CustomerDefinition,
     ingredients: readonly IngredientDefinition[],
     private readonly localize: (key: TranslationKey) => string,
     private readonly onAction: (action: OrderAction) => void,
@@ -40,9 +43,9 @@ export class OrderSceneView {
       const action = this.hud.getStationAction();
       if (action) this.onAction(action);
     });
-    this.customer = new BusinessCatPresenter(scene);
+    this.customer = new CustomerPresenter(scene, customerDefinition.appearanceAssets);
     this.burger = new BurgerPresenter(scene);
-    this.hud = new OrderHudPresenter(scene, order, onAction);
+    this.hud = new OrderHudPresenter(scene, order, customerDefinition.displayNameKey, onAction);
     this.tray = new IngredientTrayPresenter(scene, ingredients, (ingredientId, x, y) => {
       if (this.currentPhase === 'modifier-selection' && ingredientId === this.order.modifierIngredientId) {
         this.onAction({ type: 'add-modifier', ingredientId });
@@ -70,7 +73,7 @@ export class OrderSceneView {
     this.layoutFood();
   }
 
-  public render(snapshot: OrderSnapshot): void {
+  public render(snapshot: OrderSnapshot, coins: number, shiftPhase: ShiftPhase): void {
     this.currentPhase = snapshot.phase;
     const isGrilling = snapshot.phase === 'grilling';
     const showStation = ['ingredient-selection', 'prep-board', 'grilling'].includes(snapshot.phase);
@@ -84,7 +87,7 @@ export class OrderSceneView {
       ? this.order.requiredIngredientIds.filter((id) => id !== this.order.modifierIngredientId)
       : snapshot.phase === 'modifier-selection' ? [this.order.modifierIngredientId] : [];
     this.tray.render(snapshot.selectedIngredients, availableIngredients, this.localize);
-    this.hud.render(snapshot, this.localize);
+    this.hud.render(snapshot, coins, shiftPhase, this.localize);
     this.customer.setMutation(snapshot.transformationResult?.appearanceAssets ?? []);
 
     const showFood = ['grilling', 'assembly', 'modifier-selection', 'anticipation']
@@ -121,6 +124,16 @@ export class OrderSceneView {
 
   public isReducedMotion(): boolean {
     return this.reducedMotion;
+  }
+
+  public destroy(): void {
+    this.background.destroy();
+    this.counter.destroy();
+    this.station.destroy();
+    this.customer.destroy();
+    this.burger.destroy();
+    this.tray.destroy();
+    this.hud.destroy();
   }
 
   private layoutFood(snapshot?: OrderSnapshot): void {

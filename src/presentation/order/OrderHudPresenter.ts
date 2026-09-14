@@ -3,6 +3,7 @@ import type { OrderDefinition } from '../../game/orders/OrderDefinition';
 import type { OrderSnapshot } from '../../game/orders/OrderSession';
 import type { TranslationKey } from '../../localization/createTranslator';
 import type { OrderLayout } from './orderLayout';
+import type { ShiftPhase } from '../../game/shifts/ShiftSession';
 import {
   createEmptyOrderSnapshot,
   getActionLabel,
@@ -36,6 +37,7 @@ export class OrderHudPresenter {
   public constructor(
     private readonly scene: Phaser.Scene,
     private readonly order: OrderDefinition,
+    private readonly customerNameKey: string,
     onAction: (action: OrderAction) => void,
   ) {
     this.orderBubble = scene.add.image(0, 0, 'ui.order-bubble.street').setDepth(30);
@@ -133,11 +135,16 @@ export class OrderHudPresenter {
       .setFontSize(layout.compact ? '13px' : '16px');
   }
 
-  public render(snapshot: OrderSnapshot, localize: (key: TranslationKey) => string): void {
+  public render(
+    snapshot: OrderSnapshot,
+    coins: number,
+    shiftPhase: ShiftPhase,
+    localize: (key: TranslationKey) => string,
+  ): void {
     this.snapshot = snapshot;
     const showOrder = !['customer-leaving', 'next-order-ready'].includes(snapshot.phase);
     this.orderBubble.setVisible(showOrder);
-    this.customerName.setVisible(showOrder).setText(localize('order.customer'));
+    this.customerName.setVisible(showOrder).setText(localize(this.customerNameKey as TranslationKey));
     this.title.setVisible(showOrder).setText(localize(this.order.displayNameKey as TranslationKey));
     this.modifier.setVisible(showOrder).setText(localize(this.order.modifierKey as TranslationKey));
     this.instruction.setVisible(showOrder);
@@ -147,8 +154,8 @@ export class OrderHudPresenter {
         : `order.phase.${snapshot.phase}` as TranslationKey,
     ));
     this.nextOrderText.setVisible(snapshot.phase === 'next-order-ready')
-      .setText(localize('order.phase.next-order-ready'));
-    this.coinValue.setText(String(snapshot.coins));
+      .setText(localize(shiftPhase === 'completed' ? 'shift.completed' : 'order.phase.next-order-ready'));
+    this.coinValue.setText(String(coins));
     this.stationName.setText(localize(snapshot.phase === 'grilling' ? 'station.grill' : 'station.prep-board'));
     this.stationName.setVisible(['ingredient-selection', 'prep-board', 'grilling'].includes(snapshot.phase));
     this.actionPanel.setVisible(hasOrderAction(snapshot.phase));
@@ -193,6 +200,16 @@ export class OrderHudPresenter {
 
   public layoutStateSnapshot(): OrderLayout | null {
     return this.layoutState;
+  }
+
+  public destroy(): void {
+    const objects = [
+      this.orderBubble, this.customerName, this.title, this.modifier, this.instruction,
+      this.stationName, this.coinIcon, this.coinValue, this.actionPanel, this.actionButton,
+      this.actionLabel, this.cookState, this.heatTrack, this.resultBackdrop, this.resultCard,
+      ...this.resultScoreLabels, this.resultScoreBars, this.paymentText, this.nextOrderText,
+    ];
+    for (const object of new Set(objects)) object.destroy();
   }
 
   private drawHeat(snapshot: OrderSnapshot): void {

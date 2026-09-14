@@ -7,13 +7,22 @@ import { createFoodInstance } from '../cooking/createFoodInstance';
 import { PrepBoardSession } from '../cooking/PrepBoardSession';
 import type { CustomerInstance } from '../customers/CustomerInstance';
 import { CustomerLifecycle } from '../customers/CustomerLifecycle';
-import { calculatePayment, type PaymentResult } from '../economy/PaymentCalculator';
+import { calculatePayment } from '../economy/PaymentCalculator';
 import { IngredientSelection } from '../ingredients/IngredientSelection';
 import { assembleBurger } from '../recipes/BurgerAssembler';
 import type { ScoreResult } from '../scoring/OrderScoring';
 import { scoreOrder } from '../scoring/OrderScoring';
 import type { OrderDefinition } from './OrderDefinition';
 import { resolveTransformation } from '../transformations/resolveTransformation';
+import type { ProgressionContext } from '../progression/ProgressionContext';
+import type { BalanceConfig } from '../balance/BalanceConfig';
+import type { PaymentTransaction } from '../economy/PaymentTransaction';
+
+export interface OrderSessionOptions {
+  readonly transactionId: string;
+  readonly progression: ProgressionContext;
+  readonly balance: BalanceConfig;
+}
 
 export type OrderPhase =
   | 'customer-entering'
@@ -38,8 +47,7 @@ export interface OrderSnapshot {
   readonly assembled: boolean;
   readonly scores: ScoreResult | null;
   readonly transformationResult: TransformationSnapshot | null;
-  readonly payment: PaymentResult | null;
-  readonly coins: number;
+  readonly payment: PaymentTransaction | null;
 }
 
 export interface FoodInstanceSnapshot extends Omit<FoodInstance, 'tags'> {
@@ -64,14 +72,14 @@ export class OrderSession {
   private assembled = false;
   private scores: ScoreResult | null = null;
   private transformation: TransformationDefinition | null = null;
-  private payment: PaymentResult | null = null;
-  private coins = 0;
+  private payment: PaymentTransaction | null = null;
 
   public constructor(
     private readonly order: OrderDefinition,
     private readonly customer: CustomerInstance,
     private readonly ingredients: readonly IngredientDefinition[],
     private readonly transformations: readonly TransformationDefinition[],
+    private readonly options: OrderSessionOptions,
   ) {
     this.selection = new IngredientSelection(ingredients);
     this.prepBoard = new PrepBoardSession(ingredients);
@@ -164,20 +172,24 @@ export class OrderSession {
       preparedIngredients: this.prepBoard.getPrepared(),
       assembled: this.assembled,
       food: this.food,
-    });
+    }, this.options.balance);
     this.transformation = resolveTransformation(
       this.food,
       this.customer,
-      { unlockedIds: new Set() },
+      this.options.progression,
       this.transformations,
     );
-    this.payment = calculatePayment({
+    const result = calculatePayment({
       basePayment: this.order.basePayment,
       baseTip: this.order.baseTip,
       score: this.scores,
       transformationRewardModifier: this.transformation?.rewardModifier ?? 1,
-    });
-    this.coins += this.payment.total;
+    }, this.options.balance);
+    this.payment = {
+      ...result,
+      transactionId: this.options.transactionId,
+      orderId: this.order.id,
+    };
     this.lifecycle.completeReaction();
     this.phase = 'payment';
   }
@@ -215,7 +227,6 @@ export class OrderSession {
           }
         : null,
       payment: this.payment ? { ...this.payment } : null,
-      coins: this.coins,
     };
   }
 

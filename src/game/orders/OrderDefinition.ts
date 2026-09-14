@@ -7,7 +7,6 @@ export interface OrderDefinition {
   readonly modifierKey: string;
   readonly modifierIngredientId: string;
   readonly grillIngredientId: string;
-  readonly customerType: string;
   readonly recipeId: string;
   readonly requiredIngredientIds: readonly string[];
   readonly expectedIngredientOrder: readonly string[];

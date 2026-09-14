@@ -44,6 +44,10 @@ export class BurgerPresenter {
     this.foodImage.setVisible(false);
   }
 
+  public destroy(): void {
+    this.foodImage.destroy();
+  }
+
   private setAsset(assetKey: string): void {
     if (this.currentAsset === assetKey) return;
     this.currentAsset = assetKey;
