@@ -1,12 +1,29 @@
 # Snack Lab — Asset Batch 01
 
 This document defines the production specifications for Asset Batch 01. The original artwork was
-replaced from `Snack_Lab_Asset_Batch_01_PRODUCTION_FIX.zip` at the existing runtime paths in
-`public/assets/manifest.json`. The five QA/documentation files at the archive root were not imported
-as game assets. Presence in the repository does not imply production approval; the manifest status
-remains the source of truth.
+replaced from the corrective archives at the existing runtime paths in
+`public/assets/manifest.json`. QA images, manifests, and READMEs from those archives were not
+imported as game assets. Presence in the repository does not imply production approval; the
+manifest status remains the source of truth.
 
-## Production Fix QA — 2026-09-14
+## Final Face + Background Fix QA — 2026-09-14
+
+- All five requested files were replaced without changing manifest IDs or paths. The four face
+  layers are 512×512 and aligned to the same canvas; the background is opaque 2048×1152.
+- The separate pupils and mouth PNGs have visible independent alpha/content. The head + eyes +
+  pupils + mouth composite matches the supplied neutral-face QA composite pixel-for-pixel in a
+  source-canvas comparison. The Phaser stack passes on dark and light backgrounds without
+  artifacts or positional drift.
+- The Street Snack Bar background fills its canvas without reference-sheet bands or baked captions
+  and passes dark/light QA.
+- All 33 previously approved, non-replaced image files are byte-identical to the prior checkpoint.
+  Final manifest status: **38 production-approved, 0 planned**.
+- QA images, README, and final-fix manifest remain outside `public/assets/`.
+
+## Production Fix QA — 2026-09-14 (before final correction)
+
+The counts and failures in this section describe the intermediate checkpoint before the final
+face/background patch above.
 
 - All 38 replacement PNGs load in the development-only Phaser Asset QA scene and match their
   manifest dimensions. The 37 assets requiring transparency have transparent pixels and clean
