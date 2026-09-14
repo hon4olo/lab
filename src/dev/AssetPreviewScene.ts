@@ -1,21 +1,19 @@
 import Phaser from 'phaser';
 import { getManifestAssets } from '../assets/assetManifest';
 
-const CHARACTER_LAYER_ORDER = [
+const NEUTRAL_BUSINESS_CAT_LAYERS = [
   'customer.business-cat.body',
   'customer.business-cat.head',
-  'customer.business-cat.arms',
-  'customer.business-cat.hands',
-  'customer.business-cat.accessories',
   'customer.business-cat.eyes',
   'customer.business-cat.pupils',
   'customer.business-cat.mouth',
-  'customer.business-cat.mutation.fire-accents',
-  'customer.business-cat.mutation.glow-eyes',
-  'customer.business-cat.mutation.singed-tie',
+  'customer.business-cat.arms',
+  'customer.business-cat.hands',
+  'customer.business-cat.accessories',
 ];
 
-const CUSTOMER_PREFIX = 'customer.business-cat.';
+const DARK_PREVIEW = 0x241332;
+const LIGHT_PREVIEW = 0xf6f1e6;
 
 export class AssetPreviewScene extends Phaser.Scene {
   private readonly failedAssets = new Set<string>();
@@ -59,93 +57,118 @@ export class AssetPreviewScene extends Phaser.Scene {
 
   private renderPreview(assets: ReturnType<typeof getManifestAssets>): void {
     const { width, height } = this.scale;
-    this.cameras.main.setBackgroundColor('#241332');
+    this.cameras.main.setBackgroundColor(DARK_PREVIEW);
 
-    this.add.text(24, 16, 'Snack Lab · Asset QA', {
+    this.add.text(24, 14, 'Snack Lab · Asset QA', {
       fontFamily: 'system-ui, sans-serif',
       fontSize: '22px',
       fontStyle: 'bold',
       color: '#fff1d0',
     });
-    this.add.text(width - 24, 22, 'Development only · Escape to return', {
+    this.add.text(24, 43, 'Every image is shown on dark and light backgrounds · Escape to return', {
+      fontFamily: 'system-ui, sans-serif',
+      fontSize: '12px',
+      color: '#b8a8c8',
+    });
+    this.add.text(width - 24, 22, 'Development only', {
       fontFamily: 'system-ui, sans-serif',
       fontSize: '13px',
       color: '#b8a8c8',
     }).setOrigin(1, 0);
 
-    const characterAssets = assets.filter((asset) => asset.id.startsWith(CUSTOMER_PREFIX));
-    const characterIds = new Set(characterAssets.map((asset) => asset.id));
-    const others = assets.filter((asset) => !characterIds.has(asset.id));
-    const panelWidth = Math.max(250, Math.floor(width * 0.29));
+    const neutralIds = new Set(NEUTRAL_BUSINESS_CAT_LAYERS);
+    const otherAssets = assets.filter((asset) => !neutralIds.has(asset.id));
+    const panelWidth = Math.max(270, Math.floor(width * (width < 800 ? 0.44 : 0.34)));
     const dividerX = panelWidth + 14;
-    const previewSize = Math.max(160, Math.min(panelWidth - 48, height - 180, 430));
-    const characterX = Math.floor(panelWidth / 2) + 12;
-    const characterY = Math.floor(height * 0.49);
+    const panelX = Math.floor(panelWidth / 2) + 8;
+    const stackWidth = (panelWidth - 56) / 2;
+    const stackSize = Math.max(72, Math.min(stackWidth - 12, height - 210, 390));
+    const stackY = Math.min(Math.floor(height * 0.5), height - stackSize / 2 - 72);
+    const stackCenters = [panelX - stackWidth / 2 - 5, panelX + stackWidth / 2 + 5];
 
-    this.add.rectangle(characterX, height * 0.52, panelWidth - 20, height - 112, 0x352144, 1)
+    this.add.rectangle(panelX, height * 0.52, panelWidth - 20, height - 106, 0x352144, 1)
       .setStrokeStyle(1, 0x5b456e);
-    this.add.text(characterX, 70, `Business Cat · ${characterAssets.length} layers`, {
+    this.add.text(panelX, 73, `Business Cat · neutral · ${NEUTRAL_BUSINESS_CAT_LAYERS.length} layers`, {
       fontFamily: 'system-ui, sans-serif',
-      fontSize: '15px',
+      fontSize: '14px',
       fontStyle: 'bold',
       color: '#5df2c6',
     }).setOrigin(0.5, 0);
 
-    CHARACTER_LAYER_ORDER.forEach((id, index) => {
-      if (this.failedAssets.has(id) || !this.textures.exists(id)) return;
-      this.add.image(characterX, characterY, id)
-        .setDisplaySize(previewSize, previewSize)
-        .setDepth(index + 1);
-    });
+    stackCenters.forEach((centerX, previewIndex) => {
+      const isLightPreview = previewIndex === 1;
+      const panelColor = isLightPreview ? LIGHT_PREVIEW : DARK_PREVIEW;
+      const labelColor = isLightPreview ? '#241332' : '#fff1d0';
+      this.add.rectangle(centerX, stackY, stackWidth - 8, stackSize + 50, panelColor, 1)
+        .setStrokeStyle(1, isLightPreview ? 0xd3cbbd : 0x5b456e);
+      this.add.text(centerX, stackY - stackSize / 2 - 19, isLightPreview ? 'LIGHT' : 'DARK', {
+        fontFamily: 'system-ui, sans-serif',
+        fontSize: '10px',
+        fontStyle: 'bold',
+        color: labelColor,
+      }).setOrigin(0.5, 0.5);
 
-    const layerNames = characterAssets
-      .map((asset) => asset.id.replace(CUSTOMER_PREFIX, ''))
-      .join(' · ');
-    this.add.text(characterX, characterY + previewSize / 2 + 12, layerNames, {
-      fontFamily: 'system-ui, sans-serif',
-      fontSize: '10px',
-      color: '#d6cce0',
-      align: 'center',
-      wordWrap: { width: panelWidth - 40 },
-    }).setOrigin(0.5, 0);
+      NEUTRAL_BUSINESS_CAT_LAYERS.forEach((id, index) => {
+        if (this.failedAssets.has(id) || !this.textures.exists(id)) return;
+        this.add.image(centerX, stackY, id)
+          .setDisplaySize(stackSize, stackSize)
+          .setDepth(index + 1);
+      });
+
+      this.add.text(centerX, stackY + stackSize / 2 + 10, 'shared 512×512 canvas', {
+        fontFamily: 'system-ui, sans-serif',
+        fontSize: '9px',
+        color: labelColor,
+      }).setOrigin(0.5, 0);
+    });
 
     this.add.rectangle(dividerX, height / 2, 1, height - 80, 0x5b456e);
-    this.add.text(dividerX + 18, 70, `Burger · stations · environment · UI · FX (${others.length})`, {
+    this.add.text(dividerX + 14, 73, `All other assets · ${otherAssets.length} files`, {
       fontFamily: 'system-ui, sans-serif',
-      fontSize: '15px',
+      fontSize: '14px',
       fontStyle: 'bold',
       color: '#5df2c6',
     });
 
-    const columns = width < 900 ? 4 : 6;
-    const gridX = dividerX + 12;
-    const gridY = 104;
-    const gridWidth = width - gridX - 18;
-    const gridHeight = height - gridY - 24;
+    const gridX = dividerX + 10;
+    const gridY = 98;
+    const gridWidth = width - gridX - 12;
+    const gridHeight = height - gridY - 16;
+    const columns = width < 760 ? 3 : width < 1100 ? 4 : 6;
+    const rows = Math.ceil(otherAssets.length / columns);
     const cellWidth = gridWidth / columns;
-    const rows = Math.ceil(others.length / columns);
     const cellHeight = gridHeight / Math.max(rows, 1);
-    const imageSize = Math.max(30, Math.min(86, cellWidth - 16, cellHeight - 38));
+    const previewMaxHeight = Math.max(24, cellHeight - 38);
+    const previewHalfWidth = Math.max(18, (cellWidth - 22) / 2);
 
-    others.forEach((asset, index) => {
+    otherAssets.forEach((asset, index) => {
       const column = index % columns;
       const row = Math.floor(index / columns);
       const centerX = gridX + column * cellWidth + cellWidth / 2;
       const centerY = gridY + row * cellHeight + cellHeight / 2;
-      this.add.rectangle(centerX, centerY, cellWidth - 8, cellHeight - 8, 0x352144, 1)
-        .setStrokeStyle(1, 0x5b456e);
+      const failed = this.failedAssets.has(asset.id) || !this.textures.exists(asset.id);
 
-      if (!this.failedAssets.has(asset.id) && this.textures.exists(asset.id)) {
-        this.add.image(centerX, centerY - 8, asset.id)
-          .setDisplaySize(imageSize, imageSize);
+      this.add.rectangle(centerX, centerY, cellWidth - 6, cellHeight - 6, 0x352144, 1)
+        .setStrokeStyle(1, failed ? 0xff5c70 : 0x5b456e);
+
+      for (const previewIndex of [0, 1]) {
+        const isLightPreview = previewIndex === 1;
+        const halfX = centerX + (previewIndex === 0 ? -cellWidth / 4 : cellWidth / 4);
+        this.add.rectangle(halfX, centerY - 7, cellWidth / 2 - 9, cellHeight - 30,
+          isLightPreview ? LIGHT_PREVIEW : DARK_PREVIEW, 1);
+        if (failed) continue;
+
+        const source = this.textures.get(asset.id).getSourceImage();
+        const fitted = fitWithin(source.width, source.height, previewHalfWidth, previewMaxHeight);
+        this.add.image(halfX, centerY - 8, asset.id).setDisplaySize(fitted.width, fitted.height);
       }
 
-      this.add.text(centerX, centerY + imageSize / 2 - 1, shortLabel(asset.id), {
+      this.add.text(centerX, centerY + cellHeight / 2 - 20, shortLabel(asset.id), {
         fontFamily: 'system-ui, sans-serif',
         fontSize: '9px',
-        color: this.failedAssets.has(asset.id) ? '#ff5c70' : '#fff1d0',
+        color: failed ? '#ff5c70' : '#fff1d0',
         align: 'center',
-        wordWrap: { width: cellWidth - 14 },
+        wordWrap: { width: cellWidth - 12 },
       }).setOrigin(0.5, 0);
     });
 
@@ -159,8 +182,19 @@ export class AssetPreviewScene extends Phaser.Scene {
   }
 }
 
+function fitWithin(
+  sourceWidth: number,
+  sourceHeight: number,
+  maxWidth: number,
+  maxHeight: number,
+): { width: number; height: number } {
+  const scale = Math.min(maxWidth / sourceWidth, maxHeight / sourceHeight);
+  return { width: sourceWidth * scale, height: sourceHeight * scale };
+}
+
 function shortLabel(id: string): string {
   return id
+    .replace(/^customer\.business-cat\./, 'cat · ')
     .replace(/^food\.burger\./, 'burger · ')
     .replace(/^station\./, 'station · ')
     .replace(/^background\./, 'background · ')

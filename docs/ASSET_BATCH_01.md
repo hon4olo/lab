@@ -1,13 +1,34 @@
 # Snack Lab — Asset Batch 01
 
-This document defines the production specifications for Asset Batch 01. PNGs from the supplied
-complete batch have been imported under the runtime paths in `public/assets/manifest.json`.
-Presence in the repository does not imply production approval; the manifest status remains the
-source of truth. The Business Cat layers share a 512×512 master canvas and must pass in-engine
-stack/alignment review before they can be approved.
+This document defines the production specifications for Asset Batch 01. The original artwork was
+replaced from `Snack_Lab_Asset_Batch_01_PRODUCTION_FIX.zip` at the existing runtime paths in
+`public/assets/manifest.json`. The five QA/documentation files at the archive root were not imported
+as game assets. Presence in the repository does not imply production approval; the manifest status
+remains the source of truth.
 
-The supplied archive includes checksums and a source-of-truth note, but does not record per-asset
-creator or license terms. Those provenance fields remain unresolved in the manifest.
+## Production Fix QA — 2026-09-14
+
+- All 38 replacement PNGs load in the development-only Phaser Asset QA scene and match their
+  manifest dimensions. The 37 assets requiring transparency have transparent pixels and clean
+  transparent corners; the Street Snack Bar background is fully opaque as specified.
+- 35 assets are `production-approved`. Three remain `planned` for the individual failures below.
+- QA preview shows every image against dark and light backgrounds. It is a development-only scene.
+- The neutral Business Cat stack uses body, head, eyes, pupils, mouth, arms, hands, and accessories
+  on aligned 512×512 canvases. The combined character is coherent, without duplicate sheets,
+  background rectangles, circular artifacts, or positional drift. The delivered PNGs contain one
+  still image each; alternate expression frames are not assumed or included.
+- All burger ingredients, the finished burger, and the extra-spicy finished burger pass visual QA.
+- Provenance now records these as project-owned, project-generated Snack Lab artwork made from the
+  user-approved project visual reference. SHA-256 values are recorded in each manifest entry.
+
+Assets left planned:
+
+- `customer.business-cat.pupils`: its only nonzero alpha pixel has alpha 1/255, so the overlay is
+  not visible at the 512×512 master size.
+- `customer.business-cat.mouth`: its alpha tops out at 3/255, so the mouth overlay is effectively
+  invisible at the 512×512 master size. The neutral head art still renders in the combined stack.
+- `background.street-snack-bar`: the opaque image contains a white footer strip and baked label
+  text, `background (street snack bar)`.
 
 ## Customer: Business Cat
 
@@ -29,49 +50,53 @@ creator or license terms. Those provenance fields remain unresolved in the manif
 - **Runtime notes:** Stable muzzle/ear anchors; Phaser tween for head dip, recoil, squash/stretch, and look direction.
 - **Consistency constraints:** Exact master head silhouette, ear geometry, muzzle placement, outline weight, light direction, and baseline must never drift.
 
+The Business Cat entries below describe target roles. This production-fix batch supplies one still
+neutral image per PNG; the listed future reactions and gestures do not imply that alternate frames
+are present.
+
 ### `customer.business-cat.eyes`
 
 - **Visual brief:** Serious almond-shaped eyes with expressive upper lids and simple readable whites/iris treatment.
-- **Source size:** 512×512 px layer with aligned state variants; no baked labels.
+- **Source size:** One 512×512 px neutral eye overlay; no alternate state frames are included.
 - **Transparency:** Transparent PNG/WebP layer.
-- **Layer/animation role:** Idle, blink, inspect-food, anticipation, happy, shocked, too-hot; blink can be a 2–3 frame sheet if needed.
-- **Runtime notes:** Layer above head; eye-lid swap and Phaser tweens for widening, narrowing, and quick anticipation pause.
+- **Layer/animation role:** Neutral eye overlay for the current master; future expression states require separately authored art.
+- **Runtime notes:** Layer above head; do not assume a blink or expression sheet is present.
 - **Consistency constraints:** Eye angle, spacing, pupil anchor, palette, and expression vocabulary derive from the approved master reference.
 
 ### `customer.business-cat.pupils`
 
 - **Visual brief:** Compact dark pupils with small highlight option, capable of focused inspection, widening anticipation, and comic shock.
-- **Source size:** 512×512 px aligned layer on the shared character canvas.
+- **Source size:** One 512×512 px neutral pupil overlay on the shared character canvas.
 - **Transparency:** Transparent PNG/WebP layer.
-- **Layer/animation role:** Idle micro-look, inspect-food focus, anticipation widen, shocked shrink, too-hot jitter.
-- **Runtime notes:** Keep movement bounded to eye sockets; use tweens, not frame-heavy animation.
+- **Layer/animation role:** Neutral pupil overlay for the current master; gaze poses are future artwork.
+- **Runtime notes:** Keep movement bounded to eye sockets; do not assume alternate pupil art is present.
 - **Consistency constraints:** Never change eye spacing or socket geometry; retain deep-plum pupil color and controlled highlight size.
 
 ### `customer.business-cat.mouth`
 
-- **Visual brief:** Small expressive muzzle/mouth set: neutral, talk, closed smile, bite, chew, shocked open, and too-hot tongue gag.
-- **Source size:** 512×512 px layer with 7 aligned mouth states, or equivalent atlas slots.
+- **Visual brief:** Small neutral muzzle/mouth overlay; expression variants are future artwork.
+- **Source size:** One 512×512 px neutral mouth overlay on the shared character canvas.
 - **Transparency:** Transparent PNG/WebP layer.
-- **Layer/animation role:** Talk loop, bite/chew loop, happy, shocked, too-hot, and negative reaction support.
-- **Runtime notes:** Swap authored mouth cells and add tiny squash/stretch; no localized dialogue baked into art.
+- **Layer/animation role:** Neutral mouth overlay for the current master; other states require separately authored assets.
+- **Runtime notes:** No mouth-state sheet is present in this batch; no localized dialogue baked into art.
 - **Consistency constraints:** Preserve muzzle shape, mouth baseline, line weight, and expression scale from the master reference.
 
 ### `customer.business-cat.arms`
 
 - **Visual brief:** Short shirt sleeves and forearms with clear gesture silhouettes, preserving the compact business-cat posture.
-- **Source size:** 512×512 px layer with aligned pose variants.
+- **Source size:** One 512×512 px neutral arm pose on the shared character canvas.
 - **Transparency:** Transparent PNG/WebP layer.
-- **Layer/animation role:** Idle, talk gesture, impatient tap cue, inspect-food reach, anticipation lift, happy raise, pay extension, leave turn.
-- **Runtime notes:** Phaser tweens for gesture arcs; keep touch-critical food area unobstructed.
+- **Layer/animation role:** Neutral arms for the current master; gesture variants are future artwork.
+- **Runtime notes:** Do not assume pose variants are present; keep touch-critical food area unobstructed.
 - **Consistency constraints:** Sleeve color, shoulder anchors, limb length, and gesture range are locked to the master reference.
 
 ### `customer.business-cat.hands`
 
 - **Visual brief:** Two small cat paws/hands with readable mitten-like silhouettes; one hand can present a coin.
-- **Source size:** 512×512 px shared canvas with aligned hand-pose variants.
+- **Source size:** One 512×512 px neutral hand pose on the shared character canvas.
 - **Transparency:** Transparent PNG/WebP layer.
-- **Layer/animation role:** Inspect-food point/reach, bite support, pay pose, happy gesture, and leave follow-through.
-- **Runtime notes:** Layer above arms; use small pose swaps and eased tweens, never pixel-perfect placement.
+- **Layer/animation role:** Neutral hands for the current master; interaction poses are future artwork.
+- **Runtime notes:** Layer above arms; no alternate hand poses are present in this batch.
 - **Consistency constraints:** Paw shape, cream fur accent, hand attachment points, and outline match the master reference.
 
 ### `customer.business-cat.accessories`
@@ -79,14 +104,14 @@ creator or license terms. Those provenance fields remain unresolved in the manif
 - **Visual brief:** Off-white shirt collar and slightly oversized deep-plum tie; tie is the core business joke and silhouette cue.
 - **Source size:** 512×512 px aligned accessory layer.
 - **Transparency:** Transparent PNG/WebP layer.
-- **Layer/animation role:** Static base plus tie flick for impatient, lift for shocked, settle for pay/leave, and singed variant for Flaming Business Cat.
-- **Runtime notes:** Separate collar/tie sublayers if that reduces redraws; tween tie rotation and vertical offset.
+- **Layer/animation role:** Static collar and tie for the neutral master; the singed tie remains a separate image.
+- **Runtime notes:** No alternate tie poses are present in this batch.
 - **Consistency constraints:** Collar angle, tie width, knot, plum color, and attachment anchor remain identical across every state and transformation.
 
 ### `customer.business-cat.mutation.fire-accents`
 
 - **Visual brief:** Playful rounded flame tufts at ear tips and tail, warm rim-light accents, and a few small ember shapes; clearly funny, not scary.
-- **Source size:** 512×512 px attachment layer; optional 4-frame 512×512 effect strip only if motion cannot be tweened.
+- **Source size:** One static 512×512 px attachment layer; no animation strip is included.
 - **Transparency:** Transparent PNG/WebP layer.
 - **Layer/animation role:** Flaming Business Cat transformation attachment; fire tail/ear accents remain readable in happy, shocked, too-hot, pay, and leave variants.
 - **Runtime notes:** Layered over master character; Phaser additive/alpha tween and pooled ember particles.
