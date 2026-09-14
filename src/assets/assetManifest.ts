@@ -1,6 +1,7 @@
 export interface ProductionAsset {
   readonly id: string;
   readonly path: string;
+  readonly status: string;
 }
 
 interface ManifestAsset {
@@ -10,12 +11,16 @@ interface ManifestAsset {
 }
 
 export function getProductionAssets(manifest: unknown): ProductionAsset[] {
+  return getManifestAssets(manifest).filter((asset) => asset.status === 'production-approved');
+}
+
+export function getManifestAssets(manifest: unknown): ProductionAsset[] {
   if (!isRecord(manifest) || !Array.isArray(manifest.assets)) {
     throw new Error('Asset manifest must contain an assets array.');
   }
 
   const ids = new Set<string>();
-  const productionAssets: ProductionAsset[] = [];
+  const assets: ProductionAsset[] = [];
 
   for (const candidate of manifest.assets) {
     if (!isManifestAsset(candidate)) {
@@ -26,13 +31,10 @@ export function getProductionAssets(manifest: unknown): ProductionAsset[] {
     }
     ids.add(candidate.id);
     validateAssetPath(candidate.path, candidate.id);
-
-    if (candidate.status === 'production-approved') {
-      productionAssets.push({ id: candidate.id, path: candidate.path });
-    }
+    assets.push({ id: candidate.id, path: candidate.path, status: candidate.status });
   }
 
-  return productionAssets;
+  return assets;
 }
 
 function isManifestAsset(value: unknown): value is ManifestAsset {

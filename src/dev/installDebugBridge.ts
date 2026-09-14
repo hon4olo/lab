@@ -21,6 +21,7 @@ interface DebugSnapshot {
 
 interface SnackLabDebugBridge {
   getSnapshot(): DebugSnapshot;
+  previewAssets(): Promise<void>;
   readonly scenarios: readonly ScenarioName[];
 }
 
@@ -37,7 +38,42 @@ export function installDebugBridge(game: Phaser.Game, platform: PlatformService)
   window.SNACK_LAB = Object.freeze({
     scenarios: SCENARIO_NAMES,
     getSnapshot: () => createSnapshot(game, platform),
+    previewAssets: () => openAssetPreview(game),
   });
+  addAssetPreviewButton(() => void window.SNACK_LAB?.previewAssets());
+}
+
+async function openAssetPreview(game: Phaser.Game): Promise<void> {
+  if (game.scene.getScene('AssetPreviewScene')) {
+    game.scene.start('AssetPreviewScene');
+    return;
+  }
+
+  const { AssetPreviewScene } = await import('./AssetPreviewScene');
+  game.scene.add('AssetPreviewScene', AssetPreviewScene, true);
+}
+
+function addAssetPreviewButton(onClick: () => void): void {
+  const button = document.createElement('button');
+  button.type = 'button';
+  button.dataset.snackLabQaControl = 'true';
+  button.textContent = 'Asset QA';
+  button.setAttribute('aria-label', 'Open development asset preview');
+  Object.assign(button.style, {
+    position: 'fixed',
+    zIndex: '10',
+    top: '12px',
+    right: '12px',
+    padding: '8px 12px',
+    border: '1px solid #5df2c6',
+    borderRadius: '8px',
+    background: '#241332',
+    color: '#fff1d0',
+    font: '600 13px system-ui, sans-serif',
+    cursor: 'pointer',
+  });
+  button.addEventListener('click', onClick);
+  document.body.append(button);
 }
 
 function createSnapshot(game: Phaser.Game, platform: PlatformService): DebugSnapshot {

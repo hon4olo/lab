@@ -1,8 +1,13 @@
 # Snack Lab — Asset Batch 01
 
-All entries below are production plans only. No listed asset currently exists. Every entry is
-`planned` and `awaiting-generation` in the manifest. The Business Cat layers share one master
-reference that must be approved before any state family is produced.
+This document defines the production specifications for Asset Batch 01. PNGs from the supplied
+complete batch have been imported under the runtime paths in `public/assets/manifest.json`.
+Presence in the repository does not imply production approval; the manifest status remains the
+source of truth. The Business Cat layers share a 512×512 master canvas and must pass in-engine
+stack/alignment review before they can be approved.
+
+The supplied archive includes checksums and a source-of-truth note, but does not record per-asset
+creator or license terms. Those provenance fields remain unresolved in the manifest.
 
 ## Customer: Business Cat
 
@@ -36,7 +41,7 @@ reference that must be approved before any state family is produced.
 ### `customer.business-cat.pupils`
 
 - **Visual brief:** Compact dark pupils with small highlight option, capable of focused inspection, widening anticipation, and comic shock.
-- **Source size:** 256×256 px aligned layer within the 512×512 character canvas.
+- **Source size:** 512×512 px aligned layer on the shared character canvas.
 - **Transparency:** Transparent PNG/WebP layer.
 - **Layer/animation role:** Idle micro-look, inspect-food focus, anticipation widen, shocked shrink, too-hot jitter.
 - **Runtime notes:** Keep movement bounded to eye sockets; use tweens, not frame-heavy animation.
@@ -63,7 +68,7 @@ reference that must be approved before any state family is produced.
 ### `customer.business-cat.hands`
 
 - **Visual brief:** Two small cat paws/hands with readable mitten-like silhouettes; one hand can present a coin.
-- **Source size:** 256×256 px per hand layer within the shared canvas.
+- **Source size:** 512×512 px shared canvas with aligned hand-pose variants.
 - **Transparency:** Transparent PNG/WebP layer.
 - **Layer/animation role:** Inspect-food point/reach, bite support, pay pose, happy gesture, and leave follow-through.
 - **Runtime notes:** Layer above arms; use small pose swaps and eased tweens, never pixel-perfect placement.
@@ -90,7 +95,7 @@ reference that must be approved before any state family is produced.
 ### `customer.business-cat.mutation.glow-eyes`
 
 - **Visual brief:** Small controlled eye-glow overlay with visible pupils retained; comedic “too much spice” energy.
-- **Source size:** 256×256 px aligned eye overlay.
+- **Source size:** 512×512 px aligned eye overlay on the shared character canvas.
 - **Transparency:** Transparent PNG/WebP layer.
 - **Layer/animation role:** Flaming Business Cat eye reveal and anticipation accent.
 - **Runtime notes:** Phaser alpha/pulse tween; glow must remain localized and cheap on mobile.
@@ -99,7 +104,7 @@ reference that must be approved before any state family is produced.
 ### `customer.business-cat.mutation.singed-tie`
 
 - **Visual brief:** Master tie with a small singed edge and one curled smoke wisp, preserving the business silhouette.
-- **Source size:** 256×256 px aligned accessory variant.
+- **Source size:** 512×512 px aligned accessory variant on the shared character canvas.
 - **Transparency:** Transparent PNG/WebP layer.
 - **Layer/animation role:** Flaming Business Cat joke attachment for transformation reveal and post-reveal idle.
 - **Runtime notes:** Swap only the tie edge variant; smoke is a separate reusable FX asset.

@@ -11,7 +11,11 @@ describe('getProductionAssets', () => {
     });
 
     expect(assets).toEqual([
-      { id: 'food.burger.finished', path: 'assets/food/burger/finished.png' },
+      {
+        id: 'food.burger.finished',
+        path: 'assets/food/burger/finished.png',
+        status: 'production-approved',
+      },
     ]);
   });
 

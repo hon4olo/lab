@@ -91,7 +91,8 @@ render size, cap runtime device pixel ratio, and validate memory/texture upload 
 
 Allowed statuses: `planned`, `seed-review`, `source-approved`, `normalized`, `integrated`,
 `production-approved`, `rejected`. Only `production-approved` assets may be relied on as final art.
-The initial manifest is intentionally empty; no fake gameplay assets are registered by the shell.
+The manifest contains batch plans and import records. The runtime shell loads only
+`production-approved` entries, so unreviewed source art is not presented as gameplay art.
 
 ## Generation and normalization
 

@@ -184,5 +184,5 @@ burst. No constant screen shake, no persistent bloom, and no effect that blocks 
 - sRGB, clean alpha, stable crop bounds, shared pivots, and no baked text/localization.
 - Use texture atlases by family/lifetime after measurement; keep large background separate.
 - Prefer layered sprites, Phaser tweens, and pooled particles over unnecessary animation frames.
-- Every generated/source asset remains `planned`/`awaiting-generation` until alpha, native-scale,
-  in-engine, and visual consistency checks pass.
+- Every generated/source asset remains unapproved until alpha, native-scale, in-engine, visual
+  consistency, and provenance checks pass.

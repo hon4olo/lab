@@ -61,6 +61,11 @@ body {
   pointer-events: none;
 }
 
+html[data-snack-lab-asset-preview='active'] .system-shell,
+html[data-snack-lab-asset-preview='active'] [data-snack-lab-qa-control] {
+  display: none;
+}
+
 .eyebrow {
   margin: 0 0 0.65rem;
   color: #5df2c6;
