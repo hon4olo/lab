@@ -101,6 +101,10 @@ export class OrderSceneView {
     if (isGrilling) this.burger.setCookState(snapshot.grill.state);
   }
 
+  public updatePatience(snapshot: OrderSnapshot): void {
+    this.hud.updatePatience(snapshot);
+  }
+
   public playEntry(onComplete: () => void): void {
     const { customerX, customerY } = this.layoutState;
     this.customer.enter(customerX, customerY, this.reducedMotion, onComplete);

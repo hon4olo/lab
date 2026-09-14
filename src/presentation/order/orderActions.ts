@@ -9,7 +9,8 @@ export type OrderAction =
   | { readonly type: 'toggle-grill' }
   | { readonly type: 'assemble' }
   | { readonly type: 'add-modifier'; readonly ingredientId: string }
-  | { readonly type: 'serve' };
+  | { readonly type: 'serve' }
+  | { readonly type: 'replay-shift' };
 
 export function hasOrderAction(phase: OrderPhase): boolean {
   return ['ingredient-selection', 'prep-board', 'grilling', 'assembly', 'modifier-selection'].includes(phase);
@@ -55,6 +56,7 @@ export function createEmptyOrderSnapshot(orderId: string): OrderSnapshot {
     orderId,
     phase: 'customer-entering',
     customerPhase: 'entering',
+    patience: { remainingMs: 0, elapsedMs: 0, ratio: 1, expired: false, paused: false },
     selectedIngredients: [],
     preparedIngredients: [],
     food: null,

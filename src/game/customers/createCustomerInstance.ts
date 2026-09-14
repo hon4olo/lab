@@ -9,6 +9,6 @@ export function createCustomerInstance(
     id: instanceId,
     type: definition.type,
     variantId: definition.variantId,
-    patience: definition.basePatience,
+    patienceMs: definition.basePatienceMs,
   };
 }

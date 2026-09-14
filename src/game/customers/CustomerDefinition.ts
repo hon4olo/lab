@@ -3,6 +3,6 @@ export interface CustomerDefinition {
   readonly type: string;
   readonly variantId: string;
   readonly displayNameKey: string;
-  readonly basePatience: number;
+  readonly basePatienceMs: number;
   readonly appearanceAssets: readonly string[];
 }

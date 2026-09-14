@@ -6,6 +6,7 @@ import { GrillSession } from '../cooking/GrillSession';
 import { createFoodInstance } from '../cooking/createFoodInstance';
 import { PrepBoardSession } from '../cooking/PrepBoardSession';
 import type { CustomerInstance } from '../customers/CustomerInstance';
+import { CustomerPatienceSession, type CustomerPatienceSnapshot } from '../customers/CustomerPatienceSession';
 import { CustomerLifecycle } from '../customers/CustomerLifecycle';
 import { calculatePayment } from '../economy/PaymentCalculator';
 import { IngredientSelection } from '../ingredients/IngredientSelection';
@@ -40,6 +41,7 @@ export interface OrderSnapshot {
   readonly orderId: string;
   readonly phase: OrderPhase;
   readonly customerPhase: string;
+  readonly patience: CustomerPatienceSnapshot;
   readonly selectedIngredients: readonly string[];
   readonly preparedIngredients: readonly string[];
   readonly food: FoodInstanceSnapshot | null;
@@ -67,6 +69,7 @@ export class OrderSession {
   private readonly prepBoard: PrepBoardSession;
   private readonly grillSession = new GrillSession();
   private readonly lifecycle = new CustomerLifecycle();
+  private readonly patience: CustomerPatienceSession;
   private grillResult: GrillResult | null = null;
   private food: FoodInstance | null = null;
   private assembled = false;
@@ -83,6 +86,7 @@ export class OrderSession {
   ) {
     this.selection = new IngredientSelection(ingredients);
     this.prepBoard = new PrepBoardSession(ingredients);
+    this.patience = new CustomerPatienceSession(customer.patienceMs);
     this.lifecycle.beginEntry();
   }
 
@@ -90,6 +94,19 @@ export class OrderSession {
     this.requirePhase('customer-entering');
     this.lifecycle.finishEntry();
     this.phase = 'ingredient-selection';
+  }
+
+  public advancePatience(deltaMs: number): CustomerPatienceSnapshot {
+    if (this.isCustomerWaiting()) return this.patience.advance(deltaMs);
+    return this.patience.snapshot();
+  }
+
+  public pausePatience(): void {
+    this.patience.pause();
+  }
+
+  public resumePatience(): void {
+    this.patience.resume();
   }
 
   public toggleIngredient(ingredientId: string): void {
@@ -212,6 +229,7 @@ export class OrderSession {
       orderId: this.order.id,
       phase: this.phase,
       customerPhase: this.lifecycle.snapshot(),
+      patience: this.patience.snapshot(),
       selectedIngredients: this.selection.getSelected(),
       preparedIngredients: this.prepBoard.getPrepared(),
       food: this.food ? toFoodSnapshot(this.food) : null,
@@ -254,6 +272,11 @@ export class OrderSession {
         : this.order.baseAssembledAssetKey;
       this.food = assembleBurger(this.food, this.order.expectedIngredientOrder, visualAsset).food;
     }
+  }
+
+  private isCustomerWaiting(): boolean {
+    return ['ingredient-selection', 'prep-board', 'grilling', 'assembly', 'modifier-selection']
+      .includes(this.phase);
   }
 
   private requirePhase(expected: OrderPhase): void {

@@ -17,9 +17,12 @@ export interface ShiftControllerOptions {
   readonly economy: EconomySession;
   readonly progression: ProgressionContext;
   readonly balance: BalanceConfig;
+  readonly runId?: string;
+  readonly restoredShift?: ShiftSnapshot;
 }
 
 export interface ShiftControllerSnapshot {
+  readonly runId: string;
   readonly shift: ShiftSnapshot;
   readonly order: OrderSnapshot | null;
   readonly economy: EconomySnapshot;
@@ -27,11 +30,14 @@ export interface ShiftControllerSnapshot {
 
 export class ShiftController {
   private readonly session: ShiftSession;
+  private readonly runId: string;
   private activeSession: OrderSession | null = null;
   private currentSlot: ShiftOrderSlot | null = null;
 
   public constructor(private readonly options: ShiftControllerOptions) {
-    this.session = new ShiftSession(options.definition);
+    this.runId = options.runId ?? 'run-standalone';
+    if (!this.runId) throw new Error('Shift run ID must not be empty.');
+    this.session = new ShiftSession(options.definition, options.restoredShift);
     for (const slot of options.definition.orderSequence) {
       if (!options.orders.has(slot.orderId)) throw new Error(`Missing order content: ${slot.orderId}`);
       if (!options.customers.has(slot.customerId)) throw new Error(`Missing customer content: ${slot.customerId}`);
@@ -39,7 +45,11 @@ export class ShiftController {
   }
 
   public start(): void {
-    this.session.start();
+    if (this.activeSession) throw new Error('The shift has already started.');
+    if (this.session.snapshot().phase === 'ready') this.session.start();
+    else if (this.session.snapshot().phase === 'completed') {
+      throw new Error('A completed shift cannot be started again.');
+    }
     const slot = this.session.activeSlot();
     if (!slot) throw new Error('Started shift has no active order.');
     this.activate(slot);
@@ -68,6 +78,10 @@ export class ShiftController {
     return this.options.economy;
   }
 
+  public get definition(): ShiftDefinition {
+    return this.options.definition;
+  }
+
   public get shiftSnapshot(): ShiftSnapshot {
     return this.session.snapshot();
   }
@@ -93,6 +107,7 @@ export class ShiftController {
 
   public snapshot(): ShiftControllerSnapshot {
     return {
+      runId: this.runId,
       shift: this.session.snapshot(),
       order: this.activeSession?.snapshot() ?? null,
       economy: this.options.economy.snapshot(),
@@ -110,7 +125,7 @@ export class ShiftController {
       orderContent.ingredients,
       this.options.transformations,
       {
-        transactionId: `${this.options.definition.id}:${slot.id}`,
+        transactionId: `${this.options.definition.id}:${this.runId}:${slot.id}`,
         progression: this.options.progression,
         balance: this.options.balance,
       },

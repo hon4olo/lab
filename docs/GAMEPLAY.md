@@ -2,15 +2,16 @@
 
 ## Scope
 
-The first vertical slice is a one-order authored shift: Business Cat asks for a Hot Cheese Burger —
-Extra Spicy. The order ends at `next-order-ready`; its containing shift then reaches `completed`.
-This establishes reusable shift sequencing without adding more production orders or building a
-separate shift-results screen.
+The first authored shift contains one order: Business Cat asks for a Hot Cheese Burger — Extra
+Spicy. After payment and customer exit, the localized shift-complete result appears with a replay
+action. Replaying the same shift keeps the wallet, unlocks, and discovery history and creates a new
+transaction identity for the new run.
 
-The content is data-driven in `src/content/customers/businessCat.ts`,
-`src/content/ingredients/hotCheeseBurger.ts`, `src/content/orders/hotCheeseBurgerExtraSpicy.ts`,
-`src/content/shifts/firstShift.ts`, and `src/content/transformations.ts`. Every image reference is a
-stable ID from `public/assets/manifest.json`.
+The content is data-driven through typed registries in `src/content/registries.ts`, with authored
+customer, ingredient, recipe, order, shift, chapter, and transformation definitions. Startup
+validation checks registry IDs and references, recipe/order agreement, customer compatibility, prep
+and grill requirements, and production-approved manifest assets. Every image reference is a stable
+ID from `public/assets/manifest.json`.
 
 ## Flow and ownership
 
@@ -26,8 +27,10 @@ creation, and the transformation resolver. It does not own or increment the play
 `EconomySession` owns the runtime wallet and applies an identified payment transaction at most once.
 `ShiftSession` tracks the authored sequence, active order index, completed order slots, earnings, and
 phase; `ShiftController` applies payment and creates each order session from order/customer content.
-`OrderScene` coordinates actions and presentation. Phaser owns pointer events, the elapsed-frame
-input to the grill, sprites, tweens, and effect playback; no Phaser object is stored in domain state.
+`CampaignSession` sits above the shift controller and owns chapter progression, the persistent
+wallet snapshot, unlock context, completed runs, and discovered transformations. `OrderScene`
+coordinates actions and presentation. Phaser owns pointer events, elapsed-frame input to the grill,
+sprites, tweens, and effect playback; no Phaser object is stored in domain state.
 
 Players first select the five base ingredients: bottom bun, patty, cheese, sauce, and top bun. They
 prepare the patty on the Prep Board, grill it, and stop the grill before it burns. The assembled
@@ -48,7 +51,21 @@ added.
 | 6000 ms and later | burned | 0 |
 
 Stopping records the cook state, elapsed processing time, heat quality, and grill visit in the
-`FoodInstance`. Leaving the patty on the grill crosses deterministically into `burned`.
+`FoodInstance`. Leaving the patty on the grill crosses deterministically into `burned`. The exact
+ideal stop at 3600 ms produces quality 100; tests exercise that deterministic domain boundary.
+
+## Customer patience and persistence
+
+Each customer instance receives `basePatienceMs` from content. `CustomerPatienceSession` pauses while
+the page is hidden and resumes from its prior remaining time. It clamps to zero but never rejects an
+order or forces the customer to leave; the player can finish after patience expires.
+
+The first Flaming Business Cat result is recorded as a discovery in the campaign save. Repeated
+reactions and shift replays retain the discovery without adding it again. The local versioned save
+keeps applied payment IDs and run IDs; a duplicate transaction cannot credit the wallet twice.
+Reloading during an unsettled order restores the active shift at that order's entry using the same
+run identity. Selection, prep, and grill work from that unsettled order restart; previously settled
+order results and coins are retained.
 
 ## Tags and transformation
 

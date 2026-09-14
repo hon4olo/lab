@@ -55,6 +55,7 @@ src/
     recipes/               authored recipe contracts and matching
     cooking/               FoodInstance, cook states, station contracts
     customers/             customer runtime state and preferences
+    campaign/              renderer-independent chapter/session ownership
     transformations/       data-driven resolver and definitions
     economy/               sources, sinks, prices, rewards
     progression/           unlock rules and campaign state
@@ -64,7 +65,7 @@ src/
     characters/ food/ stations/ effects/ ui/
   content/
     chapters/ customers/ ingredients/ recipes/ transformations/
-    upgrades/ decorations/ events/
+    orders/ shifts/ upgrades/ decorations/ events/
   audio/                   bus IDs, cues, playback adapters
   platform/
     providers/             local, Yandex, Playgama, portal-specific adapters
@@ -87,12 +88,14 @@ extra engine-specific mirror tree.
 
 - `main.ts` creates the application composition root.
 - `BootScene` performs synchronous engine setup and immediately starts preload.
-- `PreloadScene` loads the production-approved manifest bundle by stable ID.
-- The application composition root injects an authored `ShiftController` into `OrderScene`.
-  `ShiftController` composes `ShiftSession`, the current plain TypeScript `OrderSession`, authored
-  order/customer content, a progression context, balance configuration, and the external
-  `EconomySession`. The scene coordinates the sequence and focused Phaser presenters; it does not
-  construct customer values or own recipe, cooking, scoring, transformation, or payment rules.
+- `PreloadScene` validates typed content references against the asset manifest, then loads every
+  production-approved asset once by stable ID.
+- The application composition root restores a `CampaignSession` and injects it into `OrderScene`.
+  The campaign owns chapter/shift progress, the runtime economy, unlock context, and discovered
+  transformations. It creates a `ShiftController`, which composes `ShiftSession`, the current plain
+  TypeScript `OrderSession`, authored order/customer content, progression context, balance
+  configuration, and the external `EconomySession`. The scene coordinates the sequence and focused
+  Phaser presenters; it does not construct authored customer values or own gameplay rules.
 
 The initial production slice is documented in `GAMEPLAY.md`. The current authored shift includes
 one Business Cat order and finishes after it. `ShiftController` already sequences order sessions
@@ -106,18 +109,15 @@ a configurable resolution cap.
 
 ## Domain state
 
-Prefer composition over a giant mutable `GameState` singleton:
+`CampaignSession` is the renderer-independent session boundary above shifts. It owns chapter ID,
+completed and active shifts, run identity, wallet/progression snapshots, and discovered
+transformations. `CampaignContent` injects registries and a shift-controller factory; content
+expansion does not require the Phaser scene to construct a customer, recipe, or order.
 
-- `PlayerProgress`
-- `RestaurantProgress`
-- `ShiftState`
-- `ActiveOrders`
-- `EconomyState`
-- `UnlockState`
-
-An application session store can compose these slices and publish read-only snapshots. Commands
-validate and mutate through owning services/reducers. IDs are typed string unions or branded IDs;
-content lookups fail at validation/load boundaries rather than deep inside a scene.
+`src/content/registries.ts` exposes typed registries for customers, ingredients, recipes, orders,
+shifts, chapters, and transformations. `validateSnackLabContent` checks duplicate IDs, authored
+references, recipe/order agreement, customer compatibility, prep/grill requirements, and approved
+manifest asset IDs. Preload runs this validation before the player enters the order.
 
 `FoodInstance` is plain serializable data containing ordered ingredient IDs, cook states, station
 history, quality, tags, Chaos score, mistakes, and visual variant. Definitions are immutable;
@@ -131,10 +131,11 @@ sequence, active index, completed slots, phase, and shift earnings; `ShiftContro
 those systems and creates the next order session from content. `OrderSnapshot` is a cloned,
 renderer-free view of one order.
 
-`CustomerDefinition` content stores authored customer type, variant, base patience, display key, and
-appearance asset IDs. `OrderScene` and the generic layered customer presenter receive that content
-through the shift controller. The first shift is authored in `src/content/shifts/firstShift.ts` and
-currently has exactly one Business Cat order.
+`CustomerDefinition` content stores authored customer type, variant, `basePatienceMs`, display key,
+and appearance asset IDs. `CustomerPatienceSession` is a reusable plain-TypeScript timer: it pauses
+with platform visibility, resumes without charging hidden time, and clamps at zero without ending
+or failing an order. The Phaser presenter displays its current ratio. The first shift is authored in
+`src/content/shifts/firstShift.ts` and currently has exactly one Business Cat order.
 
 ## Data-driven transformations
 
@@ -176,8 +177,10 @@ shake affect visual roots only, never interaction geometry or domain positions.
 ## Asset loading
 
 Stable manifest IDs are the public asset API. Content references `assetKey`; it never builds paths.
-Bundles are loaded by scene/chapter and released when safe. Related sprites are atlased only after
-measurement and visual QA. See `ASSET_PIPELINE.md` and `public/assets/manifest.json`.
+The first-session preload currently loads all production-approved manifest entries once and retains
+them for the application lifetime. Chapter-scoped lazy loading and release are not implemented yet.
+Related sprites are atlased only after measurement and visual QA. See `ASSET_PIPELINE.md` and
+`public/assets/manifest.json`.
 
 ## Audio
 
@@ -213,21 +216,32 @@ against current official documentation then.
 
 ## Save architecture
 
-Save schema v1 is JSON-compatible plain data. `SaveService` captures authoritative state, validates
-it, writes through a storage provider, and keeps local fallback/last-known-good data. Browser local
-storage cannot provide filesystem atomic rename, so writes use a staged key, validation/read-back,
-primary key, and backup key. Platform cloud writes use provider limits and explicit conflict rules.
+Save schema v2 is JSON-compatible plain data. `SaveRepository` writes a staging copy, reads it back
+through schema validation, preserves the previous valid primary as a backup, writes and verifies the
+new primary, then clears staging. On load it validates primary, backup, and staging, selects the
+highest valid revision, migrates sequentially, and reconciles content IDs before reconstructing the
+campaign. The V1 → V2 migration preserves wallet/settings and adds empty run, result, transaction,
+and discovery ledgers.
 
-Every save embeds `schemaVersion`, `revision`, `savedAt`, and content/build compatibility metadata.
-Loading performs: parse → checksum/shape check where used → sequential migrations → validation →
-content ID reconciliation → domain reconstruction. Migrations are pure and retained permanently.
-Autosaves occur at safe boundaries such as order settlement, shift completion, upgrade purchase,
-settings change, and visibility loss, with throttling where needed.
+The saved campaign contains chapter and shift progress, active run identity, settled order result
+snapshots, a persistent coin balance, applied transaction IDs, unlocks, and discovered
+transformations. A replay creates a new run ID while retaining wallet, unlocks, and discoveries, so
+its payment is a new transaction and old payments cannot be applied again. A completed shift is
+restored as a localized result state with replay available. If the browser closes during an unsettled
+order, the shift resumes at that order's entry with the same run ID; its unsaved selection/prep/grill
+work restarts, while settled coins and completed orders remain safe.
+
+Every save embeds `schemaVersion`, `revision`, `savedAt`, and build compatibility metadata.
+`migrateSave` validates structure and invariants; `createCampaignSession` rejects stale result/slot
+references, recovers in-progress snapshots with no remaining authored order, and recovers legacy
+all-complete saves without a result snapshot by preserving the wallet and making the first shift
+replayable. Campaign changes are saved at run start, first discovery, and order/shift settlement.
+Cloud conflict policy, cloud storage, checksums, and save compaction remain future work.
 
 ## Localization and analytics
 
 Localization dictionaries map stable keys to strings. Domain/content stores keys only. Locale
-resolution order is platform language → stored user choice → browser language → English fallback.
+resolution order is stored user choice → platform language → browser language → English fallback.
 
 Analytics is a typed port with a no-op provider in the scaffold. Events contain IDs and numeric
 outcomes, not localized text or renderer objects. Consent/privacy and a specific SDK require a
@@ -236,9 +250,10 @@ separate decision.
 ## DEV inspectability
 
 Development builds expose `window.SNACK_LAB.getSnapshot()` with safe, cloned read-only data:
-scene, order ID and phase, selected ingredients, FoodInstance, grill state, ORDER/COOK/CHAOS scores,
-transformation result, coins, FPS, and platform capabilities. `import.meta.env.DEV` gates
-installation. The asset preview and diagnostics bridge are development-only.
+scene/order/campaign phase, active shift index and earnings, selected ingredients, FoodInstance,
+grill state, ORDER/COOK/CHAOS scores, transformation/discovery results, applied payment IDs,
+wallet/session coins, FPS, and platform capabilities. `import.meta.env.DEV` gates installation. The
+asset preview and diagnostics bridge are development-only.
 
 Named deterministic scenarios are registered data/setup functions: `basic-order`, `perfect-grill`,
 `burned-order`, `first-transformation`, `high-chaos`, `shift-end`, `mobile-layout`, and

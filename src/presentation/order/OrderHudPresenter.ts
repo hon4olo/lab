@@ -4,6 +4,7 @@ import type { OrderSnapshot } from '../../game/orders/OrderSession';
 import type { TranslationKey } from '../../localization/createTranslator';
 import type { OrderLayout } from './orderLayout';
 import type { ShiftPhase } from '../../game/shifts/ShiftSession';
+import { PatienceMeterPresenter } from './PatienceMeterPresenter';
 import {
   createEmptyOrderSnapshot,
   getActionLabel,
@@ -32,6 +33,7 @@ export class OrderHudPresenter {
   private readonly resultScoreBars: Phaser.GameObjects.Graphics;
   private readonly paymentText: Phaser.GameObjects.Text;
   private readonly nextOrderText: Phaser.GameObjects.Text;
+  private readonly patienceMeter: PatienceMeterPresenter;
   private layoutState: OrderLayout | null = null;
 
   public constructor(
@@ -54,6 +56,7 @@ export class OrderHudPresenter {
     this.actionButton.setInteractive({ useHandCursor: true }).on('pointerdown', () => {
       const action = getOrderAction(this.snapshot, this.order);
       if (action) onAction(action);
+      else if (this.snapshot.phase === 'next-order-ready') onAction({ type: 'replay-shift' });
     });
     this.cookState = this.makeText(0, 0, '', 14, '#fff7e8');
     this.heatTrack = scene.add.graphics().setDepth(31);
@@ -67,6 +70,7 @@ export class OrderHudPresenter {
     this.resultScoreBars = scene.add.graphics().setDepth(34);
     this.paymentText = this.makeText(0, 0, '', 11, '#fff7e8').setDepth(33);
     this.nextOrderText = this.makeText(0, 0, '', 16, '#fff7e8').setDepth(33);
+    this.patienceMeter = new PatienceMeterPresenter(scene);
     this.snapshot = createEmptyOrderSnapshot(order.id);
   }
 
@@ -133,6 +137,7 @@ export class OrderHudPresenter {
       .setWordWrapWidth(cardWidth * 0.84);
     this.nextOrderText.setPosition(layout.width * 0.5, Math.max(22, layout.height * 0.055))
       .setFontSize(layout.compact ? '13px' : '16px');
+    this.patienceMeter.layout(layout);
   }
 
   public render(
@@ -142,6 +147,7 @@ export class OrderHudPresenter {
     localize: (key: TranslationKey) => string,
   ): void {
     this.snapshot = snapshot;
+    this.patienceMeter.render(snapshot);
     const showOrder = !['customer-leaving', 'next-order-ready'].includes(snapshot.phase);
     this.orderBubble.setVisible(showOrder);
     this.customerName.setVisible(showOrder).setText(localize(this.customerNameKey as TranslationKey));
@@ -158,12 +164,16 @@ export class OrderHudPresenter {
     this.coinValue.setText(String(coins));
     this.stationName.setText(localize(snapshot.phase === 'grilling' ? 'station.grill' : 'station.prep-board'));
     this.stationName.setVisible(['ingredient-selection', 'prep-board', 'grilling'].includes(snapshot.phase));
-    this.actionPanel.setVisible(hasOrderAction(snapshot.phase));
-    this.actionButton.setVisible(hasOrderAction(snapshot.phase));
-    this.actionLabel.setVisible(hasOrderAction(snapshot.phase));
+    const canReplay = snapshot.phase === 'next-order-ready' && shiftPhase === 'completed';
+    const showAction = hasOrderAction(snapshot.phase) || canReplay;
+    this.actionPanel.setVisible(showAction);
+    this.actionButton.setVisible(showAction);
+    this.actionLabel.setVisible(showAction);
     const actionKey = getActionLabel(snapshot, this.order);
     const actionText = localize(actionKey as TranslationKey);
-    this.actionLabel.setText(actionKey === 'action.add-modifier'
+    this.actionLabel.setText(canReplay
+      ? localize('action.replay-shift')
+      : actionKey === 'action.add-modifier'
       ? actionText.replace('{modifier}', localize(this.order.modifierKey as TranslationKey))
       : actionText);
     this.cookState.setVisible(snapshot.phase === 'grilling');
@@ -194,6 +204,10 @@ export class OrderHudPresenter {
     }
   }
 
+  public updatePatience(snapshot: OrderSnapshot): void {
+    this.patienceMeter.render(snapshot);
+  }
+
   public getStationAction(): OrderAction | null {
     return getOrderAction(this.snapshot, this.order);
   }
@@ -210,6 +224,7 @@ export class OrderHudPresenter {
       ...this.resultScoreLabels, this.resultScoreBars, this.paymentText, this.nextOrderText,
     ];
     for (const object of new Set(objects)) object.destroy();
+    this.patienceMeter.destroy();
   }
 
   private drawHeat(snapshot: OrderSnapshot): void {

@@ -1,5 +1,8 @@
 import Phaser from 'phaser';
 import { getProductionAssets } from '../../assets/assetManifest';
+import { SNACK_LAB_CONTENT_REGISTRIES } from '../../content/registries';
+import { validateSnackLabContent } from '../../content/validateSnackLabContent';
+import { APP_EVENTS } from '../appEvents';
 
 export class PreloadScene extends Phaser.Scene {
   public constructor() {
@@ -18,25 +21,32 @@ export class PreloadScene extends Phaser.Scene {
         throw new Error(`Asset manifest request failed with status ${response.status}.`);
       }
 
-      const productionAssets = getProductionAssets(await response.json());
-      if (productionAssets.length === 0) {
-        this.startOrderScene();
-        return;
-      }
+      const manifest: unknown = await response.json();
+      const validation = validateSnackLabContent(SNACK_LAB_CONTENT_REGISTRIES, manifest);
+      if (!validation.valid) throw new Error(`Snack Lab content validation failed: ${validation.issues.join(' ')}`);
+      const productionAssets = getProductionAssets(manifest);
+      if (productionAssets.length === 0) throw new Error('No production-approved assets are available.');
 
       for (const asset of productionAssets) {
         this.load.image(asset.id, `${import.meta.env.BASE_URL}${asset.path}`);
       }
 
-      this.load.once(Phaser.Loader.Events.COMPLETE, this.startOrderScene, this);
+      let failedAsset: string | null = null;
       this.load.once(Phaser.Loader.Events.FILE_LOAD_ERROR, (file: Phaser.Loader.File) => {
-        console.error(`Failed to load production asset "${file.key}" from "${file.src}".`);
+        failedAsset = `Failed to load production asset "${file.key}" from "${file.src}".`;
+      });
+      this.load.once(Phaser.Loader.Events.COMPLETE, () => {
+        if (failedAsset) this.fail(new Error(failedAsset));
+        else this.startOrderScene();
       });
       this.load.start();
     } catch (error) {
-      console.error('Could not load the production asset manifest.', error);
-      this.startOrderScene();
+      this.fail(error);
     }
+  }
+
+  private fail(error: unknown): void {
+    this.game.events.emit(APP_EVENTS.gameFailed, error);
   }
 
   private startOrderScene(): void {

@@ -1,21 +1,29 @@
 import type Phaser from 'phaser';
-import type { ShiftControllerSnapshot } from '../game/shifts/ShiftController';
+import type { CampaignSnapshot } from '../game/campaign/CampaignSession';
 import type { OrderSnapshot } from '../game/orders/OrderSession';
 import type { PlatformService } from '../platform/PlatformService';
 import { SCENARIO_NAMES, type ScenarioName } from './scenarios';
 
 interface DebugSnapshot {
   readonly currentScene: string | null;
+  readonly campaignPhase: CampaignSnapshot['phase'] | null;
+  readonly chapterId: string | null;
+  readonly shiftRunId: string | null;
   readonly orderId: string | null;
   readonly orderPhase: OrderSnapshot['phase'] | null;
-  readonly shiftPhase: ShiftControllerSnapshot['shift']['phase'] | null;
+  readonly shiftPhase: 'ready' | 'in-progress' | 'completed' | null;
   readonly activeOrderIndex: number | null;
   readonly shiftEarnings: number;
   readonly selectedIngredients: readonly string[];
   readonly foodInstance: OrderSnapshot['food'] | null;
   readonly grillState: OrderSnapshot['grill'] | null;
   readonly scores: OrderSnapshot['scores'];
+  readonly payment: OrderSnapshot['payment'];
   readonly transformationResult: OrderSnapshot['transformationResult'];
+  readonly discoveredTransformationIds: readonly string[];
+  readonly appliedPaymentIds: readonly string[];
+  readonly shiftCompleteLabel: string | null;
+  readonly documentLanguage: string;
   readonly coins: number;
   readonly persistentCoins: number;
   readonly sessionCoins: number;
@@ -86,29 +94,37 @@ function addAssetPreviewButton(onClick: () => void): void {
 function createSnapshot(game: Phaser.Game, platform: PlatformService): DebugSnapshot {
   const activeScene = game.scene.getScenes(true).at(-1);
   const orderScene = game.scene.getScene('OrderScene') as Phaser.Scene & {
-    getDiagnosticsSnapshot?: () => ShiftControllerSnapshot | null;
+    getDiagnosticsSnapshot?: () => CampaignSnapshot | null;
+    getLocalizedShiftCompleteLabel?: () => string | null;
   };
   const state = orderScene.getDiagnosticsSnapshot?.() ?? null;
-  const order = state?.order ?? null;
+  const lastCompletion = state?.lastCompletion ?? null;
+  const order = state?.activeShift?.order ?? lastCompletion?.orderResults.at(-1)?.snapshot ?? null;
+  const activeShift = state?.activeShift ?? null;
   return structuredClone({
     currentScene: activeScene?.scene.key ?? null,
+    campaignPhase: state?.phase ?? null,
+    chapterId: state?.chapterId ?? null,
+    shiftRunId: state?.activeRunId ?? lastCompletion?.runId ?? null,
     orderId: order?.orderId ?? null,
     orderPhase: order?.phase ?? null,
-    shiftPhase: state?.shift.phase ?? null,
-    activeOrderIndex: state?.shift.activeOrderIndex ?? null,
-    shiftEarnings: state?.shift.earnings ?? 0,
+    shiftPhase: activeShift?.shift.phase ?? (lastCompletion ? 'completed' : null),
+    activeOrderIndex: activeShift?.shift.activeOrderIndex ?? null,
+    shiftEarnings: activeShift?.shift.earnings ?? lastCompletion?.earnings ?? 0,
     selectedIngredients: order?.selectedIngredients ?? [],
     foodInstance: order?.food ?? null,
     grillState: order?.grill ?? null,
     scores: order?.scores ?? null,
+    payment: order?.payment ?? null,
     transformationResult: order?.transformationResult ?? null,
+    discoveredTransformationIds: state?.discoveredTransformationIds ?? [],
+    appliedPaymentIds: state?.economy.appliedPaymentIds ?? [],
+    shiftCompleteLabel: orderScene.getLocalizedShiftCompleteLabel?.() ?? null,
+    documentLanguage: document.documentElement.lang,
     coins: state?.economy.coins ?? 0,
     persistentCoins: state?.economy.persistentCoins ?? 0,
     sessionCoins: state?.economy.sessionCoins ?? 0,
     fps: Math.round(game.loop.actualFps),
-    platform: {
-      providerId: platform.environment.providerId,
-      capabilities: platform.capabilities,
-    },
+    platform: { providerId: platform.environment.providerId, capabilities: platform.capabilities },
   });
 }

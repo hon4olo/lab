@@ -21,7 +21,7 @@ const customer: CustomerInstance = {
   id: 'customer-1',
   type: 'normal',
   variantId: 'normal-01',
-  patience: 1,
+  patienceMs: 120_000,
 };
 
 function definition(

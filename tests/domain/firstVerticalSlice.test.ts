@@ -16,7 +16,7 @@ const businessCat: CustomerInstance = {
   id: 'customer.business-cat.test',
   type: 'business-cat',
   variantId: 'customer.business-cat.neutral',
-  patience: 1,
+  patienceMs: 120_000,
 };
 
 describe('Snack Lab first order vertical slice domain', () => {
@@ -121,6 +121,19 @@ describe('Snack Lab first order vertical slice domain', () => {
     session.serve();
     session.resolveReaction();
     expect(session.snapshot().transformationResult?.id).toBe('transformation.business-cat.flaming');
+  });
+
+  it('pauses and resumes patience without failing an order when the timer expires', () => {
+    const session = createSession();
+    session.customerEntered();
+    session.pausePatience();
+    expect(session.advancePatience(30_000)).toMatchObject({ remainingMs: 120_000, paused: true });
+    session.resumePatience();
+    expect(session.advancePatience(120_000)).toMatchObject({ remainingMs: 0, expired: true, paused: false });
+    expect(session.snapshot().phase).toBe('ingredient-selection');
+
+    expect(() => session.toggleIngredient('ingredient.bun-bottom')).not.toThrow();
+    expect(session.snapshot().phase).toBe('ingredient-selection');
   });
 });
 

@@ -9,12 +9,20 @@ export interface EconomySnapshot {
 
 export class EconomySession {
   private sessionCoins = 0;
-  private readonly appliedPaymentIds = new Set<string>();
+  private readonly appliedPaymentIds: Set<string>;
 
-  public constructor(private readonly persistentCoins = 0) {
+  public constructor(
+    private readonly persistentCoins = 0,
+    appliedPaymentIds: readonly string[] = [],
+  ) {
     if (!Number.isSafeInteger(persistentCoins) || persistentCoins < 0) {
       throw new Error('Persistent coins must be a non-negative safe integer.');
     }
+    if (new Set(appliedPaymentIds).size !== appliedPaymentIds.length ||
+        appliedPaymentIds.some((id) => !id)) {
+      throw new Error('Applied payment IDs must be unique and non-empty.');
+    }
+    this.appliedPaymentIds = new Set(appliedPaymentIds);
   }
 
   public applyPayment(transaction: PaymentTransaction): boolean {

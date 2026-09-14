@@ -5,7 +5,7 @@ export const BUSINESS_CAT: CustomerDefinition = {
   type: 'business-cat',
   variantId: 'customer.business-cat.neutral',
   displayNameKey: 'order.customer',
-  basePatience: 1,
+  basePatienceMs: 120_000,
   appearanceAssets: [
     'customer.business-cat.body',
     'customer.business-cat.head',
