@@ -1,0 +1,73 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://snack-lab.local/schemas/asset-manifest.schema.json",
+  "title": "Snack Lab Asset Manifest",
+  "type": "object",
+  "required": ["schemaVersion", "artDirection", "assets"],
+  "properties": {
+    "schemaVersion": { "const": 1 },
+    "artDirection": { "type": "string" },
+    "generatedAt": { "type": ["string", "null"] },
+    "assets": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/asset" }
+    }
+  },
+  "$defs": {
+    "asset": {
+      "type": "object",
+      "required": ["id", "family", "role", "path", "status", "technical", "source", "verification"],
+      "properties": {
+        "id": { "type": "string", "pattern": "^[a-z0-9]+(?:[.-][a-z0-9]+)*$" },
+        "family": { "type": "string" },
+        "role": { "type": "string" },
+        "path": { "type": "string" },
+        "status": {
+          "enum": ["planned", "seed-review", "source-approved", "normalized", "integrated", "production-approved", "rejected"]
+        },
+        "scene": { "type": "string" },
+        "chapter": { "type": "string" },
+        "technical": {
+          "type": "object",
+          "required": ["width", "height", "alpha", "cropBounds", "anchor", "frames", "filtering", "atlasGroup", "mobileNotes"],
+          "properties": {
+            "width": { "type": "integer", "minimum": 1 },
+            "height": { "type": "integer", "minimum": 1 },
+            "alpha": { "type": "boolean" },
+            "cropBounds": { "type": "string" },
+            "anchor": { "type": "string" },
+            "frames": { "type": "integer", "minimum": 1 },
+            "filtering": { "enum": ["linear", "nearest"] },
+            "atlasGroup": { "type": ["string", "null"] },
+            "mobileNotes": { "type": "string" }
+          }
+        },
+        "source": {
+          "type": "object",
+          "required": ["kind", "toolOrReference", "promptRecord", "creator", "createdAt", "license", "editHistory"],
+          "properties": {
+            "kind": { "enum": ["authored", "generated", "licensed", "edited"] },
+            "toolOrReference": { "type": "string" },
+            "promptRecord": { "type": "string" },
+            "creator": { "type": "string" },
+            "createdAt": { "type": "string" },
+            "license": { "type": "string" },
+            "editHistory": { "type": "array", "items": { "type": "string" } }
+          }
+        },
+        "verification": {
+          "type": "object",
+          "required": ["alphaCropPassed", "nativeScaleReviewed", "animationReviewed", "atlasReviewed", "inEngineReviewed", "approvedBy"],
+          "properties": {
+            "alphaCropPassed": { "type": "boolean" },
+            "nativeScaleReviewed": { "type": "boolean" },
+            "animationReviewed": { "type": "boolean" },
+            "atlasReviewed": { "type": "boolean" },
+            "inEngineReviewed": { "type": "boolean" },
+            "approvedBy": { "type": "string" }
+          }
+        }
+      }
+    }
+  }
+}

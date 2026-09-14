@@ -1,0 +1,6 @@
+# Dependencies and generated output (kept ready for the future toolchain).
+node_modules/
+dist/
+build/
+coverage/
+.DS_Store

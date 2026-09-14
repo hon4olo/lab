@@ -1,0 +1,22 @@
+import type { GameplayTag } from '../ingredients/GameplayTag';
+
+export type TransformationRarity = 'common' | 'uncommon' | 'rare' | 'legendary';
+
+export interface TransformationDefinition {
+  readonly id: string;
+  readonly requiredTags: readonly GameplayTag[];
+  readonly preferredTags: readonly GameplayTag[];
+  readonly forbiddenTags: readonly GameplayTag[];
+  readonly minimumChaos: number;
+  readonly priority: number;
+  readonly rarity: TransformationRarity;
+  readonly compatibleCustomerTypes: readonly string[];
+  readonly resultAppearance: string;
+  readonly reactionSequence: string;
+  readonly rewardModifier: number;
+  readonly requiredUnlocks: readonly string[];
+}
+
+export interface TransformationContext {
+  readonly unlockedIds: ReadonlySet<string>;
+}
