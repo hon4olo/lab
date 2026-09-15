@@ -23,7 +23,10 @@ import type { AssemblyWorkspaceRect } from '../stations/AssemblyWorkspaceMapper'
 import {
   requiredStationAssetIds,
   stationGroupsForRecipe,
+  STREET_STATION_ASSET_IDS,
 } from '../stations/StationAssetContract';
+
+const LEGACY_BACKGROUND_ASSET = 'background.street-snack-bar';
 
 export class OrderSceneView {
   private readonly background: Phaser.GameObjects.Image;
@@ -37,8 +40,10 @@ export class OrderSceneView {
   private readonly hud: OrderHudPresenter;
   private readonly stationRail: StationRailPresenter;
   private readonly buildController: BuildStationController | null;
+  private readonly handsOnShellEnabled: boolean;
   private layoutState: OrderLayout;
   private stationAsset = '';
+  private backgroundAsset = LEGACY_BACKGROUND_ASSET;
   private currentPhase: OrderSnapshot['phase'] = 'customer-entering';
   private currentMode: StationPresentationMode = 'order';
   private currentSnapshot: OrderSnapshot | null = null;
@@ -56,7 +61,8 @@ export class OrderSceneView {
     const width = scene.scale.width;
     const height = scene.scale.height;
     this.layoutState = finalizeOrderLayout(calculateOrderLayout(width, height));
-    this.background = scene.add.image(0, 0, 'background.street-snack-bar').setDepth(0);
+    this.handsOnShellEnabled = this.hasHandsOnShellTextures();
+    this.background = scene.add.image(0, 0, LEGACY_BACKGROUND_ASSET).setDepth(0);
     this.workspaceBackdrop = scene.add.graphics().setDepth(1);
     this.counter = scene.add.image(0, 0, 'environment.service-counter.street').setDepth(3);
     this.station = scene.add.image(0, 0, 'station.prep-board.street').setDepth(5);
@@ -91,10 +97,7 @@ export class OrderSceneView {
   public layout(width: number, height: number): void {
     this.layoutState = finalizeOrderLayout(calculateOrderLayout(width, height));
     const layout = this.layoutState;
-    const source = this.scene.textures.get('background.street-snack-bar').getSourceImage();
-    const coverScale = Math.max(width / source.width, height / source.height);
-    this.background.setPosition(width / 2, height / 2)
-      .setDisplaySize(source.width * coverScale, source.height * coverScale);
+    this.layoutBackground(this.backgroundAssetForMode(this.currentMode));
     this.hud.layout(layout);
     this.stationRail.layout(width, height);
     this.tray.layout(layout);
@@ -205,10 +208,12 @@ export class OrderSceneView {
   private applyPresentationMode(mode: StationPresentationMode): void {
     const layout = this.layoutState;
     const presentation = createStationPresentation(layout, mode);
-    this.drawWorkspace(presentation);
+    const dedicatedBackground = this.backgroundAssetForMode(mode) !== LEGACY_BACKGROUND_ASSET;
+    this.layoutBackground(this.backgroundAssetForMode(mode));
+    this.drawWorkspace(presentation, dedicatedBackground);
 
-    this.background.setAlpha(presentation.showWorkspace ? 0.78 : 1);
-    this.counter.setVisible(presentation.showCounter)
+    this.background.setAlpha(dedicatedBackground ? 1 : presentation.showWorkspace ? 0.78 : 1);
+    this.counter.setVisible(presentation.showCounter && !dedicatedBackground)
       .setPosition(layout.width / 2, presentation.counterY)
       .setDisplaySize(presentation.counterWidth, presentation.counterHeight);
 
@@ -216,10 +221,11 @@ export class OrderSceneView {
       this.stationAsset = presentation.stationAsset;
       this.station.setTexture(presentation.stationAsset);
     }
-    this.station.setVisible(presentation.showStation)
+    const showLegacyStation = presentation.showStation && !dedicatedBackground;
+    this.station.setVisible(showLegacyStation)
       .setPosition(presentation.stationX, presentation.stationY)
       .setDisplaySize(presentation.stationWidth, presentation.stationHeight);
-    if (this.station.input) this.station.input.enabled = presentation.showStation;
+    if (this.station.input) this.station.input.enabled = showLegacyStation;
 
     this.customer.layout(
       presentation.customerX,
@@ -229,9 +235,12 @@ export class OrderSceneView {
     this.customer.setVisible(presentation.showCustomer);
   }
 
-  private drawWorkspace(presentation: ReturnType<typeof createStationPresentation>): void {
+  private drawWorkspace(
+    presentation: ReturnType<typeof createStationPresentation>,
+    dedicatedBackground: boolean,
+  ): void {
     this.workspaceBackdrop.clear();
-    if (!presentation.showWorkspace) return;
+    if (!presentation.showWorkspace || dedicatedBackground) return;
     const { width, height } = this.layoutState;
     const left = presentation.workspaceX - presentation.workspaceWidth / 2;
     const top = presentation.workspaceY - presentation.workspaceHeight / 2;
@@ -266,6 +275,10 @@ export class OrderSceneView {
     this.food.layout(x, y, width, assembled, assetKey);
   }
 
+  private hasHandsOnShellTextures(): boolean {
+    return requiredStationAssetIds('hands-on-shell').every((id) => this.scene.textures.exists(id));
+  }
+
   private hasHandsOnBuildTextures(): boolean {
     const ids = new Set(
       stationGroupsForRecipe(this.order.recipeId).flatMap((group) => requiredStationAssetIds(group)),
@@ -275,6 +288,30 @@ export class OrderSceneView {
 
   private isHandsOnBuildActive(snapshot: OrderSnapshot): boolean {
     return this.buildController !== null && snapshot.phase === 'assembly' && snapshot.assembly !== undefined;
+  }
+
+  private backgroundAssetForMode(mode: StationPresentationMode): string {
+    if (!this.handsOnShellEnabled) return LEGACY_BACKGROUND_ASSET;
+    switch (mode) {
+      case 'prep': return STREET_STATION_ASSET_IDS.prepBackground;
+      case 'grill': return STREET_STATION_ASSET_IDS.grillBackground;
+      case 'build': return STREET_STATION_ASSET_IDS.buildBackground;
+      case 'order':
+      case 'serve':
+      case 'results': return STREET_STATION_ASSET_IDS.orderBackground;
+    }
+  }
+
+  private layoutBackground(assetKey: string): void {
+    if (this.backgroundAsset !== assetKey) {
+      this.backgroundAsset = assetKey;
+      this.background.setTexture(assetKey);
+    }
+    const source = this.scene.textures.get(assetKey).getSourceImage();
+    const { width, height } = this.layoutState;
+    const coverScale = Math.max(width / source.width, height / source.height);
+    this.background.setPosition(width / 2, height / 2)
+      .setDisplaySize(source.width * coverScale, source.height * coverScale);
   }
 
   private buildWorkspace(): AssemblyWorkspaceRect {
