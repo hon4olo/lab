@@ -7,6 +7,7 @@ export default defineConfig({
     'asset-batch-02.spec.ts',
     'normal-motion.spec.ts',
     'ru-layout.spec.ts',
+    'visual-capture.spec.ts',
   ],
   fullyParallel: false,
   workers: 1,
