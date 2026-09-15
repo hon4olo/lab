@@ -1,6 +1,6 @@
 name: Finalize Batch 03 verified assets
 
-# Batch 03 integration retry 6: track nested build assets and align visual-QA prep drag geometry.
+# Batch 03 integration retry 7: restore trackable build art and keep QA geometry aligned with authored stations.
 on:
   push:
     branches: [main]
@@ -43,19 +43,44 @@ jobs:
             --dir /tmp/batch03
           cp -a /tmp/batch03/. .
 
-      - name: Align visual QA prep drag target
+      - name: Align hands-on QA geometry to authored stations
         run: |
           python3 - <<'PY'
           from pathlib import Path
 
           path = Path('tests/browser/hands-on-helpers.ts')
           text = path.read_text()
-          old = 'y: viewport.height * (portrait ? 0.45 : 0.48),'
-          new = 'y: viewport.height * (portrait ? 0.68 : 0.69),'
-          if old in text:
-              path.write_text(text.replace(old, new, 1))
-          elif new not in text:
+
+          prep_old = 'y: viewport.height * (portrait ? 0.45 : 0.48),'
+          prep_new = 'y: viewport.height * (portrait ? 0.68 : 0.69),'
+          if prep_old in text:
+              text = text.replace(prep_old, prep_new, 1)
+          elif prep_new not in text:
               raise RuntimeError('Prep drag target coordinate changed unexpectedly.')
+
+          start = text.index('function grillGeometry(viewport: ViewportCase) {')
+          end = text.index('\n\ninterface WorkspaceRect', start)
+          grill = '''function grillGeometry(viewport: ViewportCase) {
+            const portrait = viewport.width < viewport.height;
+            const centerX = viewport.width * 0.5;
+            const centerY = viewport.height * 0.66;
+            return {
+              source: {
+                x: viewport.width * (portrait ? 0.20 : 0.14),
+                y: viewport.height * 0.85,
+              },
+              spatula: {
+                x: viewport.width * (portrait ? 0.80 : 0.86),
+                y: viewport.height * 0.84,
+              },
+              slot: {
+                x: centerX - viewport.width * (portrait ? 0.17 : 0.14),
+                y: centerY - viewport.height * (portrait ? 0.075 : 0.085),
+              },
+            };
+          }'''
+          text = text[:start] + grill + text[end:]
+          path.write_text(text)
           PY
 
       - name: Install dependencies
@@ -64,12 +89,10 @@ jobs:
       - name: Install Chromium
         run: npx playwright install --with-deps chromium
 
-      - name: Run focused Batch 03 integration check
-        run: |
-          npm run check
-          npx playwright test --config playwright.config.ts tests/browser/visual-capture.spec.ts --grep "visual QA capture: desktop"
+      - name: Run project checks with restored assets
+        run: npm run check
 
-      - name: Commit verified Batch 03 assets
+      - name: Commit verified Batch 03 assets and QA alignment
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
@@ -81,7 +104,10 @@ jobs:
             tests/browser/hands-on-helpers.ts
           if git diff --cached --quiet; then
             echo "No Batch 03 changes to commit."
-            exit 0
+          else
+            git commit -m "feat: finalize Batch 03 production assets"
+            git push origin HEAD:main
           fi
-          git commit -m "feat: finalize Batch 03 production assets"
-          git push origin HEAD:main
+
+      - name: Run focused Batch 03 visual QA
+        run: npx playwright test --config playwright.config.ts tests/browser/visual-capture.spec.ts --grep "visual QA capture: desktop"
