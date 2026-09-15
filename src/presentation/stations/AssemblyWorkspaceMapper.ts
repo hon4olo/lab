@@ -7,6 +7,8 @@ export interface AssemblyWorkspaceRect {
   readonly height: number;
 }
 
+export type PointerKind = 'mouse' | 'touch' | 'pen';
+
 export function screenToAssemblyPoint(
   rect: AssemblyWorkspaceRect,
   screenX: number,
@@ -37,7 +39,7 @@ export function assemblyPointToScreen(
 export function dragVisualPosition(
   screenX: number,
   screenY: number,
-  pointerKind: 'mouse' | 'touch' | 'pen',
+  pointerKind: PointerKind,
   touchOffsetPx = 56,
 ): { readonly x: number; readonly y: number } {
   return pointerKind === 'touch'
