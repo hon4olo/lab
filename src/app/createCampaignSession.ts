@@ -7,6 +7,7 @@ import type { CustomerDefinition } from '../game/customers/CustomerDefinition';
 import type { IngredientDefinition } from '../game/ingredients/IngredientDefinition';
 import type { OrderContent } from '../game/orders/OrderContent';
 import { resolveOrderAvailableIngredientIds } from '../game/orders/OrderRequirements';
+import { resolveOrderAssemblyDefinition } from '../game/orders/resolveOrderAssemblyDefinition';
 import type { CurrentSaveData, SavedOrderResult, ShiftCompletionRecord } from '../save/SaveSchema';
 import { FIRST_CHAPTER } from '../content/chapters/firstChapter';
 
@@ -27,7 +28,7 @@ export function createCampaignSession(save: CurrentSaveData): CampaignSession {
       definition,
       availableIngredientIds,
       ingredients,
-      ...(recipe.assembly ? { assembly: recipe.assembly } : {}),
+      ...(recipe.assembly ? { assembly: resolveOrderAssemblyDefinition(definition, recipe.assembly) } : {}),
     }] as const;
   }));
   const chapters = SNACK_LAB_CONTENT_REGISTRIES.chapters.toMap();
