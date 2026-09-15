@@ -26,6 +26,11 @@ navigation. It does not show the full Prep/Grill/Build workspaces over the lobby
 
 The order ticket remains accessible during later stations in a compact form.
 
+When the complete production hands-on flow is available for a recipe, Order Station must not ask the
+player to pre-select every ingredient that will later be placed in Build. Accepting the order stages
+only ingredients that physically need Prep/Grill; Build becomes the authoritative source of the final
+ingredient stack.
+
 ## 2. Prep Station
 
 Purpose: ingredient preparation before cooking/building.
@@ -80,7 +85,7 @@ Finished-food PNGs remain useful for:
 
 Spatial assembly quality is separate from ingredient correctness.
 
-Potential ORDER components include:
+ORDER can include:
 
 - required ingredient presence;
 - forbidden/extra ingredient mistakes;
@@ -91,8 +96,8 @@ Potential ORDER components include:
 - recipe-specific prep correctness.
 
 `AssemblySession` stores player-authored assembly. `evaluateAssembly` exposes renderer-independent
-spatial metrics. The existing production payment baselines stay unchanged until spatial metrics are
-explicitly integrated into `OrderScoring` and corresponding balance tests are updated.
+spatial metrics. Spatial assembly quality is now blended into ORDER through the authored balance
+weight, while perfect legacy baselines remain covered by regression tests.
 
 Bad placement does **not** create CHAOS by itself. CHAOS comes from authored experimental ingredients,
 combinations, mutations, and other intentional risk systems.
@@ -144,17 +149,32 @@ Each screen should read immediately at mobile scale:
 - comfortable touch targets;
 - no stretched low-resolution artwork.
 
+A missing production station asset must not be replaced with programmer-colored panels, SVG mocks,
+emoji, or synthetic temporary game art. Runtime station features remain behind their asset gates
+until their real textures are loaded. Individual station backgrounds may activate independently so a
+missing unrelated station asset does not block already approved production art.
+
 ## Current migration status
 
-The codebase still contains a legacy vertical-slice path where base ingredients are selected and a
-finished-food asset is assigned during `assemble()`. That path exists to preserve the tested first
-shift while the hands-on station implementation and required art are built.
+Completed in code:
 
-New work must not deepen that legacy path. Migration sequence:
+1. spatial assembly domain and authored burger/hot-dog recipe contracts;
+2. normalized placement, rotation, repeated pieces, and sauce strokes;
+3. spatial assembly evaluation integrated into ORDER scoring;
+4. asset-gated Build Station direct manipulation for mouse/touch;
+5. asset-gated Grill placement, timing, flip, and removal;
+6. independent Order/Prep/Grill/Build production-asset gates;
+7. hands-on order acceptance path that skips the old pre-build ingredient checklist;
+8. legacy programmer-art workstation backdrop removed from the presentation fallback.
 
-1. spatial assembly domain and authored recipe contracts;
-2. dedicated station asset contracts;
-3. Build Station direct-manipulation presenter;
-4. hands-on Grill placement/removal;
-5. scoring integration;
-6. retire legacy automatic `assembleFood()` gameplay usage.
+Still required before the first shift is considered presentation-complete:
+
+1. QA and import the real Batch 03 station/build/tool assets;
+2. replace the remaining generic Prep button with a recipe-specific hands-on Prep interaction;
+3. activate the full-swap Flaming Business Cat only after its production sprite passes QA;
+4. run desktop + portrait visual QA on the actual imported station art;
+5. retire player-facing use of legacy automatic `assembleFood()` once the hands-on asset pack is live;
+6. reduce the cooking-station HUD to a compact ticket/reference instead of the current large order card.
+
+The legacy path remains only as a compatibility path while production assets are gated. New work must
+not deepen it.
