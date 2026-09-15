@@ -26,6 +26,7 @@ export interface BrowserSnapshot {
   readonly transformationResult: { readonly id: string } | null;
   readonly selectedIngredients: readonly string[];
   readonly preparedIngredients: readonly string[];
+  readonly assembled: boolean;
   readonly assemblyReady: boolean;
   readonly assembly: AssemblySnapshot | null;
   readonly coins: number;
@@ -59,6 +60,7 @@ export const BURGER_BUILD_INGREDIENTS = [
   'ingredient.patty',
   'ingredient.cheese',
   'ingredient.sauce',
+  'ingredient.extra-spicy',
   'ingredient.bun-top',
 ] as const;
 
@@ -68,6 +70,11 @@ export const HOTDOG_BUILD_INGREDIENTS = [
   'ingredient.hotdog-cheese',
   'ingredient.pickle',
   'ingredient.mustard',
+] as const;
+
+export const HOTDOG_GLOW_BUILD_INGREDIENTS = [
+  ...HOTDOG_BUILD_INGREDIENTS,
+  'ingredient.glow-sauce',
 ] as const;
 
 const BURGER_TOOLS = [
@@ -117,14 +124,6 @@ export async function waitForSnapshot(
 export async function clickAction(page: Page, viewport: ViewportCase): Promise<void> {
   const layout = getLayout(viewport);
   await clickCanvas(page, layout.actionX, layout.actionY);
-}
-
-export async function clickModifier(page: Page, viewport: ViewportCase): Promise<void> {
-  const layout = getLayout(viewport);
-  const point = layout.wide
-    ? { x: layout.width * 0.34, y: layout.tileCenters[0]?.y ?? layout.height - 80 }
-    : { x: layout.width / 2, y: layout.tileCenters[4]?.y ?? layout.height - 120 };
-  await clickCanvas(page, point.x, point.y);
 }
 
 export async function openHandsOnPrep(page: Page, viewport: ViewportCase): Promise<void> {
@@ -241,7 +240,7 @@ export async function completeHandsOnBuild(
     intervals: [50, 100, 250],
   }).toBe(true);
   await clickAction(page, viewport);
-  await waitForSnapshot(page, { orderPhase: 'modifier-selection' });
+  await waitForSnapshot(page, { orderPhase: 'assembly', assembled: true });
 }
 
 export async function completeHandsOnBaseOrder(
