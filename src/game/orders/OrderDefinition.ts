@@ -9,6 +9,7 @@ export type OrderActionLabel =
   | 'action.start-grill'
   | 'action.stop-grill'
   | 'action.assemble'
+  | 'action.finish-build'
   | 'action.add-modifier'
   | 'action.serve';
 
