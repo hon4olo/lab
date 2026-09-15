@@ -16,6 +16,7 @@ interface DebugSnapshot {
   readonly shiftEarnings: number;
   readonly selectedIngredients: readonly string[];
   readonly preparedIngredients: readonly string[];
+  readonly assembled: boolean;
   readonly assemblyReady: boolean;
   readonly assembly: OrderSnapshot['assembly'] | null;
   readonly foodInstance: OrderSnapshot['food'] | null;
@@ -116,6 +117,7 @@ function createSnapshot(game: Phaser.Game, platform: PlatformService): DebugSnap
     shiftEarnings: activeShift?.shift.earnings ?? lastCompletion?.earnings ?? 0,
     selectedIngredients: order?.selectedIngredients ?? [],
     preparedIngredients: order?.preparedIngredients ?? [],
+    assembled: order?.assembled ?? false,
     assemblyReady: order?.assemblyReady ?? false,
     assembly: order?.assembly ?? null,
     foodInstance: order?.food ?? null,
