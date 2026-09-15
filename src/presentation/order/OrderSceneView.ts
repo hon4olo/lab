@@ -12,9 +12,15 @@ import { OrderHudPresenter } from './OrderHudPresenter';
 import type { OrderAction } from './orderActions';
 import { calculateOrderLayout, finalizeOrderLayout, type OrderLayout } from './orderLayout';
 import { modifierIngredientIds, selectableBaseIngredientIds } from '../../game/orders/OrderRequirements';
+import {
+  createStationPresentation,
+  stationModeForPhase,
+  type StationPresentationMode,
+} from './stationPresentation';
 
 export class OrderSceneView {
   private readonly background: Phaser.GameObjects.Image;
+  private readonly workspaceBackdrop: Phaser.GameObjects.Graphics;
   private readonly counter: Phaser.GameObjects.Image;
   private readonly station: Phaser.GameObjects.Image;
   private readonly customer: CustomerPresenter;
@@ -25,6 +31,8 @@ export class OrderSceneView {
   private layoutState: OrderLayout;
   private stationAsset = '';
   private currentPhase: OrderSnapshot['phase'] = 'customer-entering';
+  private currentMode: StationPresentationMode = 'order';
+  private currentSnapshot: OrderSnapshot | null = null;
 
   public constructor(
     private readonly scene: Phaser.Scene,
@@ -40,6 +48,7 @@ export class OrderSceneView {
     const height = scene.scale.height;
     this.layoutState = finalizeOrderLayout(calculateOrderLayout(width, height));
     this.background = scene.add.image(0, 0, 'background.street-snack-bar').setDepth(0);
+    this.workspaceBackdrop = scene.add.graphics().setDepth(1);
     this.counter = scene.add.image(0, 0, 'environment.service-counter.street').setDepth(3);
     this.station = scene.add.image(0, 0, 'station.prep-board.street').setDepth(5);
     this.station.setInteractive({ useHandCursor: true }).on('pointerdown', () => {
@@ -66,26 +75,19 @@ export class OrderSceneView {
     const coverScale = Math.max(width / source.width, height / source.height);
     this.background.setPosition(width / 2, height / 2)
       .setDisplaySize(source.width * coverScale, source.height * coverScale);
-    this.counter.setPosition(width / 2, layout.counterY)
-      .setDisplaySize(layout.counterWidth, layout.counterHeight);
-    this.station.setPosition(layout.stationX, layout.stationY)
-      .setDisplaySize(layout.stationWidth, layout.stationHeight);
-    this.customer.layout(layout.customerX, layout.customerY, layout.customerSize);
     this.hud.layout(layout);
     this.tray.layout(layout);
-    this.layoutFood();
+    this.applyPresentationMode(this.currentMode);
+    if (this.currentSnapshot) this.layoutFood(this.currentSnapshot);
+    else this.food.hide();
   }
 
   public render(snapshot: OrderSnapshot, coins: number, shiftPhase: ShiftPhase): void {
+    this.currentSnapshot = snapshot;
     this.currentPhase = snapshot.phase;
-    const isGrilling = snapshot.phase === 'grilling';
-    const showStation = ['ingredient-selection', 'prep-board', 'grilling'].includes(snapshot.phase);
-    const desiredStation = isGrilling ? 'station.grill.street' : 'station.prep-board.street';
-    if (this.stationAsset !== desiredStation) {
-      this.stationAsset = desiredStation;
-      this.station.setTexture(desiredStation);
-    }
-    this.station.setVisible(showStation);
+    this.currentMode = stationModeForPhase(snapshot.phase);
+    this.applyPresentationMode(this.currentMode);
+
     const availableIngredients = snapshot.phase === 'ingredient-selection'
       ? selectableBaseIngredientIds(this.order)
       : snapshot.phase === 'modifier-selection' ? modifierIngredientIds(this.order) : [];
@@ -109,7 +111,7 @@ export class OrderSceneView {
     }
 
     this.layoutFood(snapshot);
-    if (isGrilling) this.food.setCookState(snapshot.grill.state);
+    if (snapshot.phase === 'grilling') this.food.setCookState(snapshot.grill.state);
   }
 
   public updatePatience(snapshot: OrderSnapshot): void {
@@ -117,8 +119,14 @@ export class OrderSceneView {
   }
 
   public playEntry(onComplete: () => void): void {
-    const { customerX, customerY } = this.layoutState;
-    this.customer.enter(customerX, customerY, this.reducedMotion, onComplete);
+    const presentation = createStationPresentation(this.layoutState, 'order');
+    this.customer.setVisible(true);
+    this.customer.enter(
+      presentation.customerX,
+      presentation.customerY,
+      this.reducedMotion,
+      onComplete,
+    );
   }
 
   public anticipate(): void {
@@ -143,6 +151,7 @@ export class OrderSceneView {
 
   public destroy(): void {
     this.background.destroy();
+    this.workspaceBackdrop.destroy();
     this.counter.destroy();
     this.station.destroy();
     this.customer.destroy();
@@ -151,17 +160,67 @@ export class OrderSceneView {
     this.hud.destroy();
   }
 
-  private layoutFood(snapshot?: OrderSnapshot): void {
+  private applyPresentationMode(mode: StationPresentationMode): void {
     const layout = this.layoutState;
-    const assembled = snapshot?.assembled ?? false;
-    const finalPhase = ['anticipation', 'payment', 'customer-leaving', 'next-order-ready'].includes(snapshot?.phase ?? '');
-    const modifierPhase = snapshot?.phase === 'modifier-selection';
-    const x = finalPhase ? layout.customerX - layout.customerSize * 0.54 : layout.stationX;
-    const y = finalPhase
-      ? layout.customerY + layout.customerSize * 0.55
-      : modifierPhase ? layout.height * 0.59 : layout.stationY - layout.stationHeight * 0.08;
-    const size = finalPhase ? layout.customerSize * 0.62 : layout.stationWidth * (assembled ? 0.58 : 0.38);
-    const assetKey = snapshot?.food?.visualVariant ?? this.order.baseAssembledAssetKey;
-    this.food.layout(x, y, size, assembled, assetKey);
+    const presentation = createStationPresentation(layout, mode);
+    this.drawWorkspace(presentation);
+
+    this.background.setAlpha(presentation.showWorkspace ? 0.78 : 1);
+    this.counter.setVisible(presentation.showCounter)
+      .setPosition(layout.width / 2, presentation.counterY)
+      .setDisplaySize(presentation.counterWidth, presentation.counterHeight);
+
+    if (this.stationAsset !== presentation.stationAsset) {
+      this.stationAsset = presentation.stationAsset;
+      this.station.setTexture(presentation.stationAsset);
+    }
+    this.station.setVisible(presentation.showStation)
+      .setPosition(presentation.stationX, presentation.stationY)
+      .setDisplaySize(presentation.stationWidth, presentation.stationHeight);
+    if (this.station.input) this.station.input.enabled = presentation.showStation;
+
+    this.customer.layout(
+      presentation.customerX,
+      presentation.customerY,
+      presentation.customerSize,
+    );
+    this.customer.setVisible(presentation.showCustomer);
+  }
+
+  private drawWorkspace(presentation: ReturnType<typeof createStationPresentation>): void {
+    this.workspaceBackdrop.clear();
+    if (!presentation.showWorkspace) return;
+    const { width, height } = this.layoutState;
+    const left = presentation.workspaceX - presentation.workspaceWidth / 2;
+    const top = presentation.workspaceY - presentation.workspaceHeight / 2;
+    this.workspaceBackdrop
+      .fillStyle(0x160e22, 0.54)
+      .fillRect(0, 0, width, height)
+      .fillStyle(0x2b1b37, 0.88)
+      .fillRoundedRect(left, top, presentation.workspaceWidth, presentation.workspaceHeight, 26)
+      .lineStyle(2, 0xfff1d0, 0.72)
+      .strokeRoundedRect(left, top, presentation.workspaceWidth, presentation.workspaceHeight, 26);
+  }
+
+  private layoutFood(snapshot: OrderSnapshot): void {
+    const presentation = createStationPresentation(this.layoutState, this.currentMode);
+    const assembled = snapshot.assembled;
+    let x = presentation.stationX;
+    let y = presentation.stationY;
+    let width = Math.min(presentation.stationWidth * 0.28, 180);
+
+    if (this.currentMode === 'build') {
+      width = assembled
+        ? Math.min(presentation.stationWidth * 0.38, 260)
+        : Math.min(presentation.stationWidth * 0.26, 180);
+      y = presentation.stationY - presentation.stationHeight * 0.02;
+    } else if (this.currentMode === 'serve') {
+      x = this.layoutState.width * (this.layoutState.wide ? 0.43 : 0.34);
+      y = presentation.counterY - presentation.counterHeight * 0.29;
+      width = Math.min(presentation.customerSize * 0.52, 185);
+    }
+
+    const assetKey = snapshot.food?.visualVariant ?? this.order.baseAssembledAssetKey;
+    this.food.layout(x, y, width, assembled, assetKey);
   }
 }
