@@ -128,6 +128,7 @@ export class ShiftController {
         transactionId: `${this.options.definition.id}:${this.runId}:${slot.id}`,
         progression: this.options.progression.getContext(),
         balance: this.options.balance,
+        ...(orderContent.assembly ? { assembly: orderContent.assembly } : {}),
       },
     );
   }
