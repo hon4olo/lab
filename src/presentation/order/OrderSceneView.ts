@@ -22,8 +22,8 @@ import { BuildStationController } from '../stations/BuildStationController';
 import { GrillStationController } from '../stations/GrillStationController';
 import type { AssemblyWorkspaceRect } from '../stations/AssemblyWorkspaceMapper';
 import {
+  buildStationGroupsForRecipe,
   requiredStationAssetIds,
-  stationGroupsForRecipe,
   STREET_STATION_ASSET_IDS,
 } from '../stations/StationAssetContract';
 
@@ -42,7 +42,6 @@ export class OrderSceneView {
   private readonly stationRail: StationRailPresenter;
   private readonly buildController: BuildStationController | null;
   private readonly grillController: GrillStationController | null;
-  private readonly handsOnShellEnabled: boolean;
   private layoutState: OrderLayout;
   private stationAsset = '';
   private backgroundAsset = LEGACY_BACKGROUND_ASSET;
@@ -63,7 +62,6 @@ export class OrderSceneView {
     const width = scene.scale.width;
     const height = scene.scale.height;
     this.layoutState = finalizeOrderLayout(calculateOrderLayout(width, height));
-    this.handsOnShellEnabled = this.hasHandsOnShellTextures();
     this.background = scene.add.image(0, 0, LEGACY_BACKGROUND_ASSET).setDepth(0);
     this.workspaceBackdrop = scene.add.graphics().setDepth(1);
     this.counter = scene.add.image(0, 0, 'environment.service-counter.street').setDepth(3);
@@ -223,8 +221,9 @@ export class OrderSceneView {
   private applyPresentationMode(mode: StationPresentationMode): void {
     const layout = this.layoutState;
     const presentation = createStationPresentation(layout, mode);
-    const dedicatedBackground = this.backgroundAssetForMode(mode) !== LEGACY_BACKGROUND_ASSET;
-    this.layoutBackground(this.backgroundAssetForMode(mode));
+    const backgroundAsset = this.backgroundAssetForMode(mode);
+    const dedicatedBackground = backgroundAsset !== LEGACY_BACKGROUND_ASSET;
+    this.layoutBackground(backgroundAsset);
     this.drawWorkspace(presentation, dedicatedBackground);
 
     this.background.setAlpha(dedicatedBackground ? 1 : presentation.showWorkspace ? 0.78 : 1);
@@ -290,19 +289,19 @@ export class OrderSceneView {
     this.food.layout(x, y, width, assembled, assetKey);
   }
 
-  private hasHandsOnShellTextures(): boolean {
-    return requiredStationAssetIds('hands-on-shell').every((id) => this.scene.textures.exists(id));
-  }
-
   private hasHandsOnGrillTextures(): boolean {
     const grillAssetKeys = this.order.grillAssetKeys;
-    if (!this.handsOnShellEnabled || !grillAssetKeys) return false;
-    return Object.values(grillAssetKeys).every((id) => this.scene.textures.exists(id));
+    if (!grillAssetKeys) return false;
+    const required = [
+      ...requiredStationAssetIds('grill-shell'),
+      ...Object.values(grillAssetKeys),
+    ];
+    return required.every((id) => this.scene.textures.exists(id));
   }
 
   private hasHandsOnBuildTextures(): boolean {
     const ids = new Set(
-      stationGroupsForRecipe(this.order.recipeId).flatMap((group) => requiredStationAssetIds(group)),
+      buildStationGroupsForRecipe(this.order.recipeId).flatMap((group) => requiredStationAssetIds(group)),
     );
     return ids.size > 0 && [...ids].every((id) => this.scene.textures.exists(id));
   }
@@ -312,15 +311,17 @@ export class OrderSceneView {
   }
 
   private backgroundAssetForMode(mode: StationPresentationMode): string {
-    if (!this.handsOnShellEnabled) return LEGACY_BACKGROUND_ASSET;
-    switch (mode) {
-      case 'prep': return STREET_STATION_ASSET_IDS.prepBackground;
-      case 'grill': return STREET_STATION_ASSET_IDS.grillBackground;
-      case 'build': return STREET_STATION_ASSET_IDS.buildBackground;
-      case 'order':
-      case 'serve':
-      case 'results': return STREET_STATION_ASSET_IDS.orderBackground;
-    }
+    const dedicated = (() => {
+      switch (mode) {
+        case 'prep': return STREET_STATION_ASSET_IDS.prepBackground;
+        case 'grill': return STREET_STATION_ASSET_IDS.grillBackground;
+        case 'build': return STREET_STATION_ASSET_IDS.buildBackground;
+        case 'order':
+        case 'serve':
+        case 'results': return STREET_STATION_ASSET_IDS.orderBackground;
+      }
+    })();
+    return this.scene.textures.exists(dedicated) ? dedicated : LEGACY_BACKGROUND_ASSET;
   }
 
   private layoutBackground(assetKey: string): void {
