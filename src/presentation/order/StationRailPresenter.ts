@@ -13,6 +13,8 @@ const STAGES: readonly {
   { mode: 'serve', label: 'station.serve' },
 ];
 
+const FALLBACK_STAGE = { mode: 'order', label: 'station.order' } as const;
+
 export class StationRailPresenter {
   private readonly graphics: Phaser.GameObjects.Graphics;
   private readonly labels: Phaser.GameObjects.Text[];
@@ -45,7 +47,7 @@ export class StationRailPresenter {
     }
 
     if (compact) {
-      const stage = STAGES.find((item) => item.mode === mode) ?? STAGES[0];
+      const stage = STAGES.find((item) => item.mode === mode) ?? FALLBACK_STAGE;
       this.renderSingle(localize(stage.label), true);
       return;
     }
@@ -57,6 +59,8 @@ export class StationRailPresenter {
     const left = this.width / 2 - totalWidth / 2;
 
     STAGES.forEach((stage, index) => {
+      const label = this.labels[index];
+      if (!label) return;
       const active = stage.mode === mode;
       const x = left + tabWidth * index;
       this.graphics
@@ -64,7 +68,6 @@ export class StationRailPresenter {
         .fillRoundedRect(x + 2, y - tabHeight / 2, tabWidth - 4, tabHeight, 10)
         .lineStyle(1, active ? 0xfff1d0 : 0x725f7d, active ? 0.95 : 0.72)
         .strokeRoundedRect(x + 2, y - tabHeight / 2, tabWidth - 4, tabHeight, 10);
-      const label = this.labels[index];
       label.setVisible(true)
         .setPosition(x + tabWidth / 2, y)
         .setText(localize(stage.label))
