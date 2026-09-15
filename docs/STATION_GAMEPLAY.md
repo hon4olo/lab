@@ -165,16 +165,21 @@ Completed in code:
 5. asset-gated Grill placement, timing, flip, and removal;
 6. independent Order/Prep/Grill/Build production-asset gates;
 7. hands-on order acceptance path that skips the old pre-build ingredient checklist;
-8. legacy programmer-art workstation backdrop removed from the presentation fallback.
+8. legacy programmer-art workstation backdrop removed from the presentation fallback;
+9. asset-gated hands-on Prep staging for the first single-cookable burger/hot-dog recipes, wired into the live order scene;
+10. compact order-ticket/reference presentation during hands-on Prep/Grill/Build, while Order Station retains its full request card.
 
 Still required before the first shift is considered presentation-complete:
 
 1. QA and import the real Batch 03 station/build/tool assets;
-2. replace the remaining generic Prep button with a recipe-specific hands-on Prep interaction;
-3. activate the full-swap Flaming Business Cat only after its production sprite passes QA;
-4. run desktop + portrait visual QA on the actual imported station art;
-5. retire player-facing use of legacy automatic `assembleFood()` once the hands-on asset pack is live;
-6. reduce the cooking-station HUD to a compact ticket/reference instead of the current large order card.
+2. activate the full-swap Flaming Business Cat only after its production sprite passes QA;
+3. run desktop + portrait visual QA on the actual imported station art;
+4. retire player-facing use of legacy automatic `assembleFood()` once the hands-on asset pack is live.
+
+The current Prep staging interaction deliberately supports the first-shift contract where exactly one
+required Prep ingredient is also the grill ingredient. Future recipes that require cutting, mixing,
+portioning, or multiple Prep ingredients must provide their own authored interaction instead of
+falling through to this controller.
 
 The legacy path remains only as a compatibility path while production assets are gated. New work must
 not deepen it.
