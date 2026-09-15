@@ -8,8 +8,8 @@ import { createDefaultSaveData } from '../../src/save/SaveSchema';
 import {
   BURGER_BUILD_INGREDIENTS,
   HOTDOG_BUILD_INGREDIENTS,
+  HOTDOG_GLOW_BUILD_INGREDIENTS,
   clickAction,
-  clickModifier,
   completeHandsOnBaseOrder,
   snapshot,
   waitForSnapshot,
@@ -178,21 +178,15 @@ async function completeOrder(
 ): Promise<void> {
   await waitForSnapshot(page, { orderId, orderPhase: 'ingredient-selection' }, 30_000);
   const isBurger = orderId === BURGER_ORDER_ID;
+  const buildIngredients = isBurger
+    ? BURGER_BUILD_INGREDIENTS
+    : withModifier ? HOTDOG_GLOW_BUILD_INGREDIENTS : HOTDOG_BUILD_INGREDIENTS;
   await completeHandsOnBaseOrder(
     page,
     viewport,
     isBurger ? 'recipe.hot-cheese-burger' : 'recipe.cheesy-street-hot-dog',
-    isBurger ? BURGER_BUILD_INGREDIENTS : HOTDOG_BUILD_INGREDIENTS,
+    buildIngredients,
   );
-
-  if (withModifier) {
-    const modifierId = isBurger ? 'ingredient.extra-spicy' : 'ingredient.glow-sauce';
-    await clickModifier(page, viewport);
-    await expect.poll(async () => (await snapshot(page)).selectedIngredients.includes(modifierId), {
-      timeout: 8_000,
-      intervals: [50, 100, 250],
-    }).toBe(true);
-  }
 
   await clickAction(page, viewport);
   await waitForSnapshot(page, { orderId, orderPhase: 'anticipation' });
