@@ -144,8 +144,12 @@ export class OrderScene extends Phaser.Scene {
         this.toggleGrill();
         break;
       case 'assemble':
-        session.assemble();
-        this.view.assembledFood(this.order.baseAssembledAssetKey);
+        if (this.view.isHandsOnBuildEnabled()) {
+          if (session.snapshot().assemblyReady) session.completeSpatialAssembly();
+        } else {
+          session.assemble();
+          this.view.assembledFood(this.order.baseAssembledAssetKey);
+        }
         break;
       case 'build-place':
         session.placeAssemblyIngredient(action.ingredientId, action.point, action.rotation);
