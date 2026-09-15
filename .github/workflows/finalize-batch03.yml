@@ -1,0 +1,68 @@
+name: Finalize Batch 03 verified assets
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/finalize-batch03.yml'
+
+permissions:
+  contents: write
+  actions: read
+
+concurrency:
+  group: snack-lab-batch03-finalize
+  cancel-in-progress: false
+
+jobs:
+  finalize:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22.12.0'
+          cache: npm
+
+      - name: Restore verified Batch 03 import
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          rm -rf /tmp/batch03
+          mkdir -p /tmp/batch03
+          gh run download 34988520825 \
+            --repo "${GITHUB_REPOSITORY}" \
+            --name "batch03-production-import-5d10a7f995c4922200b3641d7edb37ed6ed86e82" \
+            --dir /tmp/batch03
+          cp -a /tmp/batch03/. .
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install Chromium
+        run: npx playwright install --with-deps chromium
+
+      - name: Run full project checks
+        run: npm run check:ci
+
+      - name: Commit verified Batch 03 assets
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add public/assets \
+            docs/ASSET_BATCH_03_SOURCE_MAP.md \
+            docs/ASSET_BATCH_03_REQUIREMENTS.md \
+            src/content/transformations.ts \
+            tests/browser/asset-batch-02.spec.ts
+          if git diff --cached --quiet; then
+            echo "No Batch 03 changes to commit."
+            exit 0
+          fi
+          git commit -m "feat: finalize Batch 03 production assets"
+          git push origin HEAD:main
