@@ -1,75 +1,38 @@
-# Asset Batch 03 — Generated Source Map
+# Snack Lab Asset Batch 03 — Production Source Map
 
-This file records generation provenance only. **Nothing listed here is production-approved by default.**
+**Status:** production-approved and runtime-enabled on 2026-09-15.
 
-A generated source becomes usable in runtime only after:
+Batch 03 closes the dedicated-art gate for the hands-on Order → Prep → Grill → Build → Serve presentation. The assets below are stored in `public/assets`, registered in `public/assets/manifest.json`, and validated by the exact-dimension/alpha verifier plus the full unit/build/browser suite.
 
-1. visual QA against `ART_DIRECTION.md` and `ASSET_PIPELINE.md`;
-2. dimension / alpha / crop checks;
-3. in-game composition QA at supported viewports;
-4. import into the repository;
-5. manifest status explicitly changed to `production-approved`.
+## Dedicated station environments
 
-Do not replace missing assets with programmer art, color blocks, emoji, temporary SVG, or baked text.
-
-## Full-screen station backgrounds
-
-| Runtime asset ID | Intended use | Generation task | Current status |
+| Runtime ID | Repository path | Source task | QA |
 | --- | --- | --- | --- |
-| `background.street-snack-bar.order` | Order + Serve customer-facing screen | `a01ed72d-bc10-476e-9f99-ef4cace77bdc` | generated; awaiting visual QA/import |
-| `station.street.prep.background` | Dedicated Prep Station | `1fab977b-2b24-4ac6-a4dc-ed97b31a7b8e` | generated; awaiting visual QA/import |
-| `station.street.grill.background` | Dedicated Grill Station | `637144fd-88bb-40f7-94f6-5cac0b8efdb1` | generated; awaiting visual QA/import |
-| `station.street.build.background` | Dedicated Build Station | `d9addced-6283-44d2-b281-47c9281ffb13` | generated; awaiting visual QA/import |
+| `background.street-snack-bar.order` | `assets/backgrounds/street-snack-bar-order.png` | `a01ed72d-bc10-476e-9f99-ef4cace77bdc` | approved |
+| `station.street.prep.background` | `assets/stations/street/prep-background.png` | `1fab977b-2b24-4ac6-a4dc-ed97b31a7b8e` | approved |
+| `station.street.grill.background` | `assets/stations/street/grill-background.png` | `637144fd-88bb-40f7-94f6-5cac0b8efdb1` | approved |
+| `station.street.build.background` | `assets/stations/street/build-background.png` | `d9addced-6283-44d2-b281-47c9281ffb13` | approved |
 
-Background acceptance rules:
+All four are standalone 2048×1152 opaque backgrounds with no baked HUD, labels, characters, or completed food.
 
-- one coherent 16:9 environment, not a mockup/contact sheet;
-- no player-visible text, UI, customers, food, or baked interaction props;
-- genuine dedicated station composition rather than the old restaurant background with a floating station sprite;
-- safe responsive crop for desktop landscape and narrow portrait;
-- central work region remains readable after HUD/ticket overlays;
-- source quality must remain crisp at gameplay render scale; do not approve a blurry upscale.
+## Character transformation
 
-## Flaming Business Cat
+`customer.business-cat.flaming.full` uses source generation `16887638-8235-4006-8664-0193d4e392f1` and transparent cutout task `f89d47d8-6d77-4d8e-aa2d-29b697f59223`. Runtime transformation `transformation.business-cat.flaming` now uses this 1024×1024 full replacement sprite in `appearanceMode: 'full'`; the legacy modular mutation pieces remain in the registry but are no longer composed for this result.
 
-| Runtime asset ID | Intended use | Generation task | Current status |
-| --- | --- | --- | --- |
-| `customer.business-cat.flaming.full` | Full-swap transformation character | `16887638-8235-4006-8664-0193d4e392f1` | generated; cutout/identity QA required |
+## Hands-on tools and Build pieces
 
-The Flaming Business Cat must be a **single authored full-body transformed character**, not the old stack of ears/eyes/tie/fire overlays. Preserve the neutral Business Cat identity, proportions, shirt/collar and oversized plum tie. Runtime should prefer full-swap presentation once this asset passes QA.
+- Prep knife: cutout `88ff8834-e09d-4a91-a8f4-228c3487102c`.
+- Grill spatula: cutout `eaa1b295-6305-49db-b162-e027b70b86a7`.
+- Burger patty / cheese / top bun: cutouts `5ead3c32-9bd9-42f1-aee8-1ce16dda85e0`, `013b2879-68a9-4862-a080-e1aeee7c9620`, `71346fa4-e2a4-4d5f-8730-b53e9aabe12a`.
+- Burger bottom bun reuses the already approved `food.burger.bottom-bun` art, repacked to the spatial Build canvas.
+- Chili piece: cutout `a435b4b1-1a05-424a-881e-b9a7f61a2cb7`.
+- Hot-dog bun / sausage / cheese reuse approved Batch 02 art, repacked for spatial Build.
+- Pickle piece: cutout `b84f6412-2db4-498f-83d4-41d5c3dd2027`.
+- Sauce bottle cutouts: red `90172ecf-d59f-4cb7-8aaf-9140d508aa0b`, mustard `5b440b7f-6e1a-4cdf-a712-6124e060da96`, glow `5e5ff62e-c044-481e-b25f-2c16019dbdd3`.
+- Sauce stamp cutouts: red `f62ac92f-9159-48f0-9095-db84336ef6d1`, mustard `8fe0c521-32ab-4a91-ba64-f7ba6400bbc8`, glow `0152b076-8e3b-498e-a1b9-e31194868b4e`.
 
-## Build / tool cutouts
-
-The generated Batch 03 work also includes transparent-cutout candidates for burger layers, hot-dog layers, individual chili/pickle pieces, sauce bottles/stamps, prep knife and grill spatula. Their generation/segmentation outputs remain **QA candidates** until each source is matched to its runtime ID and visually inspected.
-
-Required runtime IDs are authoritative in `src/presentation/stations/StationAssetContract.ts`:
-
-### Burger
-
-- `food.burger.build.bottom-bun`
-- `food.burger.build.patty`
-- `food.burger.build.cheese`
-- `food.burger.build.top-bun`
-- `food.burger.build.chili-piece`
-- `tool.sauce.red-bottle`
-- `fx.sauce.red-stamp`
-
-### Hot dog
-
-- `food.hotdog.build.bun`
-- `food.hotdog.build.sausage`
-- `food.hotdog.build.cheese`
-- `food.hotdog.build.pickle-piece`
-- `tool.sauce.mustard-bottle`
-- `fx.sauce.mustard-stamp`
-- `tool.sauce.glow-bottle`
-- `fx.sauce.glow-stamp`
-
-### Station tools
-
-- `tool.prep.knife.street`
-- `tool.grill.spatula.street`
+Every transparent runtime asset is normalized to its exact manifest canvas and retains a fully transparent outer border.
 
 ## Runtime gate
 
-`StationAssetContract.ts` remains the source of truth for activation. The hands-on runtime must stay gated until every required asset for the relevant recipe exists as an approved texture. A missing asset is a production blocker, not permission to show a placeholder.
+`StationAssetContract` already defines the Batch 03 stable IDs. Once this manifest is loaded, `canEnableHandsOnStations(...)` resolves true for the burger and hot-dog station groups, so the dedicated station presentation activates without a separate feature flag.

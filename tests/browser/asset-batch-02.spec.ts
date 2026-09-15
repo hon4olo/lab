@@ -4,7 +4,7 @@ interface AssetQaWindow {
   SNACK_LAB?: { previewAssets(): Promise<void> };
 }
 
-test('development asset QA loads every approved Batch 01+02 asset', async ({ page }) => {
+test('development asset QA loads every approved Batch 01+02+03 asset', async ({ page }) => {
   const pageErrors: string[] = [];
   const consoleErrors: string[] = [];
   const failedRequests: string[] = [];
@@ -26,7 +26,7 @@ test('development asset QA loads every approved Batch 01+02 asset', async ({ pag
     const response = await fetch('/assets/manifest.json');
     return response.json() as Promise<{ assets: readonly { status: string }[] }>;
   });
-  expect(manifest.assets).toHaveLength(62);
+  expect(manifest.assets).toHaveLength(84);
   expect(manifest.assets.every((asset) => asset.status === 'production-approved')).toBe(true);
 
   await page.evaluate(() => (window as unknown as AssetQaWindow).SNACK_LAB?.previewAssets());
