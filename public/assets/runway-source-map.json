@@ -1,0 +1,18 @@
+{
+  "background.street-snack-bar.order": {
+    "taskId": "e5e41991-0133-44b9-b790-04bcfa2bc64f",
+    "path": "assets/backgrounds/street-snack-bar-order.png"
+  },
+  "station.street.prep.background": {
+    "taskId": "b63a96a4-6fa8-48ab-9128-b8f83c44ac7c",
+    "path": "assets/stations/street/prep-background.png"
+  },
+  "station.street.grill.background": {
+    "taskId": "2162deed-3982-4068-bbb8-f5ed0a3edc9a",
+    "path": "assets/stations/street/grill-background.png"
+  },
+  "station.street.build.background": {
+    "taskId": "d4eb2505-608f-424c-8c27-63244e3c5f5f",
+    "path": "assets/stations/street/build-background.png"
+  }
+}

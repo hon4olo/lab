@@ -8,12 +8,12 @@ Batch 03 closes the dedicated-art gate for the hands-on Order → Prep → Grill
 
 | Runtime ID | Repository path | Source task | QA |
 | --- | --- | --- | --- |
-| `background.street-snack-bar.order` | `assets/backgrounds/street-snack-bar-order.png` | `a01ed72d-bc10-476e-9f99-ef4cace77bdc` | approved |
-| `station.street.prep.background` | `assets/stations/street/prep-background.png` | `1fab977b-2b24-4ac6-a4dc-ed97b31a7b8e` | approved |
-| `station.street.grill.background` | `assets/stations/street/grill-background.png` | `637144fd-88bb-40f7-94f6-5cac0b8efdb1` | approved |
-| `station.street.build.background` | `assets/stations/street/build-background.png` | `d9addced-6283-44d2-b281-47c9281ffb13` | approved |
+| `background.street-snack-bar.order` | `assets/backgrounds/street-snack-bar-order.png` | `e5e41991-0133-44b9-b790-04bcfa2bc64f` | approved |
+| `station.street.prep.background` | `assets/stations/street/prep-background.png` | `b63a96a4-6fa8-48ab-9128-b8f83c44ac7c` | approved |
+| `station.street.grill.background` | `assets/stations/street/grill-background.png` | `2162deed-3982-4068-bbb8-f5ed0a3edc9a` | approved |
+| `station.street.build.background` | `assets/stations/street/build-background.png` | `d4eb2505-608f-424c-8c27-63244e3c5f5f` | approved |
 
-All four are standalone 2048×1152 opaque backgrounds with no baked HUD, labels, characters, or completed food.
+All four are standalone 1376×768 opaque backgrounds with no baked HUD, labels, characters, or completed food. The dimensions match the final Runway outputs imported into the runtime manifest.
 
 ## Character transformation
 

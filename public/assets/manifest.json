@@ -2544,8 +2544,8 @@
       "scene": "street-snack-bar",
       "chapter": "chapter.street-snack-bar",
       "technical": {
-        "width": 2048,
-        "height": 1152,
+        "width": 1376,
+        "height": 768,
         "alpha": false,
         "colorSpace": "sRGB",
         "premultipliedAlpha": false,
@@ -2553,8 +2553,8 @@
       },
       "source": {
         "kind": "generated",
-        "toolOrReference": "runway:a01ed72d-bc10-476e-9f99-ef4cace77bdc",
-        "notes": "Standalone customer-facing Order/Serve background; no baked UI, text, customer, or food."
+        "toolOrReference": "runway:e5e41991-0133-44b9-b790-04bcfa2bc64f",
+        "notes": "Approved Runway ORDER / SERVE background imported unchanged from the final task output; no baked UI, text, customer, or food."
       },
       "verification": {
         "alphaCropPassed": true,
@@ -2575,8 +2575,8 @@
       "scene": "street-snack-bar",
       "chapter": "chapter.street-snack-bar",
       "technical": {
-        "width": 2048,
-        "height": 1152,
+        "width": 1376,
+        "height": 768,
         "alpha": false,
         "colorSpace": "sRGB",
         "premultipliedAlpha": false,
@@ -2584,8 +2584,8 @@
       },
       "source": {
         "kind": "generated",
-        "toolOrReference": "runway:1fab977b-2b24-4ac6-a4dc-ed97b31a7b8e",
-        "notes": "Standalone Prep workspace with authored empty center work surface."
+        "toolOrReference": "runway:b63a96a4-6fa8-48ab-9128-b8f83c44ac7c",
+        "notes": "Approved Runway PREP background imported unchanged from the final task output with an authored empty center work surface."
       },
       "verification": {
         "alphaCropPassed": true,
@@ -2606,8 +2606,8 @@
       "scene": "street-snack-bar",
       "chapter": "chapter.street-snack-bar",
       "technical": {
-        "width": 2048,
-        "height": 1152,
+        "width": 1376,
+        "height": 768,
         "alpha": false,
         "colorSpace": "sRGB",
         "premultipliedAlpha": false,
@@ -2615,8 +2615,8 @@
       },
       "source": {
         "kind": "generated",
-        "toolOrReference": "runway:637144fd-88bb-40f7-94f6-5cac0b8efdb1",
-        "notes": "Standalone Grill workspace with empty readable multi-zone grill surface."
+        "toolOrReference": "runway:2162deed-3982-4068-bbb8-f5ed0a3edc9a",
+        "notes": "Approved Runway GRILL background imported unchanged from the final task output with an empty readable multi-zone grill surface."
       },
       "verification": {
         "alphaCropPassed": true,
@@ -2637,8 +2637,8 @@
       "scene": "street-snack-bar",
       "chapter": "chapter.street-snack-bar",
       "technical": {
-        "width": 2048,
-        "height": 1152,
+        "width": 1376,
+        "height": 768,
         "alpha": false,
         "colorSpace": "sRGB",
         "premultipliedAlpha": false,
@@ -2646,8 +2646,8 @@
       },
       "source": {
         "kind": "generated",
-        "toolOrReference": "runway:d9addced-6283-44d2-b281-47c9281ffb13",
-        "notes": "Standalone Build workspace with empty central assembly area."
+        "toolOrReference": "runway:d4eb2505-608f-424c-8c27-63244e3c5f5f",
+        "notes": "Approved Runway BUILD background imported unchanged from the final task output with an empty central assembly area."
       },
       "verification": {
         "alphaCropPassed": true,
