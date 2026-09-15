@@ -80,6 +80,7 @@ export class OrderSceneView {
       customerDefinition.displayNameKey,
       onAction,
       handsOnBuildEnabled,
+      handsOnGrillEnabled,
     );
     this.stationRail = new StationRailPresenter(scene);
     this.tray = new IngredientTrayPresenter(scene, ingredients, (ingredientId, x, y) => {
