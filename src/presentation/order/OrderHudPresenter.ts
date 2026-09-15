@@ -2,7 +2,7 @@ import Phaser from 'phaser';
 import type { OrderDefinition } from '../../game/orders/OrderDefinition';
 import type { OrderSnapshot } from '../../game/orders/OrderSession';
 import type { TranslationKey } from '../../localization/createTranslator';
-import type { OrderLayout } from './orderLayout';
+import { buildActionPosition, type OrderLayout } from './orderLayout';
 import type { ShiftPhase } from '../../game/shifts/ShiftSession';
 import { PatienceMeterPresenter } from './PatienceMeterPresenter';
 import { hasRequiredModifiers, orderVariationDisplayNameKey } from '../../game/orders/OrderRequirements';
@@ -85,25 +85,7 @@ export class OrderHudPresenter {
     this.layoutOrderReference(false);
     this.coinIcon.setPosition(layout.width - 70, 28).setDisplaySize(28, 28);
     this.coinValue.setPosition(layout.width - 50, 28);
-    this.actionButton.setPosition(layout.actionX, layout.actionY).setSize(layout.actionWidth, layout.actionHeight);
-    this.actionPanel.clear()
-      .fillStyle(0x25123d, 0.96)
-      .fillRoundedRect(
-        layout.actionX - layout.actionWidth / 2,
-        layout.actionY - layout.actionHeight / 2,
-        layout.actionWidth,
-        layout.actionHeight,
-        18,
-      )
-      .lineStyle(2, 0x5df2c6, 0.95)
-      .strokeRoundedRect(
-        layout.actionX - layout.actionWidth / 2,
-        layout.actionY - layout.actionHeight / 2,
-        layout.actionWidth,
-        layout.actionHeight,
-        18,
-      );
-    this.actionLabel.setPosition(layout.actionX, layout.actionY).setFontSize(layout.compact ? '13px' : '15px');
+    this.layoutAction(layout, layout.actionX, layout.actionY);
     this.stationName.setPosition(layout.stationX, layout.stationY - layout.stationHeight * 0.40)
       .setFontSize(layout.compact ? '12px' : '14px');
     this.cookState.setPosition(layout.stationX, layout.stationY + layout.stationHeight * 0.42)
@@ -173,7 +155,17 @@ export class OrderHudPresenter {
     const canReplay = snapshot.phase === 'next-order-ready' && shiftPhase === 'completed';
     const handsOnGrillActive = this.handsOnGrillEnabled && snapshot.phase === 'grilling';
     const handsOnPrepActive = this.handsOnPrepEnabled && this.hasPendingPrep(snapshot);
-    const showAction = (hasOrderAction(snapshot.phase) || canReplay) && !handsOnGrillActive && !handsOnPrepActive;
+    const buildPhase = snapshot.phase === 'assembly' && this.handsOnBuildEnabled;
+    const incompleteBuild = buildPhase && !snapshot.assemblyReady;
+    const actionPosition = this.actionPositionFor(snapshot);
+    if (this.layoutState) this.layoutAction(this.layoutState, actionPosition.x, actionPosition.y);
+    const showAction = (hasOrderAction(snapshot.phase) || canReplay)
+      && !handsOnGrillActive
+      && !handsOnPrepActive
+      // A disabled Finish Build CTA is visual noise and can sit over the
+      // ingredient rail. It becomes visible only once the spatial assembly is
+      // actually ready, at a safe top/right location outside the shelf.
+      && !incompleteBuild;
     const orderAction = this.getStationAction();
     const actionEnabled = canReplay || orderAction !== null;
     this.actionPanel.setVisible(showAction).setAlpha(actionEnabled ? 1 : 0.52);
@@ -288,12 +280,20 @@ export class OrderHudPresenter {
     const { stationX, stationY, stationWidth, stationHeight } = this.layoutState;
     const width = Math.min(stationWidth * 0.62, this.layoutState.width * 0.54);
     const x = stationX - width / 2;
-    const y = stationY + stationHeight * 0.34;
+    // Before the raw ingredient is placed, its large stock sprite occupies
+    // the foreground tool band. Keep the timing HUD above that sprite; once
+    // the ingredient is on the grill, return the track to the lower station
+    // lip where it reads with the cooking surface.
+    const idleGrill = !snapshot.grill.active || snapshot.grill.slotId === null;
+    const y = idleGrill
+      ? stationY - stationHeight * 0.20
+      : stationY + stationHeight * 0.34;
     this.heatTrack.fillStyle(0x241332, 0.9).fillRoundedRect(x, y, width, 14, 7);
     const color = snapshot.grill.state === 'burned' ? 0xff5c70
       : snapshot.grill.state === 'perfect' ? 0x5df2c6
         : 0xffb347;
     this.heatTrack.fillStyle(color, 1).fillRoundedRect(x + 2, y + 2, (width - 4) * snapshot.grill.progress, 10, 5);
+    this.cookState.setPosition(stationX, y + 23);
   }
 
   private drawScoreBars(scores: { readonly order: number; readonly cook: number; readonly chaos: number }): void {
@@ -313,6 +313,37 @@ export class OrderHudPresenter {
       this.resultScoreBars.fillStyle(color, 1)
         .fillRoundedRect(x, centerY - 3, barWidth * ratio, 6, 3);
     });
+  }
+
+  private layoutAction(layout: OrderLayout, x: number, y: number): void {
+    this.actionButton.setPosition(x, y).setSize(layout.actionWidth, layout.actionHeight);
+    this.actionPanel.clear()
+      .fillStyle(0x25123d, 0.96)
+      .fillRoundedRect(
+        x - layout.actionWidth / 2,
+        y - layout.actionHeight / 2,
+        layout.actionWidth,
+        layout.actionHeight,
+        18,
+      )
+      .lineStyle(2, 0x5df2c6, 0.95)
+      .strokeRoundedRect(
+        x - layout.actionWidth / 2,
+        y - layout.actionHeight / 2,
+        layout.actionWidth,
+        layout.actionHeight,
+        18,
+      );
+    this.actionLabel.setPosition(x, y).setFontSize(layout.compact ? '13px' : '15px');
+  }
+
+  private actionPositionFor(snapshot: OrderSnapshot): { readonly x: number; readonly y: number } {
+    const layout = this.layoutState;
+    if (!layout || !(snapshot.phase === 'assembly' && this.handsOnBuildEnabled)) {
+      return { x: layout?.actionX ?? 0, y: layout?.actionY ?? 0 };
+    }
+
+    return buildActionPosition(layout);
   }
 
   private makeText(

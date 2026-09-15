@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { BuildStationInputSession } from '../../src/presentation/stations/BuildStationInputSession';
 import { buildIngredientDisplayWidth, calculateBuildShelfLayout } from '../../src/presentation/stations/AssemblyWorkspaceMapper';
-import { calculateOrderLayout, finalizeOrderLayout } from '../../src/presentation/order/orderLayout';
+import { buildActionPosition, calculateOrderLayout, finalizeOrderLayout } from '../../src/presentation/order/orderLayout';
 import { createStationPresentation } from '../../src/presentation/order/stationPresentation';
 
 const workspace = { x: 100, y: 50, width: 800, height: 500 };
@@ -104,11 +104,12 @@ describe('BuildStationInputSession', () => {
       height: workspaceHeight,
     };
     const shelf = calculateBuildShelfLayout(width, height, workspace, 6);
+    const actionPosition = buildActionPosition(layout);
     const action = {
-      left: layout.actionX - layout.actionWidth / 2,
-      right: layout.actionX + layout.actionWidth / 2,
-      top: layout.actionY - layout.actionHeight / 2,
-      bottom: layout.actionY + layout.actionHeight / 2,
+      left: actionPosition.x - layout.actionWidth / 2,
+      right: actionPosition.x + layout.actionWidth / 2,
+      top: actionPosition.y - layout.actionHeight / 2,
+      bottom: actionPosition.y + layout.actionHeight / 2,
     };
 
     for (const slot of shelf.slots) {

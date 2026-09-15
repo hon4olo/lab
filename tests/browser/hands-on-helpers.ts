@@ -1,5 +1,5 @@
 import { expect, type Page } from '@playwright/test';
-import { calculateOrderLayout, finalizeOrderLayout } from '../../src/presentation/order/orderLayout';
+import { buildActionPosition, calculateOrderLayout, finalizeOrderLayout } from '../../src/presentation/order/orderLayout';
 import { createStationPresentation } from '../../src/presentation/order/stationPresentation';
 import { calculateBuildShelfLayout } from '../../src/presentation/stations/AssemblyWorkspaceMapper';
 
@@ -78,6 +78,13 @@ export const HOTDOG_GLOW_BUILD_INGREDIENTS = [
   'ingredient.glow-sauce',
 ] as const;
 
+// Headless Chromium can spend several render frames dispatching a pair of
+// canvas pointer clicks at the larger target viewports. Aim slightly ahead of
+// the authored midpoint so the resulting in-game event still lands inside the
+// forgiving perfect window instead of turning a healthy render slowdown into
+// a burned test fixture.
+const GRILL_INPUT_LATENCY_BUDGET_MS = 400;
+
 const BURGER_TOOLS = [
   { ingredientId: 'ingredient.bun-bottom', mode: 'ingredient' },
   { ingredientId: 'ingredient.patty', mode: 'ingredient' },
@@ -124,7 +131,11 @@ export async function waitForSnapshot(
 
 export async function clickAction(page: Page, viewport: ViewportCase): Promise<void> {
   const layout = getLayout(viewport);
-  await clickCanvas(page, layout.actionX, layout.actionY);
+  const current = await readSnapshot(page);
+  const position = current?.orderPhase === 'assembly' && current.assembly !== null
+    ? buildActionPosition(layout)
+    : { x: layout.actionX, y: layout.actionY };
+  await clickCanvas(page, position.x, position.y);
 }
 
 export async function openHandsOnPrep(page: Page, viewport: ViewportCase): Promise<void> {
@@ -158,7 +169,11 @@ export async function continueToHandsOnGrill(page: Page, viewport: ViewportCase)
   await waitForSnapshot(page, { orderPhase: 'grilling' });
 }
 
-export async function placeFlipAndCookPerfect(page: Page, viewport: ViewportCase): Promise<void> {
+export async function placeFlipAndCookPerfect(
+  page: Page,
+  viewport: ViewportCase,
+  inputLatencyBudgetMs = GRILL_INPUT_LATENCY_BUDGET_MS,
+): Promise<void> {
   const geometry = grillGeometry(viewport);
   await dragCanvas(page, geometry.source, geometry.slot);
   await expect.poll(async () => (await snapshot(page)).grillState?.active ?? false, {
@@ -166,27 +181,42 @@ export async function placeFlipAndCookPerfect(page: Page, viewport: ViewportCase
     intervals: [50, 100, 250],
   }).toBe(true);
 
+  // Select the authored spatula before the timing edge. This mirrors a player
+  // picking up the tool while the grill heats and removes one remote canvas
+  // click from the critical flip window on software-rendered desktops.
+  await clickCanvas(page, geometry.spatula.x, geometry.spatula.y);
+
   await expect.poll(async () => {
     const grill = (await snapshot(page)).grillState;
-    return grill ? grill.elapsedMs >= grill.idealFlipAtMs : false;
+    return Boolean(
+      grill &&
+      grill.state !== 'raw' &&
+      grill.elapsedMs >= Math.max(0, grill.idealFlipAtMs - inputLatencyBudgetMs),
+    );
   }, { timeout: 10_000, intervals: [25, 50, 100] }).toBe(true);
 
-  await clickCanvas(page, geometry.spatula.x, geometry.spatula.y);
   await clickCanvas(page, geometry.slot.x, geometry.slot.y);
   await expect.poll(async () => (await snapshot(page)).grillState?.flipped ?? false, {
     timeout: 4_000,
     intervals: [25, 50, 100],
   }).toBe(true);
 
+  // Re-select the spatula ahead of the stop window for the same reason; the
+  // item click below is the only event that needs to land at the target time.
+  await clickCanvas(page, geometry.spatula.x, geometry.spatula.y);
+
   await expect.poll(async () => {
     const grill = (await snapshot(page)).grillState;
-    return Boolean(grill && grill.state === 'perfect' && grill.elapsedMs >= grill.idealFlipAtMs * 2);
+    return Boolean(
+      grill &&
+      grill.state === 'perfect' &&
+      grill.elapsedMs >= Math.max(0, grill.idealFlipAtMs * 2 - inputLatencyBudgetMs),
+    );
   }, { timeout: 10_000, intervals: [25, 50, 100] }).toBe(true);
 }
 
 export async function removeHandsOnGrillItem(page: Page, viewport: ViewportCase): Promise<void> {
   const geometry = grillGeometry(viewport);
-  await clickCanvas(page, geometry.spatula.x, geometry.spatula.y);
   await clickCanvas(page, geometry.slot.x, geometry.slot.y);
   const state = await waitForSnapshot(page, { orderPhase: 'assembly' }, 8_000);
   expect(state.grillState?.result?.state).toBe('perfect');
@@ -220,7 +250,7 @@ export async function completeHandsOnBuild(
         x: workspace.x + workspace.width * (0.5 + span / 2),
         y: workspace.y + workspace.height * 0.52,
       };
-      await dragCanvas(page, from, to, 12);
+      await dragCanvas(page, from, to, 2);
     } else {
       await dragCanvas(page, shelfPoint, {
         x: workspace.x + workspace.width * 0.5,

@@ -8,7 +8,6 @@ import {
 import {
   BURGER_BUILD_ASSET_IDS,
   HOTDOG_BUILD_ASSET_IDS,
-  STREET_STATION_ASSET_IDS,
 } from './StationAssetContract';
 
 interface IngredientVisual {
@@ -42,7 +41,6 @@ const SAUCE_ASSETS: Readonly<Record<string, string>> = {
 };
 
 export class BuildStationPresenter {
-  private readonly background: Phaser.GameObjects.Image;
   private readonly placementImages = new Map<string, Phaser.GameObjects.Image>();
   private readonly placementShadows = new Map<string, Phaser.GameObjects.Image>();
   private readonly sauceImages = new Map<string, Phaser.GameObjects.Image[]>();
@@ -56,22 +54,10 @@ export class BuildStationPresenter {
     private readonly recipeId: string,
     private readonly onPlacementPointerDown?: BuildPlacementPointerDown,
   ) {
-    this.background = scene.add.image(0, 0, STREET_STATION_ASSET_IDS.buildBackground)
-      .setDepth(4)
-      .setVisible(false);
   }
 
-  public layout(screenWidth: number, screenHeight: number, workspace: AssemblyWorkspaceRect): void {
+  public layout(_screenWidth: number, _screenHeight: number, workspace: AssemblyWorkspaceRect): void {
     this.workspace = workspace;
-    const source = this.scene.textures.get(STREET_STATION_ASSET_IDS.buildBackground).getSourceImage();
-    const coverScale = Math.max(screenWidth / source.width, screenHeight / source.height);
-    this.background
-      .setPosition(screenWidth / 2, screenHeight / 2)
-      // The supplied art is a close-up counter, but its neutral tray occupies
-      // only the middle of the source. A modest authored zoom makes that tray
-      // read as the station's work surface at mobile scale while retaining the
-      // ingredient bins as environmental framing.
-      .setDisplaySize(source.width * coverScale * 1.34, source.height * coverScale * 1.34);
     this.sauceSignatures.clear();
     if (this.lastSnapshot) {
       this.syncPlacements(this.lastSnapshot.placements);
@@ -99,7 +85,6 @@ export class BuildStationPresenter {
 
   public setVisible(visible: boolean): void {
     this.visible = visible;
-    this.background.setVisible(visible);
     for (const [instanceId, image] of this.placementImages) {
       image.setVisible(visible);
       if (image.input) image.input.enabled = visible;
@@ -109,7 +94,6 @@ export class BuildStationPresenter {
   }
 
   public destroy(): void {
-    this.background.destroy();
     for (const image of this.placementImages.values()) image.destroy();
     for (const image of this.placementShadows.values()) image.destroy();
     for (const images of this.sauceImages.values()) images.forEach((image) => image.destroy());

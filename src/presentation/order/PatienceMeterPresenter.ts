@@ -11,6 +11,7 @@ export class PatienceMeterPresenter {
   private y = 0;
   private width = 0;
   private height = 0;
+  private lastRenderSignature = '';
 
   public constructor(scene: Phaser.Scene) {
     this.frame = scene.add.image(0, 0, 'ui.patience-indicator').setDepth(30);
@@ -26,6 +27,14 @@ export class PatienceMeterPresenter {
   }
 
   public render(snapshot: OrderSnapshot): void {
+    // The meter is a small HUD affordance, while the station background and
+    // food sprites are the expensive full-frame work.  Keep the authored bar
+    // responsive without rebuilding its Graphics geometry on every Phaser
+    // tick; a tenth-of-a-percent change is still substantially finer than a
+    // human can perceive at gameplay scale.
+    const signature = `${snapshot.phase}:${Math.round(snapshot.patience.ratio * 1000)}`;
+    if (signature === this.lastRenderSignature) return;
+    this.lastRenderSignature = signature;
     const visible = WAITING_PHASES.has(snapshot.phase);
     this.frame.setVisible(visible);
     this.depletedTrack.clear();

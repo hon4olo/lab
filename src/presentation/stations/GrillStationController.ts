@@ -28,6 +28,7 @@ export class GrillStationController {
   private draggingRaw = false;
   private spatulaSelected = false;
   private snapshot: GrillSnapshot | null = null;
+  private visualSignature = '';
   private fxSignature = '';
   private fxTween: Phaser.Tweens.Tween | null = null;
 
@@ -85,6 +86,7 @@ export class GrillStationController {
   }
 
   public layout(width: number, height: number): void {
+    this.visualSignature = '';
     const geometry = grillStationGeometry(width, height);
     this.slots = geometry.slots;
     this.layoutImage(this.rawSource, geometry.sourceX, geometry.sourceY, geometry.sourceWidth);
@@ -100,6 +102,9 @@ export class GrillStationController {
     this.rawSource.setVisible(this.visible && !snapshot.active && !this.draggingRaw);
     this.spatula.setVisible(this.visible && snapshot.active);
     this.item.setVisible(active);
+    const signature = `${this.visible}:${snapshot.active}:${snapshot.slotId ?? ''}:${snapshot.state}:${snapshot.flipped}`;
+    if (signature === this.visualSignature) return;
+    this.visualSignature = signature;
     if (!active) {
       this.spatulaSelected = false;
       this.renderToolSelection();
@@ -114,7 +119,9 @@ export class GrillStationController {
   }
 
   public setVisible(visible: boolean): void {
+    const changed = this.visible !== visible;
     this.visible = visible;
+    if (changed) this.visualSignature = '';
     this.rawSource.setVisible(visible && !this.snapshot?.active);
     this.spatula.setVisible(visible && Boolean(this.snapshot?.active));
     this.item.setVisible(visible && Boolean(this.snapshot?.active));

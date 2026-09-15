@@ -13,6 +13,7 @@ export class OrderScene extends Phaser.Scene {
   private feedback!: FeedbackDirector;
   private shiftCompletePresented = false;
   private replayInProgress = false;
+  private grillPresentationElapsedMs = 0;
 
   public constructor(
     private readonly translate: (key: TranslationKey) => string,
@@ -54,13 +55,25 @@ export class OrderScene extends Phaser.Scene {
     if (!shift) return;
     const before = shift.orderSession.snapshot();
     this.view.updatePatience(before);
-    if (before.phase !== 'grilling' || !before.grill.active) return;
+    if (before.phase !== 'grilling' || !before.grill.active) {
+      this.grillPresentationElapsedMs = 0;
+      return;
+    }
     const grill = shift.orderSession.advanceGrill(delta);
-    if (grill.state !== before.grill.state) {
+    this.grillPresentationElapsedMs += delta;
+    const stateChanged = grill.state !== before.grill.state;
+    if (stateChanged) {
       const layout = this.viewLayout();
       this.feedback.grillStateChanged(grill.state, layout.x, layout.y);
     }
-    this.renderCurrentOrder();
+    // Food timing remains frame-accurate in GrillSession. The canvas HUD does
+    // not need a full scene render at 60 Hz, especially with a full-frame
+    // authored station background; an 80 ms presentation tick keeps the heat
+    // track fluid while leaving pointer input responsive on software canvases.
+    if (stateChanged || this.grillPresentationElapsedMs >= 80) {
+      this.grillPresentationElapsedMs = 0;
+      this.renderCurrentOrder();
+    }
   }
 
   public getDiagnosticsSnapshot(): CampaignSnapshot {

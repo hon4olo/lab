@@ -126,10 +126,17 @@ export class OrderSceneView {
 
   public render(snapshot: OrderSnapshot, coins: number, shiftPhase: ShiftPhase): void {
     this.currentSnapshot = snapshot;
+    const nextMode = stationModeForPhase(snapshot.phase);
+    const phaseChanged = this.currentPhase !== snapshot.phase;
+    const modeChanged = this.currentMode !== nextMode;
     this.currentPhase = snapshot.phase;
-    this.currentMode = stationModeForPhase(snapshot.phase);
-    this.applyPresentationMode(this.currentMode);
-    this.stationRail.render(this.currentMode, this.localize);
+    this.currentMode = nextMode;
+    // The scene update loop still refreshes the timing HUD every frame, but
+    // background scaling, customer layout, and station rail drawing only need
+    // to happen when the presentation actually changes. This keeps large
+    // authored station canvases responsive to pointer timing at desktop sizes.
+    if (phaseChanged || modeChanged) this.applyPresentationMode(this.currentMode);
+    if (modeChanged) this.stationRail.render(this.currentMode, this.localize);
 
     const handsOnBuildActive = this.isHandsOnBuildActive(snapshot);
     const handsOnGrillActive = this.grillController !== null && snapshot.phase === 'grilling';

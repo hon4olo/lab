@@ -106,3 +106,15 @@ export function finalizeOrderLayout(layout: OrderLayout): OrderLayout {
     counterHeight: layout.counterWidth / 2,
   };
 }
+
+/**
+ * Position the completion CTA in a dedicated safe band for the spatial Build
+ * station. The ingredient shelf owns the lower band, so this action stays in
+ * the upper-right frame on landscape and the upper third on portrait.
+ */
+export function buildActionPosition(layout: OrderLayout): { readonly x: number; readonly y: number } {
+  return {
+    x: layout.width - layout.safeInset - layout.actionWidth / 2,
+    y: layout.height > layout.width ? layout.height * 0.30 : layout.height * 0.16,
+  };
+}

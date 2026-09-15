@@ -38,10 +38,18 @@ for (const viewport of VIEWPORTS) {
     await continueToHandsOnGrill(page, viewport);
     await capture(page, viewport, '03-grill-raw');
 
-    await placeFlipAndCookPerfect(page, viewport);
+    // The normal-motion large desktop capture has a longer browser input
+    // round-trip while the 1440px canvas is being encoded. Give only that
+    // capture a wider timing lead; production interaction tests keep the
+    // tighter authored timing window.
+    await placeFlipAndCookPerfect(page, viewport, viewport.width >= 1400 ? 900 : undefined);
     await capture(page, viewport, '04-grill-perfect');
     await removeHandsOnGrillItem(page, viewport);
 
+    // Let the grill-state steam settle before evaluating the empty assembly
+    // surface; the station snapshot should show the Build work area itself,
+    // not the tail of the preceding feedback tween.
+    await page.waitForTimeout(750);
     await capture(page, viewport, '05-build-empty');
     await completeHandsOnBuild(
       page,
@@ -55,13 +63,19 @@ for (const viewport of VIEWPORTS) {
     // timers can otherwise advance through anticipation while a high-resolution
     // screenshot is being encoded, producing an empty or already-reacted frame.
     await page.clock.install();
-    await page.clock.pauseAt(Date.now() + 10);
+    await page.clock.pauseAt(Date.now() + 1_000);
     await clickAction(page, viewport);
+    // One render tick commits the synchronous serve transition while the
+    // delayed reaction timer remains frozen.
+    await page.clock.runFor(16);
     await capture(page, viewport, '07-serve');
     await page.clock.resume();
     await waitForSnapshot(page, { orderPhase: 'anticipation' });
 
     await waitForSnapshot(page, { orderPhase: 'payment' }, 8_000);
+    // Capture the authored hero after the transformation impact FX has
+    // cleared enough to inspect character identity and scale.
+    await page.waitForTimeout(700);
     await capture(page, viewport, '08-reaction');
   });
 }

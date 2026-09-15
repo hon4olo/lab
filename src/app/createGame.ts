@@ -12,14 +12,14 @@ export function createGame(
   flushSave: () => Promise<void>,
 ): Phaser.Game {
   return new Phaser.Game({
-    type: Phaser.AUTO,
+    type: Phaser.CANVAS,
     parent: RUNTIME_CONFIG.canvasParentId,
     width: window.innerWidth,
     height: window.innerHeight,
     backgroundColor: RUNTIME_CONFIG.backgroundColor,
     transparent: true,
     render: {
-      antialias: true,
+      antialias: false,
       roundPixels: false,
       pixelArt: false,
     },
