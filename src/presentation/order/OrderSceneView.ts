@@ -9,6 +9,7 @@ import { CustomerPresenter } from './CustomerPresenter';
 import { FoodPresenter } from './FoodPresenter';
 import { IngredientTrayPresenter } from './IngredientTrayPresenter';
 import { OrderHudPresenter } from './OrderHudPresenter';
+import { StationRailPresenter } from './StationRailPresenter';
 import type { OrderAction } from './orderActions';
 import { calculateOrderLayout, finalizeOrderLayout, type OrderLayout } from './orderLayout';
 import { modifierIngredientIds, selectableBaseIngredientIds } from '../../game/orders/OrderRequirements';
@@ -28,6 +29,7 @@ export class OrderSceneView {
   private readonly food: FoodPresenter;
   private readonly tray: IngredientTrayPresenter;
   private readonly hud: OrderHudPresenter;
+  private readonly stationRail: StationRailPresenter;
   private layoutState: OrderLayout;
   private stationAsset = '';
   private currentPhase: OrderSnapshot['phase'] = 'customer-entering';
@@ -58,6 +60,7 @@ export class OrderSceneView {
     this.customer = new CustomerPresenter(scene, customerDefinition);
     this.food = new FoodPresenter(scene, order.grillAssetKeys);
     this.hud = new OrderHudPresenter(scene, order, customerDefinition.displayNameKey, onAction);
+    this.stationRail = new StationRailPresenter(scene);
     this.tray = new IngredientTrayPresenter(scene, ingredients, (ingredientId, x, y) => {
       if (this.currentPhase === 'modifier-selection' && modifierIngredientIds(this.order).includes(ingredientId)) {
         this.onAction({ type: 'add-modifier', ingredientId });
@@ -76,8 +79,10 @@ export class OrderSceneView {
     this.background.setPosition(width / 2, height / 2)
       .setDisplaySize(source.width * coverScale, source.height * coverScale);
     this.hud.layout(layout);
+    this.stationRail.layout(width, height);
     this.tray.layout(layout);
     this.applyPresentationMode(this.currentMode);
+    this.stationRail.render(this.currentMode, this.localize);
     if (this.currentSnapshot) this.layoutFood(this.currentSnapshot);
     else this.food.hide();
   }
@@ -87,6 +92,7 @@ export class OrderSceneView {
     this.currentPhase = snapshot.phase;
     this.currentMode = stationModeForPhase(snapshot.phase);
     this.applyPresentationMode(this.currentMode);
+    this.stationRail.render(this.currentMode, this.localize);
 
     const availableIngredients = snapshot.phase === 'ingredient-selection'
       ? selectableBaseIngredientIds(this.order)
@@ -158,6 +164,7 @@ export class OrderSceneView {
     this.food.destroy();
     this.tray.destroy();
     this.hud.destroy();
+    this.stationRail.destroy();
   }
 
   private applyPresentationMode(mode: StationPresentationMode): void {
