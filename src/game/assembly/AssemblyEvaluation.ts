@@ -1,5 +1,5 @@
 import type { AssemblyDefinition, AssemblyIngredientRule } from './AssemblyDefinition';
-import type { FoodAssemblySnapshot, PlacedIngredient } from './AssemblySession';
+import type { FoodAssemblySnapshot } from './AssemblySession';
 
 export interface AssemblyEvaluation {
   readonly completeness: number;
