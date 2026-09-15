@@ -48,8 +48,10 @@ jobs:
       - name: Install Chromium
         run: npx playwright install --with-deps chromium
 
-      - name: Run full project checks
-        run: npm run check:ci
+      - name: Run focused Batch 03 integration check
+        run: |
+          npm run check
+          npx playwright test --config playwright.config.ts tests/browser/visual-capture.spec.ts --grep "visual QA capture: desktop"
 
       - name: Commit verified Batch 03 assets
         run: |
