@@ -52,6 +52,7 @@ export const ru: Record<keyof typeof en, string> = {
   'action.start-grill': 'Включить гриль',
   'action.stop-grill': 'Снять котлету',
   'action.assemble': 'Собрать бургер',
+  'action.finish-build': 'Закончить сборку',
   'action.assemble-hot-dog': 'Собрать хот-дог',
   'action.start-grill-sausage': 'Включить гриль для сосиски',
   'action.stop-grill-sausage': 'Снять сосиску',
