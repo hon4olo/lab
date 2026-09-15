@@ -2,7 +2,6 @@ import { expect, test, type Page } from '@playwright/test';
 import {
   BURGER_BUILD_INGREDIENTS,
   clickAction,
-  clickModifier,
   completeHandsOnBuild,
   continueToHandsOnGrill,
   openHandsOnPrep,
@@ -10,7 +9,6 @@ import {
   prepareHandsOnIngredient,
   readSnapshot,
   removeHandsOnGrillItem,
-  snapshot,
   waitForSnapshot,
   type ViewportCase,
 } from './hands-on-helpers';
@@ -45,13 +43,8 @@ for (const viewport of VIEWPORTS) {
       'recipe.hot-cheese-burger',
       BURGER_BUILD_INGREDIENTS,
     );
-    await capture(page, viewport, '06-build-modifier');
+    await capture(page, viewport, '06-build-complete');
 
-    await clickModifier(page, viewport);
-    await expect.poll(async () => (await snapshot(page)).selectedIngredients.includes('ingredient.extra-spicy'), {
-      timeout: 8_000,
-      intervals: [50, 100, 250],
-    }).toBe(true);
     await clickAction(page, viewport);
     await waitForSnapshot(page, { orderPhase: 'anticipation' });
     await capture(page, viewport, '07-serve');
