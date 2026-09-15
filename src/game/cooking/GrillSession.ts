@@ -5,6 +5,10 @@ export interface GrillResult {
   readonly state: CookState;
   readonly elapsedMs: number;
   readonly quality: number;
+  /** Present when the player used the hands-on flip interaction. */
+  readonly flippedAtMs?: number | null;
+  /** 0-100 timing quality for the flip. Legacy no-flip cooking omits this field. */
+  readonly flipQuality?: number;
 }
 
 export interface GrillSnapshot {
@@ -13,6 +17,10 @@ export interface GrillSnapshot {
   readonly state: CookState;
   readonly progress: number;
   readonly result: GrillResult | null;
+  /** Null until a hands-on grill item is flipped. */
+  readonly flippedAtMs?: number | null;
+  readonly flipped?: boolean;
+  readonly idealFlipAtMs?: number;
 }
 
 export interface GrillTiming {
@@ -33,6 +41,7 @@ export class GrillSession {
   private active = false;
   private ingredientId: string | null = null;
   private elapsedMs = 0;
+  private flippedAtMs: number | null = null;
   private result: GrillResult | null = null;
 
   public constructor(private readonly timing: GrillTiming = GRILL_TIMING) {
@@ -44,6 +53,7 @@ export class GrillSession {
     this.active = true;
     this.ingredientId = ingredientId;
     this.elapsedMs = 0;
+    this.flippedAtMs = null;
     this.result = null;
   }
 
@@ -52,15 +62,36 @@ export class GrillSession {
     return this.snapshot();
   }
 
+  /**
+   * Records the player's physical flip timing. The legacy start/stop route can
+   * still omit flipping so old saves/tests and non-hands-on fallback remain stable.
+   */
+  public flip(): GrillSnapshot {
+    if (!this.active || !this.ingredientId) throw new Error('The grill is not running.');
+    if (this.flippedAtMs !== null) throw new Error('The grill item has already been flipped.');
+    this.flippedAtMs = this.elapsedMs;
+    return this.snapshot();
+  }
+
   public stop(): GrillResult {
     if (!this.active || !this.ingredientId) throw new Error('The grill is not running.');
     this.active = false;
     const state = stateAt(this.elapsedMs, this.timing);
+    const baseQuality = qualityAt(this.elapsedMs, state, this.timing);
+    const flipQuality = this.flippedAtMs === null
+      ? null
+      : flipQualityAt(this.flippedAtMs, this.timing);
     this.result = {
       ingredientId: this.ingredientId,
       state,
       elapsedMs: this.elapsedMs,
-      quality: qualityAt(this.elapsedMs, state, this.timing),
+      quality: flipQuality === null
+        ? baseQuality
+        : Math.round(baseQuality * (flipQuality / 100)),
+      ...(this.flippedAtMs !== null ? {
+        flippedAtMs: this.flippedAtMs,
+        flipQuality,
+      } : {}),
     };
     return this.result;
   }
@@ -73,6 +104,9 @@ export class GrillSession {
       state,
       progress: Math.min(1, this.elapsedMs / this.timing.burnedAtMs),
       result: this.result ? { ...this.result } : null,
+      flippedAtMs: this.flippedAtMs,
+      flipped: this.flippedAtMs !== null,
+      idealFlipAtMs: idealFlipAt(this.timing),
     };
   }
 }
@@ -105,6 +139,21 @@ function perfectQualityAt(elapsedMs: number, timing: GrillTiming): number {
   const distance = Math.abs(elapsedMs - timing.idealStopAtMs);
   const normalizedDistance = spanMs === 0 ? 1 : Math.min(1, distance / spanMs);
 
+  return Math.round(100 - (40 * normalizedDistance));
+}
+
+function idealFlipAt(timing: GrillTiming): number {
+  return timing.idealStopAtMs / 2;
+}
+
+function flipQualityAt(flippedAtMs: number, timing: GrillTiming): number {
+  const ideal = idealFlipAt(timing);
+  if (flippedAtMs === ideal) return 100;
+
+  // A hands-on flip is intentionally forgiving: exact midpoint is perfect,
+  // while a very early/late flip can reduce the cooking component to 60%.
+  const distance = Math.abs(flippedAtMs - ideal);
+  const normalizedDistance = ideal <= 0 ? 1 : Math.min(1, distance / ideal);
   return Math.round(100 - (40 * normalizedDistance));
 }
 
