@@ -1,157 +1,161 @@
-# Snack Lab Testing Strategy v0.1
-
-## Principles
-
-Validate the behavior changed, at risk-proportionate scope. Domain rules are deterministic and
-fast; browser, visual, performance, and platform checks cover integration risks. Never substitute a
-successful build for an actual browser check.
+# Snack Lab — Testing
 
 ## Commands
 
+Fast project validation:
+
 ```bash
-npm run typecheck
-npm run validate:assets
-npm test
-npm run build
-npm run test:browser
-npm run test:browser:production
+npm run check
+```
+
+Stable-checkpoint validation:
+
+```bash
 npm run check:ci
 ```
 
-`npm run check` runs typecheck, manifest/PNG validation, unit tests, and the production build.
-`npm run check:ci` adds the development browser matrix and production-preview smoke to that normal
-validation/build suite. Browser/visual/performance checks remain explicit because they require a
-running server and viewport/device context.
+`check:ci` runs typecheck, asset validation, Vitest, production build/guard, development browser
+flows, and production smoke coverage.
 
 ## Domain tests
 
-Vitest runs plain TypeScript tests for:
+Renderer-independent gameplay belongs under `tests/domain/`.
 
-- transformation eligibility, ranking, stable tie-breaks, and unlock/customer constraints;
-- ORDER/COOK/CHAOS scoring and entertainment outcomes for mistakes;
-- economy sources/sinks, reward caps, upgrades, and unlock logic;
-- FoodInstance state transitions and station command results;
-- save validation and every sequential migration from retained historical fixtures.
+For hands-on assembly, cover:
 
-Domain tests inject elapsed grill time and use no Phaser scene or browser object. Current coverage
-includes the base burger and post-assembly Extra Spicy modifier, perfect and burned cooking, missing
-ingredients, deterministic Flaming Business Cat resolution, no implicit/unrelated food tags,
-timing-relative burger and hot-dog grill boundaries, ORDER/COOK/CHAOS scoring, payment, and stable
-production asset references. Content tests cover recipe base/available contracts, order subsets,
-removals, zero/multiple modifiers, and invalid ingredient contracts. Campaign/save tests cover V1 → V2 migration, valid save loading,
-corrupt-save fallback, staging/backup recovery, safe active-order restart, completed-shift restore,
-first discovery idempotency, duplicate settlement prevention, wallet persistence, and replay. Content
-registry tests cover duplicate IDs, broken references, recipe/order mismatches, hot-dog grill
-configuration, prep requirements, customer compatibility, and unapproved assets. Patience tests
-cover expiry, pause/resume, and continuing an order after the timer reaches zero. Batch 02 domain
-tests cover Picky Pigeon registry resolution, hot-dog raw/cooked/perfect/burned states, Glow Sauce
-tags, normal versus Neon transformation payments, and two-order sequencing.
+- free placement at normalized coordinates;
+- coordinate clamping/validation;
+- movement/removal;
+- per-ingredient count limits;
+- layer ordering;
+- repeated-piece distribution;
+- sauce stroke storage;
+- assembly completeness;
+- deterministic assembly evaluation;
+- eventual ORDER integration/payout regression.
 
-The asset-bundle domain test verifies that the first shift retains all shared, customer,
-optional-modifier, and transformation textures while excluding unused production textures. A live
-progression-provider test records an unlock after the first order and proves the second order sees it
-when its `OrderSession` is created.
+Do not test Phaser pixels in domain tests.
 
-`npm run validate:assets` decodes every manifest PNG, checks unique IDs/paths, exact dimensions,
-readability, required alpha channels, transparent pixels, and transparent image borders.
+## Browser viewport matrix
 
-## Browser checks
+Minimum supported QA sizes:
 
-The automated Playwright smoke suite runs the complete two-order authored shift in Chromium at all
-required viewports:
+- 360×640
+- 844×390
+- 1280×720
+- 1440×900
 
-| Profile | Viewport | Purpose |
-|---|---:|---|
-| Small portrait | 360×640 | minimum touch composition and safe spacing |
-| Landscape mobile | 844×390 | rotation and compact-height behavior |
-| 720p desktop | 1280×720 | desktop composition |
-| Large desktop | 1440×900 | wider desktop composition |
+Every major station/input refactor should exercise relevant portrait + landscape + desktop sizes.
 
-At each viewport it uses real pointer clicks to select ingredients, prepare both grill ingredients,
-stop perfect-state patty and sausage, assemble the burger and hot dog, exercise Glow Sauce → Neon
-Pigeon, reload the completed shift, and replay it without Glow Sauce. It asserts both order paths,
-the Picky Pigeon base and Neon outcomes, one unique payment per order/run, persistent
-wallet/discoveries, localized shift completion, no failed asset requests, HTTP errors, page errors,
-console errors, document overflow, or repeated first-load asset requests. Domain coverage asserts
-the unchanged Business Cat ORDER 100 / COOK 100 / CHAOS 140 = 55 baseline. A dedicated
-development-only browser check opens Asset QA and confirms all approved Batch 01+02 assets load on
-dark/light previews with no loader failures. Replay must not request textures again.
+## Station interaction QA
 
-Pointer/touch equivalence, resize/orientation without reload, audio unlock, keyboard behavior, and
-visual screenshot review remain separate follow-up checks.
+When the direct-manipulation station path is active, Playwright should validate semantic actions,
+not only fixed pixel coordinates.
 
-## Visual regression
+Required Build Station scenarios:
 
-Capture stable screenshots from named scenarios rather than arbitrary manual play. Initial target
-states are boot/shell, mobile layout, basic order, active station, burned order, first
-transformation, high Chaos score, shift result, and upgrade screen. Store viewport, scenario seed,
-locale, reduced-motion setting, and content version with each baseline.
+- drag a layer to center;
+- drag a layer deliberately off-center;
+- move an already placed component;
+- remove/undo a component if supported;
+- place multiple topping pieces at distinct positions;
+- draw at least one sauce path;
+- verify rendered FoodInstance matches domain assembly snapshot;
+- touch/pointer mapping uses the same commands.
 
-Visual review checks clipping, overlap, hierarchy, face/food readability, incorrect asset variants,
-safe areas, localization overflow, and animation settle frames. Pixel-diff thresholds supplement,
-but do not replace, human review for particle/animation variability.
+Required Grill scenarios:
 
-## Performance
+- place cookable onto grill slot;
+- cooking starts only when placed/activated according to authored rule;
+- state changes are visible;
+- remove at perfect state;
+- burned state remains deterministic;
+- later multi-slot behavior must not couple timers incorrectly.
 
-Measure production builds on representative mobile and desktop hardware. Record startup-to-
-interactive, JS bundle transfer/parse, asset transfer/texture memory, average and p95 frame time,
-long tasks, draw calls where available, and memory after repeated shifts. Use named worst-case
-scenarios and compare the same device/build before and after optimization.
+## Visual QA
 
-Initial intent is 60 FPS on modern targets with graceful 30 FPS on lower-end hardware; numerical
-budgets become enforceable after the first complete production flow provides representative assets
-and effects. Profile before pooling, batching, or other optimization work.
+“No console errors” is not visual approval.
 
-## Save and migration
+For station/presentation changes, capture representative screenshots:
 
-Keep fixture saves from every shipped schema. The current suite tests V1 → V2 migration, valid save
-round-trip, unknown future version rejection, malformed primary fallback to a valid backup or
-default, interrupted staging recovery, stale completion reconciliation, and active-order restart.
-Cloud conflict policy is not implemented because no cloud storage adapter exists.
+- Order;
+- Prep;
+- Grill idle;
+- Grill active/perfect;
+- Build early;
+- Build completed/variation;
+- Serve;
+- reaction/transformation;
+- Results.
 
-## Platform tests (when adapters are implemented)
+Inspect:
 
-Run provider contract tests plus draft/sandbox integration checks for:
+- hierarchy and scale;
+- station separation;
+- customer/prop overlap;
+- order-ticket size;
+- food readability;
+- safe areas;
+- portrait/landscape crop;
+- blurred/upscaled art;
+- broken transparent edges;
+- transformed-character coherence.
 
-- SDK init success, timeout, unavailable SDK, and partial capabilities;
-- game-ready exactly when interaction is possible;
-- gameplay start/stop, menu, tab visibility, pause/resume, and repeated lifecycle events;
-- interstitial/rewarded open, close, fail, interruption, and confirmed reward callback;
-- save-before-ad and audio/input restoration after ads;
-- locale/device reporting, storage quotas/conflicts, auth cancellation, and offline fallback.
+CI may upload screenshot artifacts, but a human/model visual pass is still required for visual
+milestones.
 
-Current scaffold intentionally uses only the local provider and does not load a portal SDK.
+## Asset QA
 
-## DEV diagnostics and scenarios
+Manifest tests must verify path/dimensions/status references. In-engine QA checks alpha, scale,
+composition, and actual station usefulness.
 
-Development builds expose a read-only `window.SNACK_LAB.getSnapshot()` and named deterministic
-scenario registry. `npm run build` verifies that bridge/asset-QA markers are absent from production
-JavaScript. The browser test suite uses the bridge only for diagnostics, never as gameplay authority.
+Do not automatically approve an asset merely because it decodes and matches dimensions.
 
-Initial scenario names: `basic-order`, `perfect-grill`, `burned-order`, `first-transformation`,
-`high-chaos`, `shift-end`, `mobile-layout`, and `rewarded-interruption`.
+## Production smoke
 
-## Milestone exit report
+Production smoke must run against built Vite output rather than the DEV bridge. Verify:
 
-Every milestone records exact commands and results, tested browser/viewports, screenshots reviewed,
-console/network findings, measured performance where representative, and any skipped check with a
-reason. A claim appears only if the check actually ran.
+- app boots;
+- canvas renders;
+- manifest/current shift assets load;
+- no failed HTTP requests;
+- no uncaught errors;
+- no document overflow;
+- no DEV diagnostics leak into production.
 
-## First-session hardening baseline — 2026-09-15
+## Motion / localization
 
-- `npm run check:ci`: passed typecheck, manifest/PNG validation, 58 domain/content tests across 14
-  files, the production build and DEV-tooling guard, seven development Chromium checks, and two
-  production-preview Chromium checks.
-- The development browser matrix passed Batch 01+02 in-engine asset QA; the full two-order,
-  reload, and replay flow at 360×640, 844×390, 1280×720, and 1440×900; normal-motion callback
-  lifecycle at 1280×720; and Russian mobile layout at 360×640. No failed asset requests, HTTP
-  errors, uncaught page errors, console errors, or document overflow were observed.
-- The production-preview smoke passed at 360×640 and 1440×900. It verifies boot, canvas render,
-  manifest and selected bundle assets, one request per loaded texture, no errors or overflow, and
-  the absence of the DEV diagnostics bridge.
-- Production JavaScript: 1,474,938 bytes (1,474.94 kB); Vite reports 384.85 kB gzip. It remains a
-  single chunk above Vite's 500 kB warning threshold.
-- Full manifest validation still covers 62 production-approved PNGs totaling 9,454,051 bytes
-  (9.02 MiB). The first-shift bundle loads 61 PNGs totaling 9,388,983 bytes (8.95 MiB), excluding
-  the unused 65,068-byte `ui.station-tab`: first-load game-asset requests drop from 63 to 62 when
-  the manifest request is included. The replay adds no texture/network requests in the same page.
+Keep at least one normal-motion browser scenario (`prefers-reduced-motion: no-preference`) so tween
+callbacks are exercised. Maintain reduced-motion coverage separately.
+
+Keep RU layout coverage, especially 360×640, because translated text can expand significantly.
+
+## Save / economy invariants
+
+Regression coverage must preserve:
+
+- payment transaction idempotency;
+- wallet persistence;
+- shift replay transaction uniqueness;
+- transformation discovery idempotency;
+- corrupted-save fallback;
+- safe restart of unsettled orders.
+
+If spatial mid-order restore is implemented later, test normalized assembly data round-trip and never
+serialize Phaser objects.
+
+## Current payout regression baselines
+
+Until spatial ORDER scoring is intentionally integrated:
+
+- Business Cat perfect Extra Spicy: 55 coins;
+- Picky Pigeon perfect base hot dog: 36 coins;
+- Picky Pigeon perfect Neon/Glow hot dog: 49 coins.
+
+Any change must be intentional and documented.
+
+## CI / Git checkpoints
+
+GitHub Actions runs `npm run check:ci` on main/pull requests. Keep main usable after each pushed
+checkpoint. If CI fails, inspect the concrete failing step/log; do not report success until the run
+actually passes.
