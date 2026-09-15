@@ -31,7 +31,6 @@ const LEGACY_BACKGROUND_ASSET = 'background.street-snack-bar';
 
 export class OrderSceneView {
   private readonly background: Phaser.GameObjects.Image;
-  private readonly workspaceBackdrop: Phaser.GameObjects.Graphics;
   private readonly counter: Phaser.GameObjects.Image;
   private readonly station: Phaser.GameObjects.Image;
   private readonly customer: CustomerPresenter;
@@ -63,7 +62,6 @@ export class OrderSceneView {
     const height = scene.scale.height;
     this.layoutState = finalizeOrderLayout(calculateOrderLayout(width, height));
     this.background = scene.add.image(0, 0, LEGACY_BACKGROUND_ASSET).setDepth(0);
-    this.workspaceBackdrop = scene.add.graphics().setDepth(1);
     this.counter = scene.add.image(0, 0, 'environment.service-counter.street').setDepth(3);
     this.station = scene.add.image(0, 0, 'station.prep-board.street').setDepth(5);
     this.station.setInteractive({ useHandCursor: true }).on('pointerdown', () => {
@@ -146,7 +144,6 @@ export class OrderSceneView {
     if (handsOnBuildActive || handsOnGrillActive) {
       this.station.setVisible(false);
       if (this.station.input) this.station.input.enabled = false;
-      this.workspaceBackdrop.clear();
       this.food.hide();
       return;
     }
@@ -202,7 +199,7 @@ export class OrderSceneView {
   }
 
   public isHandsOnCookingEnabled(): boolean {
-    return this.buildController !== null && this.grillController !== null;
+    return this.hasPrepShellTextures() && this.buildController !== null && this.grillController !== null;
   }
 
   public isReducedMotion(): boolean {
@@ -213,7 +210,6 @@ export class OrderSceneView {
     this.buildController?.destroy();
     this.grillController?.destroy();
     this.background.destroy();
-    this.workspaceBackdrop.destroy();
     this.counter.destroy();
     this.station.destroy();
     this.customer.destroy();
@@ -229,9 +225,8 @@ export class OrderSceneView {
     const backgroundAsset = this.backgroundAssetForMode(mode);
     const dedicatedBackground = backgroundAsset !== LEGACY_BACKGROUND_ASSET;
     this.layoutBackground(backgroundAsset);
-    this.drawWorkspace(presentation, dedicatedBackground);
 
-    this.background.setAlpha(dedicatedBackground ? 1 : presentation.showWorkspace ? 0.78 : 1);
+    this.background.setAlpha(1);
     this.counter.setVisible(presentation.showCounter && !dedicatedBackground)
       .setPosition(layout.width / 2, presentation.counterY)
       .setDisplaySize(presentation.counterWidth, presentation.counterHeight);
@@ -254,24 +249,6 @@ export class OrderSceneView {
     this.customer.setVisible(presentation.showCustomer);
   }
 
-  private drawWorkspace(
-    presentation: ReturnType<typeof createStationPresentation>,
-    dedicatedBackground: boolean,
-  ): void {
-    this.workspaceBackdrop.clear();
-    if (!presentation.showWorkspace || dedicatedBackground) return;
-    const { width, height } = this.layoutState;
-    const left = presentation.workspaceX - presentation.workspaceWidth / 2;
-    const top = presentation.workspaceY - presentation.workspaceHeight / 2;
-    this.workspaceBackdrop
-      .fillStyle(0x160e22, 0.54)
-      .fillRect(0, 0, width, height)
-      .fillStyle(0x2b1b37, 0.88)
-      .fillRoundedRect(left, top, presentation.workspaceWidth, presentation.workspaceHeight, 26)
-      .lineStyle(2, 0xfff1d0, 0.72)
-      .strokeRoundedRect(left, top, presentation.workspaceWidth, presentation.workspaceHeight, 26);
-  }
-
   private layoutFood(snapshot: OrderSnapshot): void {
     const presentation = createStationPresentation(this.layoutState, this.currentMode);
     const assembled = snapshot.assembled;
@@ -292,6 +269,10 @@ export class OrderSceneView {
 
     const assetKey = snapshot.food?.visualVariant ?? this.order.baseAssembledAssetKey;
     this.food.layout(x, y, width, assembled, assetKey);
+  }
+
+  private hasPrepShellTextures(): boolean {
+    return requiredStationAssetIds('prep-shell').every((id) => this.scene.textures.exists(id));
   }
 
   private hasHandsOnGrillTextures(): boolean {
