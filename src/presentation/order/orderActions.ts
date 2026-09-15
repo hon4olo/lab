@@ -46,10 +46,10 @@ export function getActionLabel(
       ? 'action.serve'
       : 'action.add-modifier';
     case 'assembly':
-      if (handsOnBuildEnabled && snapshot.assembly) {
-        return snapshot.assembled ? 'action.serve' : 'action.finish-build';
-      }
-      return snapshot.assembled ? 'action.serve' : 'action.assemble';
+      // Batch 03 makes spatial Build the only player-facing assembly path. If its
+      // production assets are unavailable the action stays gated instead of
+      // degrading to the legacy one-click assembler.
+      return snapshot.assembled ? 'action.serve' : 'action.finish-build';
     default: return 'action.open-prep';
   }
 }
@@ -70,8 +70,11 @@ export function getOrderAction(
     case 'action.continue-grill': return { type: 'continue-grill' };
     case 'action.start-grill':
     case 'action.stop-grill': return { type: 'toggle-grill' };
-    case 'action.assemble': return { type: 'assemble' };
-    case 'action.finish-build': return snapshot.assemblyReady ? { type: 'complete-build' } : null;
+    case 'action.assemble': return null;
+    case 'action.finish-build':
+      return handsOnBuildEnabled && snapshot.assembly && snapshot.assemblyReady
+        ? { type: 'complete-build' }
+        : null;
     case 'action.add-modifier': {
       const ingredientId = requiredModifierIngredientIds(order).find(
         (id) => !snapshot.selectedIngredients.includes(id),
