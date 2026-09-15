@@ -62,6 +62,35 @@ describe('hands-on spatial order assembly', () => {
       payment: { total: 55 },
     });
   });
+
+  it('reduces ORDER when every requested component is present but the burger is badly assembled', () => {
+    const session = createSpatialSession();
+    prepareToBuild(session);
+
+    // Deliberately use the wrong vertical sequence and push layers/toppings to the edges.
+    session.placeAssemblyIngredient('ingredient.bun-top', { x: 0.88, y: 0.82 }, 22);
+    session.placeAssemblyIngredient('ingredient.cheese', { x: 0.12, y: 0.70 }, -24);
+    session.placeAssemblyIngredient('ingredient.patty', { x: 0.86, y: 0.58 });
+    session.placeAssemblyIngredient('ingredient.bun-bottom', { x: 0.14, y: 0.46 }, -16);
+    session.addAssemblySauceStroke('ingredient.sauce', [
+      { x: 0.08, y: 0.38 },
+      { x: 0.13, y: 0.37 },
+      { x: 0.18, y: 0.36 },
+    ]);
+    session.placeAssemblyIngredient('ingredient.extra-spicy', { x: 0.90, y: 0.30 }, 30);
+
+    const evaluation = session.completeSpatialAssembly();
+    expect(evaluation.completeness).toBe(100);
+    expect(evaluation.total).toBeLessThan(80);
+
+    session.serve();
+    session.resolveReaction();
+    const scores = session.snapshot().scores;
+    expect(scores).not.toBeNull();
+    expect(scores?.order).toBeLessThan(100);
+    expect(scores?.cook).toBe(100);
+    expect(scores?.chaos).toBe(140);
+  });
 });
 
 function createSpatialSession(): OrderSession {
