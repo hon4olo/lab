@@ -124,9 +124,14 @@ export class OrderSession {
     this.refreshFood();
   }
 
-  public startGrill(): void {
+  public startGrill(slotId: string = 'slot-1'): void {
     this.requirePhase('grilling');
-    this.grillSession.start(this.order.grillIngredientId);
+    this.grillSession.start(this.order.grillIngredientId, slotId);
+  }
+
+  public flipGrill(): GrillSnapshot {
+    this.requirePhase('grilling');
+    return this.grillSession.flip();
   }
 
   public advanceGrill(deltaMs: number): GrillSnapshot {
