@@ -14,7 +14,10 @@ export default defineConfig({
   retries: 0,
   outputDir: './node_modules/.cache/playwright-test-results',
   reporter: 'list',
-  timeout: 90_000,
+  // The first-session E2E deliberately performs two full hands-on orders,
+  // reload/restore, then a complete replay. Real grill timing plus four Build
+  // interactions can legitimately exceed 90s on shared CI runners.
+  timeout: 180_000,
   expect: { timeout: 12_000 },
   use: {
     browserName: 'chromium',
