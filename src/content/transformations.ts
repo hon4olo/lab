@@ -11,11 +11,9 @@ export const TRANSFORMATIONS: readonly TransformationDefinition[] = [
     rarity: 'rare',
     compatibleCustomerTypes: ['business-cat'],
     resultAppearance: 'business-cat.flaming',
-    appearanceAssets: [
-      'customer.business-cat.mutation.fire-accents',
-      'customer.business-cat.mutation.glow-eyes',
-      'customer.business-cat.mutation.singed-tie',
-    ],
+    // Batch 01 mutation cutouts are not safe aligned overlays. Keep the approved base
+    // character intact and use the authored fire burst until a full replacement sprite exists.
+    appearanceAssets: [],
     effectAssets: ['fx.fire-burst'],
     reactionSequence: 'reaction.flaming',
     rewardModifier: 1.25,
