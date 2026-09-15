@@ -235,12 +235,14 @@ export class OrderSession {
   public resolveReaction(): void {
     this.requirePhase('anticipation');
     if (!this.food) throw new Error('Cannot resolve a reaction without food.');
+    const assemblyEvaluation = this.spatialAssembly?.evaluationSnapshot() ?? null;
     this.scores = scoreOrder({
       order: this.order,
       selectedIngredients: this.selection.getSelected(),
       preparedIngredients: this.prepBoard.getPrepared(),
       assembled: this.assembled,
       food: this.food,
+      ...(assemblyEvaluation ? { assemblyEvaluation } : {}),
     }, this.options.balance);
     this.transformation = resolveTransformation(
       this.food,
