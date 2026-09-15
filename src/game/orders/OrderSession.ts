@@ -288,7 +288,10 @@ export class OrderSession {
       food: this.food ? { ...this.food, tags: [...this.food.tags] } : null,
       grill: this.grillSession.snapshot(),
       assembled: this.assembled,
-      ...(this.spatialAssembly ? { assembly: this.spatialAssembly.snapshot() } : {}),
+      ...(this.spatialAssembly ? {
+        assembly: this.spatialAssembly.snapshot(),
+        assemblyReady: this.spatialAssembly.isComplete(),
+      } : {}),
       ...(assemblyEvaluation ? { assemblyEvaluation } : {}),
       scores: this.scores ? { ...this.scores } : null,
       transformationResult: transformation
