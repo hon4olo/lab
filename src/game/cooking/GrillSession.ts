@@ -5,6 +5,8 @@ export interface GrillResult {
   readonly state: CookState;
   readonly elapsedMs: number;
   readonly quality: number;
+  /** Authored grill position used by the hands-on station. */
+  readonly slotId?: string;
   /** Present when the player used the hands-on flip interaction. */
   readonly flippedAtMs?: number | null;
   /** 0-100 timing quality for the flip. Legacy no-flip cooking omits this field. */
@@ -17,6 +19,8 @@ export interface GrillSnapshot {
   readonly state: CookState;
   readonly progress: number;
   readonly result: GrillResult | null;
+  /** Null until an ingredient has been physically placed on the grill. */
+  readonly slotId?: string | null;
   /** Null until a hands-on grill item is flipped. */
   readonly flippedAtMs?: number | null;
   readonly flipped?: boolean;
@@ -40,6 +44,7 @@ export const GRILL_TIMING: GrillTiming = {
 export class GrillSession {
   private active = false;
   private ingredientId: string | null = null;
+  private slotId: string | null = null;
   private elapsedMs = 0;
   private flippedAtMs: number | null = null;
   private result: GrillResult | null = null;
@@ -48,10 +53,11 @@ export class GrillSession {
     validateTiming(timing);
   }
 
-  public start(ingredientId: string): void {
+  public start(ingredientId: string, slotId: string = 'slot-1'): void {
     if (this.active) throw new Error('The grill is already running.');
     this.active = true;
     this.ingredientId = ingredientId;
+    this.slotId = slotId;
     this.elapsedMs = 0;
     this.flippedAtMs = null;
     this.result = null;
@@ -88,6 +94,7 @@ export class GrillSession {
       quality: flipQuality === null
         ? baseQuality
         : Math.round(baseQuality * (flipQuality / 100)),
+      ...(this.slotId ? { slotId: this.slotId } : {}),
       ...(this.flippedAtMs !== null ? {
         flippedAtMs: this.flippedAtMs,
         flipQuality,
@@ -104,6 +111,7 @@ export class GrillSession {
       state,
       progress: Math.min(1, this.elapsedMs / this.timing.burnedAtMs),
       result: this.result ? { ...this.result } : null,
+      slotId: this.slotId,
       flippedAtMs: this.flippedAtMs,
       flipped: this.flippedAtMs !== null,
       idealFlipAtMs: idealFlipAt(this.timing),
