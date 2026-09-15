@@ -11,6 +11,16 @@ const NEUTRAL_BUSINESS_CAT_LAYERS = [
   'customer.business-cat.hands',
   'customer.business-cat.accessories',
 ];
+const NEUTRAL_PICKY_PIGEON_LAYERS = [
+  'customer.picky-pigeon.body',
+  'customer.picky-pigeon.head',
+  'customer.picky-pigeon.eyes',
+  'customer.picky-pigeon.pupils',
+  'customer.picky-pigeon.mouth',
+  'customer.picky-pigeon.arms',
+  'customer.picky-pigeon.feet',
+  'customer.picky-pigeon.accessories',
+];
 
 const DARK_PREVIEW = 0x241332;
 const LIGHT_PREVIEW = 0xf6f1e6;
@@ -31,6 +41,8 @@ export class AssetPreviewScene extends Phaser.Scene {
     document.documentElement.dataset.snackLabAssetPreview = 'active';
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
       delete document.documentElement.dataset.snackLabAssetPreview;
+      delete document.documentElement.dataset.snackLabAssetQaStatus;
+      delete document.documentElement.dataset.snackLabAssetQaFailed;
     });
 
     const manifest = this.cache.json.get('snack-lab-asset-preview-manifest') as unknown;
@@ -76,51 +88,33 @@ export class AssetPreviewScene extends Phaser.Scene {
       color: '#b8a8c8',
     }).setOrigin(1, 0);
 
-    const neutralIds = new Set(NEUTRAL_BUSINESS_CAT_LAYERS);
+    const neutralIds = new Set([...NEUTRAL_BUSINESS_CAT_LAYERS, ...NEUTRAL_PICKY_PIGEON_LAYERS]);
     const otherAssets = assets.filter((asset) => !neutralIds.has(asset.id));
     const panelWidth = Math.max(270, Math.floor(width * (width < 800 ? 0.44 : 0.34)));
     const dividerX = panelWidth + 14;
     const panelX = Math.floor(panelWidth / 2) + 8;
     const stackWidth = (panelWidth - 56) / 2;
-    const stackSize = Math.max(72, Math.min(stackWidth - 12, height - 210, 390));
-    const stackY = Math.min(Math.floor(height * 0.5), height - stackSize / 2 - 72);
+    const stackSize = Math.max(48, Math.min(stackWidth - 12, (height - 300) / 2, 300));
     const stackCenters = [panelX - stackWidth / 2 - 5, panelX + stackWidth / 2 + 5];
 
     this.add.rectangle(panelX, height * 0.52, panelWidth - 20, height - 106, 0x352144, 1)
       .setStrokeStyle(1, 0x5b456e);
-    this.add.text(panelX, 73, `Business Cat · neutral · ${NEUTRAL_BUSINESS_CAT_LAYERS.length} layers`, {
-      fontFamily: 'system-ui, sans-serif',
-      fontSize: '14px',
-      fontStyle: 'bold',
-      color: '#5df2c6',
-    }).setOrigin(0.5, 0);
-
-    stackCenters.forEach((centerX, previewIndex) => {
-      const isLightPreview = previewIndex === 1;
-      const panelColor = isLightPreview ? LIGHT_PREVIEW : DARK_PREVIEW;
-      const labelColor = isLightPreview ? '#241332' : '#fff1d0';
-      this.add.rectangle(centerX, stackY, stackWidth - 8, stackSize + 50, panelColor, 1)
-        .setStrokeStyle(1, isLightPreview ? 0xd3cbbd : 0x5b456e);
-      this.add.text(centerX, stackY - stackSize / 2 - 19, isLightPreview ? 'LIGHT' : 'DARK', {
-        fontFamily: 'system-ui, sans-serif',
-        fontSize: '10px',
-        fontStyle: 'bold',
-        color: labelColor,
-      }).setOrigin(0.5, 0.5);
-
-      NEUTRAL_BUSINESS_CAT_LAYERS.forEach((id, index) => {
-        if (this.failedAssets.has(id) || !this.textures.exists(id)) return;
-        this.add.image(centerX, stackY, id)
-          .setDisplaySize(stackSize, stackSize)
-          .setDepth(index + 1);
-      });
-
-      this.add.text(centerX, stackY + stackSize / 2 + 10, 'shared 512×512 canvas', {
-        fontFamily: 'system-ui, sans-serif',
-        fontSize: '9px',
-        color: labelColor,
-      }).setOrigin(0.5, 0);
-    });
+    this.renderCharacterStack(
+      'Business Cat · neutral',
+      NEUTRAL_BUSINESS_CAT_LAYERS,
+      panelX,
+      Math.max(150, stackSize + 48),
+      stackSize,
+      stackCenters,
+    );
+    this.renderCharacterStack(
+      'Picky Pigeon · neutral',
+      NEUTRAL_PICKY_PIGEON_LAYERS,
+      panelX,
+      Math.max(150, stackSize + 48) + stackSize + 76,
+      stackSize,
+      stackCenters,
+    );
 
     this.add.rectangle(dividerX, height / 2, 1, height - 80, 0x5b456e);
     this.add.text(dividerX + 14, 73, `All other assets · ${otherAssets.length} files`, {
@@ -179,6 +173,42 @@ export class AssetPreviewScene extends Phaser.Scene {
         color: '#ff5c70',
       }).setOrigin(1, 1);
     }
+    document.documentElement.dataset.snackLabAssetQaStatus = this.failedAssets.size === 0 ? 'passed' : 'failed';
+    document.documentElement.dataset.snackLabAssetQaFailed = [...this.failedAssets].join(',');
+  }
+
+  private renderCharacterStack(
+    label: string,
+    layers: readonly string[],
+    centerX: number,
+    centerY: number,
+    stackSize: number,
+    stackCenters: readonly number[],
+  ): void {
+    this.add.text(centerX, centerY - stackSize / 2 - 25, `${label} · ${layers.length} layers`, {
+      fontFamily: 'system-ui, sans-serif',
+      fontSize: '12px',
+      fontStyle: 'bold',
+      color: '#5df2c6',
+    }).setOrigin(0.5, 0);
+    stackCenters.forEach((x, previewIndex) => {
+      const isLightPreview = previewIndex === 1;
+      const panelColor = isLightPreview ? LIGHT_PREVIEW : DARK_PREVIEW;
+      const labelColor = isLightPreview ? '#241332' : '#fff1d0';
+      this.add.rectangle(x, centerY, stackSize, stackSize + 34, panelColor, 1)
+        .setStrokeStyle(1, isLightPreview ? 0xd3cbbd : 0x5b456e);
+      this.add.text(x, centerY - stackSize / 2 - 9, isLightPreview ? 'LIGHT' : 'DARK', {
+        fontFamily: 'system-ui, sans-serif',
+        fontSize: '9px',
+        fontStyle: 'bold',
+        color: labelColor,
+      }).setOrigin(0.5, 0.5);
+      layers.forEach((id, index) => {
+        if (!this.failedAssets.has(id) && this.textures.exists(id)) {
+          this.add.image(x, centerY, id).setDisplaySize(stackSize, stackSize).setDepth(index + 1);
+        }
+      });
+    });
   }
 }
 
@@ -195,7 +225,9 @@ function fitWithin(
 function shortLabel(id: string): string {
   return id
     .replace(/^customer\.business-cat\./, 'cat · ')
+    .replace(/^customer\.picky-pigeon\./, 'pigeon · ')
     .replace(/^food\.burger\./, 'burger · ')
+    .replace(/^food\.hotdog\./, 'hot-dog · ')
     .replace(/^station\./, 'station · ')
     .replace(/^background\./, 'background · ')
     .replace(/^environment\./, 'environment · ')
