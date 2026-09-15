@@ -132,7 +132,8 @@ export class OrderScene extends Phaser.Scene {
         this.feedback.ingredientSelected(action.x, action.y);
         break;
       case 'open-prep':
-        session.openPrepBoard();
+        if (this.view.isHandsOnCookingEnabled()) session.openHandsOnPrepBoard();
+        else session.openPrepBoard();
         break;
       case 'prepare-ingredient':
         session.prepareIngredient(action.ingredientId);
