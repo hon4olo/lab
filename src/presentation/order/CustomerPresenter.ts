@@ -1,6 +1,15 @@
 import Phaser from 'phaser';
 import type { CustomerDefinition } from '../../game/customers/CustomerDefinition';
 
+export interface CustomerLayoutOptions {
+  /**
+   * Reaction presentations use a central hero treatment. The character keeps
+   * the same authored texture and anchor; only the presentation scale/depth
+   * changes so the deterministic transformation remains untouched.
+   */
+  readonly hero?: boolean;
+}
+
 export class CustomerPresenter {
   private readonly root: Phaser.GameObjects.Container;
   private readonly baseLayers: readonly Phaser.GameObjects.Image[];
@@ -27,9 +36,9 @@ export class CustomerPresenter {
     this.headLayer.setTexture(reactionAsset ?? this.customer.headAssetId ?? this.headLayer.texture.key);
   }
 
-  public layout(x: number, y: number, size: number): void {
+  public layout(x: number, y: number, size: number, options: CustomerLayoutOptions = {}): void {
     this.characterSize = size;
-    this.root.setPosition(x, y);
+    this.root.setPosition(x, y).setScale(1).setDepth(options.hero ? 18 : 8);
     for (const child of this.root.list) {
       if (child instanceof Phaser.GameObjects.Image) child.setDisplaySize(size, size);
     }

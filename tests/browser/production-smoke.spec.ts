@@ -62,6 +62,17 @@ for (const viewport of PRODUCTION_VIEWPORTS) {
     for (const path of assetRequests.keys()) expect(assetRequests.get(path)).toBe(1);
     expect([...assetRequests.values()].every((count) => count === 1)).toBe(true);
 
+    // These are the approved Runway station backgrounds. Keeping the check
+    // against the actual production request stream catches a manifest-only
+    // import that never reaches the live Preload bundle.
+    const runwayStationPaths = [
+      '/assets/backgrounds/street-snack-bar-order.png',
+      '/assets/stations/street/prep-background.png',
+      '/assets/stations/street/grill-background.png',
+      '/assets/stations/street/build-background.png',
+    ];
+    for (const path of runwayStationPaths) expect(assetRequests.has(path)).toBe(true);
+
     expect(await page.evaluate(() => 'SNACK_LAB' in window)).toBe(false);
     await expect(page.locator('html')).not.toHaveAttribute('data-snack-lab-debug');
     await expect(page.locator('[data-snack-lab-qa-control]')).toHaveCount(0);

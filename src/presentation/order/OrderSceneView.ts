@@ -260,9 +260,10 @@ export class OrderSceneView {
     if (this.station.input) this.station.input.enabled = showLegacyStation;
 
     this.customer.layout(
-      presentation.customerX,
-      presentation.customerY,
-      presentation.customerSize,
+      this.isReactionHero(mode) ? layout.width * 0.5 : presentation.customerX,
+      this.isReactionHero(mode) ? layout.height * 0.56 : presentation.customerY,
+      this.isReactionHero(mode) ? this.reactionHeroSize() : presentation.customerSize,
+      { hero: this.isReactionHero(mode) },
     );
     this.customer.setVisible(presentation.showCustomer);
   }
@@ -282,7 +283,14 @@ export class OrderSceneView {
     } else if (this.currentMode === 'serve') {
       x = this.layoutState.width * (this.layoutState.wide ? 0.43 : 0.34);
       y = presentation.counterY - presentation.counterHeight * 0.29;
-      width = Math.min(presentation.customerSize * 0.52, 185);
+      // The served FoodInstance is a co-hero with the customer. Keep it on
+      // the counter's foreground plane and large enough to read at mobile
+      // scale without covering the customer's face.
+      width = Math.min(
+        presentation.customerSize * 0.74,
+        this.layoutState.width * (this.layoutState.wide ? 0.24 : 0.58),
+        280,
+      );
     }
 
     const assetKey = snapshot.food?.visualVariant ?? this.order.baseAssembledAssetKey;
@@ -361,5 +369,17 @@ export class OrderSceneView {
       width,
       height,
     };
+  }
+
+  private isReactionHero(mode: StationPresentationMode): boolean {
+    const phase = this.currentSnapshot?.phase;
+    return mode === 'serve' && (phase === 'payment' || phase === 'customer-leaving');
+  }
+
+  private reactionHeroSize(): number {
+    const { width, height } = this.layoutState;
+    return height > width
+      ? Math.min(width * 0.96, height * 0.72, 430)
+      : Math.min(width * 0.56, height * 0.82, 560);
   }
 }

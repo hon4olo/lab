@@ -165,8 +165,11 @@ export class OrderHudPresenter {
     this.nextOrderText.setVisible(snapshot.phase === 'next-order-ready')
       .setText(localize(shiftPhase === 'completed' ? 'shift.completed' : 'order.phase.next-order-ready'));
     this.coinValue.setText(String(coins));
-    this.stationName.setText(localize(snapshot.phase === 'grilling' ? 'station.grill' : 'station.prep-board'));
-    this.stationName.setVisible(['ingredient-selection', 'prep-board', 'grilling'].includes(snapshot.phase));
+    const stationPhase = snapshot.phase === 'grilling'
+      ? 'station.grill'
+      : snapshot.phase === 'prep-board' ? 'station.prep-board' : null;
+    this.stationName.setText(stationPhase ? localize(stationPhase) : '');
+    this.stationName.setVisible(stationPhase !== null);
     const canReplay = snapshot.phase === 'next-order-ready' && shiftPhase === 'completed';
     const handsOnGrillActive = this.handsOnGrillEnabled && snapshot.phase === 'grilling';
     const handsOnPrepActive = this.handsOnPrepEnabled && this.hasPendingPrep(snapshot);
@@ -250,6 +253,9 @@ export class OrderHudPresenter {
     if (snapshot.phase === 'prep-board') return this.handsOnPrepEnabled;
     if (snapshot.phase === 'grilling') return this.handsOnGrillEnabled;
     if (snapshot.phase === 'assembly') return this.handsOnBuildEnabled && snapshot.assembly !== undefined;
+    // Serve/reaction keeps only a compact order reference so the customer and
+    // FoodInstance remain the screen's visual heroes.
+    if (snapshot.phase === 'anticipation' || snapshot.phase === 'payment') return true;
     return false;
   }
 

@@ -7,15 +7,21 @@ import {
   openHandsOnPrep,
   placeFlipAndCookPerfect,
   prepareHandsOnIngredient,
-  readSnapshot,
   removeHandsOnGrillItem,
   waitForSnapshot,
   type ViewportCase,
 } from './hands-on-helpers';
 
+// Leave the authored anticipation/reaction windows open long enough to capture
+// the distinct Serve and Reaction compositions. Reduced-motion behavior is
+// covered by the browser smoke/interaction suites.
+test.use({ contextOptions: { reducedMotion: 'no-preference' } });
+
 const VIEWPORTS: readonly ViewportCase[] = [
   { name: 'desktop', width: 1280, height: 720 },
   { name: 'portrait', width: 360, height: 640 },
+  { name: 'landscape', width: 844, height: 390 },
+  { name: 'large-desktop', width: 1440, height: 900 },
 ];
 
 for (const viewport of VIEWPORTS) {
@@ -30,13 +36,13 @@ for (const viewport of VIEWPORTS) {
 
     await prepareHandsOnIngredient(page, viewport);
     await continueToHandsOnGrill(page, viewport);
-    await capture(page, viewport, '03-grill-idle');
+    await capture(page, viewport, '03-grill-raw');
 
     await placeFlipAndCookPerfect(page, viewport);
     await capture(page, viewport, '04-grill-perfect');
     await removeHandsOnGrillItem(page, viewport);
 
-    await capture(page, viewport, '05-build-before-assembly');
+    await capture(page, viewport, '05-build-empty');
     await completeHandsOnBuild(
       page,
       viewport,
@@ -45,21 +51,56 @@ for (const viewport of VIEWPORTS) {
     );
     await capture(page, viewport, '06-build-complete');
 
+    // Freeze the scene around the Serve click. Phaser's reduced/normal-motion
+    // timers can otherwise advance through anticipation while a high-resolution
+    // screenshot is being encoded, producing an empty or already-reacted frame.
+    await page.clock.install();
+    await page.clock.pauseAt(Date.now() + 10);
     await clickAction(page, viewport);
-    await waitForSnapshot(page, { orderPhase: 'anticipation' });
     await capture(page, viewport, '07-serve');
+    await page.clock.resume();
+    await waitForSnapshot(page, { orderPhase: 'anticipation' });
 
-    await expect.poll(async () => (await readSnapshot(page))?.orderPhase ?? null, {
-      timeout: 8_000,
-      intervals: [100, 250],
-    }).not.toBe('anticipation');
+    await waitForSnapshot(page, { orderPhase: 'payment' }, 8_000);
     await capture(page, viewport, '08-reaction');
   });
 }
 
 async function capture(page: Page, viewport: ViewportCase, stage: string): Promise<void> {
+  await expectNoDocumentOverflow(page, viewport);
+  await expectCanvasFillsViewport(page, viewport);
+  // Development screenshots should show the authored game composition rather
+  // than the optional Asset QA launcher. Production smoke separately verifies
+  // that this control is absent from the built app.
+  await page.locator('[data-snack-lab-qa-control]').evaluate((element) => {
+    element.setAttribute('hidden', 'true');
+  }).catch(() => undefined);
   await page.screenshot({
     path: `artifacts/visual-qa/${viewport.name}-${viewport.width}x${viewport.height}-${stage}.png`,
     fullPage: true,
   });
+}
+
+async function expectNoDocumentOverflow(page: Page, viewport: ViewportCase): Promise<void> {
+  const dimensions = await page.evaluate(() => ({
+    documentWidth: document.documentElement.scrollWidth,
+    documentHeight: document.documentElement.scrollHeight,
+    viewportWidth: document.documentElement.clientWidth,
+    viewportHeight: document.documentElement.clientHeight,
+    appWidth: document.querySelector('#app')?.clientWidth ?? 0,
+    appHeight: document.querySelector('#app')?.clientHeight ?? 0,
+  }));
+  expect(dimensions.documentWidth, `document width overflow at ${viewport.width}×${viewport.height}`)
+    .toBeLessThanOrEqual(dimensions.viewportWidth);
+  expect(dimensions.documentHeight, `document height overflow at ${viewport.width}×${viewport.height}`)
+    .toBeLessThanOrEqual(dimensions.viewportHeight);
+  expect(dimensions.appWidth).toBe(viewport.width);
+  expect(dimensions.appHeight).toBe(viewport.height);
+}
+
+async function expectCanvasFillsViewport(page: Page, viewport: ViewportCase): Promise<void> {
+  const bounds = await page.locator('#game-canvas canvas').boundingBox();
+  expect(bounds).not.toBeNull();
+  expect(bounds?.width).toBe(viewport.width);
+  expect(bounds?.height).toBe(viewport.height);
 }

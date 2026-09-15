@@ -48,8 +48,15 @@ export class FeedbackDirector {
       onComplete: () => flash.destroy(),
     });
 
+    // The transformed character is intentionally the hero of the reaction
+    // station. Effects scale with the viewport so they support that authored
+    // character treatment instead of reading as tiny HUD confetti on desktop.
+    const effectSize = Math.min(
+      360,
+      Math.max(190, Math.min(this.scene.scale.width, this.scene.scale.height) * 0.46),
+    );
     for (const [index, assetKey] of effectAssets.entries()) {
-      const effect = this.spawn(assetKey, x, y, 0.92, 14, index === 0 ? 190 : 150);
+      const effect = this.spawn(assetKey, x, y, 0.92, 19, index === 0 ? effectSize : effectSize * 0.78);
       this.scene.tweens.add({
         targets: effect,
         scale: index === 0 ? 1.5 : 1.35,
