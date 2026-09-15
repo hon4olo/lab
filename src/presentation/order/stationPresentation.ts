@@ -49,7 +49,9 @@ export function createStationPresentation(layout: OrderLayout, mode: StationPres
     ? Math.min(layout.height * (layout.compact ? 0.72 : 0.68), 560)
     : Math.min(layout.height * 0.60, 520);
   const workspaceX = layout.width * 0.5;
-  const workspaceY = layout.height * (layout.compact ? 0.48 : 0.50);
+  const workspaceY = layout.height * (layout.wide
+    ? (layout.compact ? 0.58 : 0.50)
+    : 0.56);
   const stationWidth = Math.min(
     workspaceWidth * (mode === 'build' ? 0.72 : 0.80),
     768,
