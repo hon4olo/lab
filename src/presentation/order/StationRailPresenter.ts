@@ -18,7 +18,6 @@ export class StationRailPresenter {
   private readonly labels: Phaser.GameObjects.Text[];
   private width = 0;
   private height = 0;
-  private mode: StationPresentationMode = 'order';
 
   public constructor(scene: Phaser.Scene) {
     this.graphics = scene.add.graphics().setDepth(26);
@@ -37,7 +36,6 @@ export class StationRailPresenter {
   }
 
   public render(mode: StationPresentationMode, localize: (key: TranslationKey) => string): void {
-    this.mode = mode;
     const compact = this.width < 640 || this.height < 500;
     this.graphics.clear();
 
