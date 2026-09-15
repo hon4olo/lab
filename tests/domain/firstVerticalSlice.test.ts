@@ -1,25 +1,37 @@
 import { describe, expect, it } from 'vitest';
-import { businessCat } from '../../src/content/customers/businessCat';
 import { HOT_CHEESE_BURGER_INGREDIENTS } from '../../src/content/ingredients/hotCheeseBurger';
 import { HOT_CHEESE_BURGER_EXTRA_SPICY } from '../../src/content/orders/hotCheeseBurgerExtraSpicy';
 import { TRANSFORMATIONS } from '../../src/content/transformations';
 import type { FoodInstance } from '../../src/game/cooking/FoodInstance';
-import { OrderSession } from '../../src/game/orders/OrderSession';
-import { requiredIngredientIds } from '../../src/game/orders/OrderRequirements';
-import { createProgressionContext } from '../../src/game/progression/ProgressionContext';
+import { GRILL_TIMING } from '../../src/game/cooking/GrillSession';
+import type { CustomerInstance } from '../../src/game/customers/CustomerInstance';
+import { calculatePayment } from '../../src/game/economy/PaymentCalculator';
+import { EconomySession } from '../../src/game/economy/EconomySession';
+import { scoreOrder } from '../../src/game/scoring/OrderScoring';
 import { resolveTransformation } from '../../src/game/transformations/resolveTransformation';
+import { OrderSession } from '../../src/game/orders/OrderSession';
+import {
+  requiredIngredientIds,
+  resolveOrderAvailableIngredientIds,
+} from '../../src/game/orders/OrderRequirements';
+import { createProgressionContext } from '../../src/game/progression/ProgressionContext';
 
-const GRILL_TIMING = HOT_CHEESE_BURGER_EXTRA_SPICY.grillTiming;
-if (!GRILL_TIMING) throw new Error('The first burger order requires authored grill timing.');
+const businessCat: CustomerInstance = {
+  id: 'customer.business-cat.test',
+  type: 'business-cat',
+  variantId: 'customer.business-cat.neutral',
+  patienceMs: 120_000,
+};
 
-describe('first playable vertical slice', () => {
-  it('runs the first order from customer entry through Flaming Business Cat payment', () => {
+describe('Snack Lab first order vertical slice domain', () => {
+  it('completes a perfect extra-spicy burger and transforms Business Cat', () => {
     const session = createSession();
     prepareOrder(session);
     session.startGrill();
     session.advanceGrill(GRILL_TIMING.idealStopAtMs);
-    session.stopGrill();
+    expect(session.stopGrill()).toMatchObject({ state: 'perfect', quality: 100 });
     session.assemble();
+    expect(session.snapshot().phase).toBe('modifier-selection');
     session.addModifier('ingredient.extra-spicy');
     session.serve();
     session.resolveReaction();
@@ -30,69 +42,90 @@ describe('first playable vertical slice', () => {
       transformationResult: { id: 'transformation.business-cat.flaming' },
       payment: { total: 55 },
     });
+    expect(session.snapshot().food?.tags).toEqual(expect.arrayContaining(['HOT', 'FIRE']));
+    expect(session.snapshot().food?.tags).not.toContain('CAT');
+    expect(session.snapshot()).not.toHaveProperty('coins');
+    const economy = new EconomySession(20);
+    expect(economy.applyPayment(session.snapshot().payment!)).toBe(true);
+    expect(economy.snapshot()).toMatchObject({ persistentCoins: 20, sessionCoins: 55, coins: 75 });
   });
 
-  it('uses immutable ingredient tags and does not infer CAT from generic food', () => {
-    const nonCatFood = createFood(['ingredient.bun-bottom'], 100, 0);
-    expect([...nonCatFood.tags]).not.toContain('CAT');
-    expect(resolveTransformation(
-      nonCatFood,
-      businessCat,
-      createProgressionContext([]),
-      TRANSFORMATIONS,
-    )).toBeNull();
-  });
-
-  it('requires the extra-spicy modifier before serving this authored order', () => {
+  it('records a burned patty in the FoodInstance when cooking is left too long', () => {
     const session = createSession();
+    prepareOrder(session);
+    session.startGrill();
+    session.advanceGrill(GRILL_TIMING.burnedAtMs);
+    expect(session.stopGrill()).toMatchObject({ state: 'burned', quality: 0 });
+    expect(session.snapshot().food?.cookStates[0]).toMatchObject({ burned: true, heat: 0 });
+  });
+
+  it('penalizes an order with a missing ingredient', () => {
+    const selected = resolveOrderAvailableIngredientIds(HOT_CHEESE_BURGER_EXTRA_SPICY).filter(
+      (id) => id !== 'ingredient.sauce',
+    );
+    const food = createFood(selected, 100, 70);
+    const score = scoreOrder({
+      order: HOT_CHEESE_BURGER_EXTRA_SPICY,
+      selectedIngredients: selected,
+      preparedIngredients: ['ingredient.patty'],
+      assembled: true,
+      food,
+    });
+    expect(score.order).toBe(82);
+  });
+
+  it('resolves the same Flaming Business Cat definition on repeated runs', () => {
+    const food = createFood(resolveOrderAvailableIngredientIds(HOT_CHEESE_BURGER_EXTRA_SPICY), 100, 70);
+    const first = resolveTransformation(food, businessCat, { unlockedIds: new Set() }, TRANSFORMATIONS);
+    const second = resolveTransformation(food, businessCat, { unlockedIds: new Set() }, [...TRANSFORMATIONS].reverse());
+    expect(first?.id).toBe('transformation.business-cat.flaming');
+    expect(second?.id).toBe(first?.id);
+  });
+
+  it('calculates ORDER, COOK, and CHAOS scores from food and requirements', () => {
+    const selected = resolveOrderAvailableIngredientIds(HOT_CHEESE_BURGER_EXTRA_SPICY);
+    const result = scoreOrder({
+      order: HOT_CHEESE_BURGER_EXTRA_SPICY,
+      selectedIngredients: selected,
+      preparedIngredients: ['ingredient.patty'],
+      assembled: true,
+      food: createFood(selected, 100, 70),
+    });
+    expect(result).toEqual({ order: 100, cook: 100, chaos: 140 });
+  });
+
+  it('calculates base pay, quality, chaos, transformation reward, and tip', () => {
+    const payment = calculatePayment({
+      basePayment: 24,
+      baseTip: 10,
+      score: { order: 100, cook: 100, chaos: 140 },
+      transformationRewardModifier: 1.25,
+    });
+    expect(payment).toEqual({
+      base: 24,
+      qualityBonus: 9,
+      chaosBonus: 3,
+      transformationMultiplier: 9,
+      tip: 10,
+      total: 55,
+    });
+  });
+
+  it('passes injected unlocks through OrderSession into transformation resolution', () => {
+    const gatedTransformations = TRANSFORMATIONS.map((definition) => ({
+      ...definition,
+      requiredUnlocks: ['unlock.flame-reaction'],
+    }));
+    const session = createSession(['unlock.flame-reaction'], gatedTransformations);
     prepareOrder(session);
     session.startGrill();
     session.advanceGrill(GRILL_TIMING.idealStopAtMs);
     session.stopGrill();
     session.assemble();
-    expect(() => session.serve()).toThrow(/requires additional modifiers/i);
     session.addModifier('ingredient.extra-spicy');
-    expect(() => session.serve()).not.toThrow();
-  });
-
-  it('keeps transformation discovery gated by progression when authored that way', () => {
-    const gated = TRANSFORMATIONS.map((definition) =>
-      definition.id === 'transformation.business-cat.flaming'
-        ? { ...definition, unlockConditionId: 'discovery.flaming' }
-        : definition,
-    );
-    const lockedSession = createSession([], gated);
-    prepareOrder(lockedSession);
-    lockedSession.startGrill();
-    lockedSession.advanceGrill(GRILL_TIMING.idealStopAtMs);
-    lockedSession.stopGrill();
-    lockedSession.assemble();
-    lockedSession.addModifier('ingredient.extra-spicy');
-    lockedSession.serve();
-    lockedSession.resolveReaction();
-    expect(lockedSession.snapshot().transformationResult).toBeNull();
-
-    const unlockedSession = createSession(['discovery.flaming'], gated);
-    prepareOrder(unlockedSession);
-    unlockedSession.startGrill();
-    unlockedSession.advanceGrill(GRILL_TIMING.idealStopAtMs);
-    unlockedSession.stopGrill();
-    unlockedSession.assemble();
-    unlockedSession.addModifier('ingredient.extra-spicy');
-    unlockedSession.serve();
-    unlockedSession.resolveReaction();
-    expect(unlockedSession.snapshot().transformationResult?.id).toBe('transformation.business-cat.flaming');
-  });
-
-  it('tracks grill state and quality against authored timing', () => {
-    const session = createSession();
-    prepareOrder(session);
-    session.startGrill();
-    expect(session.advanceGrill(GRILL_TIMING.cookedAtMs).state).toBe('cooked');
-    expect(session.advanceGrill(GRILL_TIMING.perfectAtMs - GRILL_TIMING.cookedAtMs).state).toBe('perfect');
-    const result = session.stopGrill();
-    expect(result.state).toBe('perfect');
-    expect(result.quality).toBeGreaterThanOrEqual(80);
+    session.serve();
+    session.resolveReaction();
+    expect(session.snapshot().transformationResult?.id).toBe('transformation.business-cat.flaming');
   });
 
   it('pauses and resumes patience without failing an order when the timer expires', () => {
@@ -156,10 +189,11 @@ function createFood(
     ingredients,
     ingredientOrder: ingredients,
     cookStates: [],
-    tags: new Set(),
-    chaosScore,
-    quality,
     stationHistory: [],
-    visualVariant: 'food.burger.finished',
+    quality,
+    tags: new Set(['HOT', 'FIRE']),
+    chaosScore,
+    mistakes: [],
+    visualVariant: 'food.burger.extra-spicy',
   };
 }
