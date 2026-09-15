@@ -1,6 +1,6 @@
 name: Finalize Batch 03 verified assets
 
-# Batch 03 integration retry 8: restore trackable build art and align QA geometry with authored stations.
+# Batch 03 integration retry 9: restore trackable build art and align QA geometry with authored stations.
 on:
   push:
     branches: [main]
@@ -108,4 +108,5 @@ jobs:
           fi
 
       - name: Run focused Batch 03 visual QA
-        run: npx playwright test --config playwright.config.ts tests/browser/visual-capture.spec.ts --grep "visual QA capture: desktop"
+        run: |
+          npx playwright test --config playwright.config.ts tests/browser/visual-capture.spec.ts --grep "visual QA capture: desktop"
