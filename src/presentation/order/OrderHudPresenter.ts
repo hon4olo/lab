@@ -44,6 +44,7 @@ export class OrderHudPresenter {
     onAction: (action: OrderAction) => void,
     private readonly handsOnBuildEnabled = false,
     private readonly handsOnGrillEnabled = false,
+    private readonly handsOnPrepEnabled = false,
   ) {
     this.orderBubble = scene.add.image(0, 0, 'ui.order-bubble.street').setDepth(30);
     this.customerName = this.makeText(0, 0, '', 11, '#5e3158');
@@ -172,7 +173,8 @@ export class OrderHudPresenter {
     this.stationName.setVisible(['ingredient-selection', 'prep-board', 'grilling'].includes(snapshot.phase));
     const canReplay = snapshot.phase === 'next-order-ready' && shiftPhase === 'completed';
     const handsOnGrillActive = this.handsOnGrillEnabled && snapshot.phase === 'grilling';
-    const showAction = (hasOrderAction(snapshot.phase) || canReplay) && !handsOnGrillActive;
+    const handsOnPrepActive = this.handsOnPrepEnabled && this.hasPendingPrep(snapshot);
+    const showAction = (hasOrderAction(snapshot.phase) || canReplay) && !handsOnGrillActive && !handsOnPrepActive;
     const orderAction = this.getStationAction();
     const actionEnabled = canReplay || orderAction !== null;
     this.actionPanel.setVisible(showAction).setAlpha(actionEnabled ? 1 : 0.52);
@@ -221,6 +223,7 @@ export class OrderHudPresenter {
 
   public getStationAction(): OrderAction | null {
     if (this.handsOnGrillEnabled && this.snapshot.phase === 'grilling') return null;
+    if (this.handsOnPrepEnabled && this.hasPendingPrep(this.snapshot)) return null;
     return getOrderAction(this.snapshot, this.order, this.handsOnBuildEnabled);
   }
 
@@ -237,6 +240,14 @@ export class OrderHudPresenter {
     ];
     for (const object of new Set(objects)) object.destroy();
     this.patienceMeter.destroy();
+  }
+
+  private hasPendingPrep(snapshot: OrderSnapshot): boolean {
+    if (snapshot.phase !== 'prep-board') return false;
+    return (this.order.requiredPrepIngredientIds ?? []).some(
+      (ingredientId) => snapshot.selectedIngredients.includes(ingredientId)
+        && !snapshot.preparedIngredients.includes(ingredientId),
+    );
   }
 
   private drawHeat(snapshot: OrderSnapshot): void {
