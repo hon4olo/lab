@@ -4,6 +4,7 @@ import type { IngredientDefinition } from '../game/ingredients/IngredientDefinit
 import type { TransformationDefinition } from '../game/transformations/TransformationDefinition';
 import type { ContentRegistry } from './ContentRegistry';
 import type { SnackLabContentRegistries } from './registries';
+import { grillConfigIssues, sameGrillAssets, sameGrillTiming } from './grillValidation';
 
 export interface SnackLabContentValidationResult {
   readonly valid: boolean;
@@ -73,6 +74,13 @@ function validateCustomers(
       issues.push(`Customer ${customer.id} must have positive basePatienceMs.`);
     }
     validateAssetReferences(`customer ${customer.id}`, customer.appearanceAssets, approved, allAssets, issues);
+    if (customer.headAssetId && !customer.appearanceAssets.includes(customer.headAssetId)) {
+      issues.push(`Customer ${customer.id} headAssetId must be one of its appearanceAssets.`);
+    }
+    for (const [sequence, assetId] of Object.entries(customer.reactionAssets ?? {})) {
+      if (!sequence.trim()) issues.push(`Customer ${customer.id} has an empty reaction sequence ID.`);
+      validateAssetReferences(`customer ${customer.id} reaction ${sequence}`, [assetId], approved, allAssets, issues);
+    }
   }
 }
 
@@ -119,6 +127,7 @@ function validateRecipes(
       }
     }
     validateAssetReferences(`recipe ${recipe.id}`, [recipe.baseAssembledAssetKey], approved, allAssets, issues);
+    issues.push(...grillConfigIssues(`recipe ${recipe.id}`, recipe.grillTiming, recipe.grillAssetKeys, approved, allAssets));
   }
 }
 
@@ -147,9 +156,17 @@ function validateOrders(
       if (order.baseAssembledAssetKey !== recipe.baseAssembledAssetKey) {
         issues.push(`Order ${order.id} base assembled asset does not match recipe ${recipe.id}.`);
       }
+      if (!sameGrillTiming(order.grillTiming, recipe.grillTiming) ||
+          !sameGrillAssets(order.grillAssetKeys, recipe.grillAssetKeys)) {
+        issues.push(`Order ${order.id} grill configuration does not match recipe ${recipe.id}.`);
+      }
     }
-    if (!order.requiredIngredientIds.includes(order.modifierIngredientId)) {
+    const modifierRequired = order.modifierRequired ?? true;
+    if (modifierRequired && !order.requiredIngredientIds.includes(order.modifierIngredientId)) {
       issues.push(`Order ${order.id} modifier ${order.modifierIngredientId} is not a required recipe ingredient.`);
+    }
+    if (!registries.ingredients.has(order.modifierIngredientId)) {
+      issues.push(`Order ${order.id} references unknown modifier ingredient ${order.modifierIngredientId}.`);
     }
     if (!order.requiredIngredientIds.includes(order.grillIngredientId)) {
       issues.push(`Order ${order.id} grill ingredient ${order.grillIngredientId} is not required.`);
@@ -164,6 +181,10 @@ function validateOrders(
       else if (!ingredient.requiresPrep) issues.push(`Order ${order.id} requires prep for ${id}, but it is not prep-required.`);
     }
     validateAssetReferences(`order ${order.id}`, [order.baseAssembledAssetKey, order.assembledAssetKey], approved, allAssets, issues);
+    issues.push(...grillConfigIssues(`order ${order.id}`, order.grillTiming, order.grillAssetKeys, approved, allAssets));
+    if (order.reactionSequence !== undefined && !order.reactionSequence.trim()) {
+      issues.push(`Order ${order.id} reactionSequence must not be empty.`);
+    }
   }
 }
 
@@ -211,6 +232,10 @@ function validateTransformations(
       if (!customerTypes.has(type)) issues.push(`Transformation ${transformation.id} references unknown customer type ${type}.`);
     }
     validateAssetReferences(`transformation ${transformation.id}`, transformation.appearanceAssets, approved, allAssets, issues);
+    validateAssetReferences(`transformation ${transformation.id} effects`, transformation.effectAssets ?? [], approved, allAssets, issues);
+    if (transformation.appearanceMode === 'full' && transformation.appearanceAssets.length !== 1) {
+      issues.push(`Transformation ${transformation.id} full appearance must contain one authored appearance asset.`);
+    }
   }
 }
 

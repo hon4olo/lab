@@ -23,7 +23,12 @@ export function scoreOrder(
   const selected = new Set(input.selectedIngredients);
   const prepared = new Set(input.preparedIngredients);
   const missing = input.order.requiredIngredientIds.filter((id) => !selected.has(id)).length;
-  const extras = [...selected].filter((id) => !input.order.requiredIngredientIds.includes(id)).length;
+  const optionalModifier = input.order.modifierRequired === false
+    ? input.order.modifierIngredientId
+    : null;
+  const extras = [...selected].filter((id) =>
+    !input.order.requiredIngredientIds.includes(id) && id !== optionalModifier,
+  ).length;
   const unprepared = input.order.requiredPrepIngredientIds.filter(
     (id) => selected.has(id) && !prepared.has(id),
   ).length;

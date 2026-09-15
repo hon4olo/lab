@@ -21,6 +21,20 @@ const NEUTRAL_PICKY_PIGEON_LAYERS = [
   'customer.picky-pigeon.feet',
   'customer.picky-pigeon.accessories',
 ];
+const PICKY_PIGEON_VARIANTS = [
+  { label: 'NEUTRAL', layers: NEUTRAL_PICKY_PIGEON_LAYERS },
+  {
+    label: 'SKEPTICAL',
+    layers: NEUTRAL_PICKY_PIGEON_LAYERS.map((id) => id === 'customer.picky-pigeon.head'
+      ? 'customer.picky-pigeon.reaction.skeptical' : id),
+  },
+  {
+    label: 'SHOCKED',
+    layers: NEUTRAL_PICKY_PIGEON_LAYERS.map((id) => id === 'customer.picky-pigeon.head'
+      ? 'customer.picky-pigeon.reaction.shocked' : id),
+  },
+  { label: 'NEON', layers: ['customer.picky-pigeon.mutation.neon'] },
+] as const;
 
 const DARK_PREVIEW = 0x241332;
 const LIGHT_PREVIEW = 0xf6f1e6;
@@ -115,6 +129,7 @@ export class AssetPreviewScene extends Phaser.Scene {
       stackSize,
       stackCenters,
     );
+    this.renderPickyVariantStrip(panelX, height - 92, Math.min(88, stackWidth / 2 - 8));
 
     this.add.rectangle(dividerX, height / 2, 1, height - 80, 0x5b456e);
     this.add.text(dividerX + 14, 73, `All other assets · ${otherAssets.length} files`, {
@@ -208,6 +223,33 @@ export class AssetPreviewScene extends Phaser.Scene {
           this.add.image(x, centerY, id).setDisplaySize(stackSize, stackSize).setDepth(index + 1);
         }
       });
+    });
+  }
+
+  private renderPickyVariantStrip(centerX: number, centerY: number, size: number): void {
+    this.add.text(centerX, centerY - size / 2 - 23, 'Picky Pigeon · authored variants', {
+      fontFamily: 'system-ui, sans-serif',
+      fontSize: '11px',
+      fontStyle: 'bold',
+      color: '#5df2c6',
+    }).setOrigin(0.5, 0);
+    const spacing = Math.min(size + 8, 104);
+    const startX = centerX - spacing * (PICKY_PIGEON_VARIANTS.length - 1) / 2;
+    PICKY_PIGEON_VARIANTS.forEach((variant, variantIndex) => {
+      const x = startX + variantIndex * spacing;
+      this.add.rectangle(x, centerY, size, size + 18, DARK_PREVIEW, 1)
+        .setStrokeStyle(1, 0x5b456e);
+      variant.layers.forEach((id, layerIndex) => {
+        if (!this.failedAssets.has(id) && this.textures.exists(id)) {
+          this.add.image(x, centerY, id).setDisplaySize(size, size).setDepth(layerIndex + 1);
+        }
+      });
+      this.add.text(x, centerY + size / 2 + 3, variant.label, {
+        fontFamily: 'system-ui, sans-serif',
+        fontSize: '7px',
+        fontStyle: 'bold',
+        color: '#fff1d0',
+      }).setOrigin(0.5, 0);
     });
   }
 }

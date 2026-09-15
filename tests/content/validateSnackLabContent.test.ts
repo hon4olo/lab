@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import manifest from '../../public/assets/manifest.json';
 import { BUSINESS_CAT } from '../../src/content/customers/businessCat';
+import { CHEESY_STREET_HOT_DOG_ORDER } from '../../src/content/orders/cheesyStreetHotDog';
 import { HOT_CHEESE_BURGER } from '../../src/content/recipes/hotCheeseBurger';
 import { ContentRegistry } from '../../src/content/ContentRegistry';
 import { SNACK_LAB_CONTENT_REGISTRIES, type SnackLabContentRegistries } from '../../src/content/registries';
@@ -84,6 +85,21 @@ describe('Snack Lab content validation', () => {
 
     expect(validateSnackLabContent(SNACK_LAB_CONTENT_REGISTRIES, alteredManifest).issues.join('\n')).toContain(
       'references non-production-approved asset ID food.burger.finished',
+    );
+  });
+
+  it('keeps the hot-dog order and recipe grill configuration aligned', () => {
+    const alteredOrder = {
+      ...CHEESY_STREET_HOT_DOG_ORDER,
+      grillTiming: { ...CHEESY_STREET_HOT_DOG_ORDER.grillTiming!, burnedAtMs: 5_300 },
+    };
+    const registries = withRegistries({ orders: new ContentRegistry([
+      ...SNACK_LAB_CONTENT_REGISTRIES.orders.all.filter((order) => order.id !== alteredOrder.id),
+      alteredOrder,
+    ]) });
+
+    expect(validateSnackLabContent(registries, manifest).issues.join('\n')).toContain(
+      'Order order.cheesy-street-hot-dog grill configuration does not match recipe recipe.cheesy-street-hot-dog',
     );
   });
 });

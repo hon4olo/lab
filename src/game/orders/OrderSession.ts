@@ -1,8 +1,7 @@
 import type { TransformationDefinition } from '../transformations/TransformationDefinition';
 import type { FoodInstance } from '../cooking/FoodInstance';
-import type { GrillResult, GrillSnapshot } from '../cooking/GrillSession';
+import { GrillSession, type GrillResult, type GrillSnapshot } from '../cooking/GrillSession';
 import type { IngredientDefinition } from '../ingredients/IngredientDefinition';
-import { GrillSession } from '../cooking/GrillSession';
 import { createFoodInstance } from '../cooking/createFoodInstance';
 import { PrepBoardSession } from '../cooking/PrepBoardSession';
 import type { CustomerInstance } from '../customers/CustomerInstance';
@@ -10,7 +9,7 @@ import { CustomerPatienceSession, type CustomerPatienceSnapshot } from '../custo
 import { CustomerLifecycle } from '../customers/CustomerLifecycle';
 import { calculatePayment } from '../economy/PaymentCalculator';
 import { IngredientSelection } from '../ingredients/IngredientSelection';
-import { assembleBurger } from '../recipes/BurgerAssembler';
+import { assembleFood } from '../recipes/FoodAssembler';
 import type { ScoreResult } from '../scoring/OrderScoring';
 import { scoreOrder } from '../scoring/OrderScoring';
 import type { OrderDefinition } from './OrderDefinition';
@@ -60,6 +59,10 @@ export interface TransformationSnapshot {
   readonly id: string;
   readonly resultAppearance: string;
   readonly appearanceAssets: readonly string[];
+  /** Optional for compatibility with v2 saves written before Batch 02. */
+  readonly appearanceMode?: 'overlay' | 'full';
+  /** Optional for compatibility with v2 saves written before Batch 02. */
+  readonly effectAssets?: readonly string[];
   readonly reactionSequence: string;
 }
 
@@ -67,7 +70,7 @@ export class OrderSession {
   private phase: OrderPhase = 'customer-entering';
   private readonly selection: IngredientSelection;
   private readonly prepBoard: PrepBoardSession;
-  private readonly grillSession = new GrillSession();
+  private readonly grillSession: GrillSession;
   private readonly lifecycle = new CustomerLifecycle();
   private readonly patience: CustomerPatienceSession;
   private grillResult: GrillResult | null = null;
@@ -84,6 +87,7 @@ export class OrderSession {
     private readonly transformations: readonly TransformationDefinition[],
     private readonly options: OrderSessionOptions,
   ) {
+    this.grillSession = new GrillSession(order.grillTiming);
     this.selection = new IngredientSelection(ingredients);
     this.prepBoard = new PrepBoardSession(ingredients);
     this.patience = new CustomerPatienceSession(customer.patienceMs);
@@ -112,7 +116,7 @@ export class OrderSession {
   public toggleIngredient(ingredientId: string): void {
     this.requirePhase('ingredient-selection');
     if (ingredientId === this.order.modifierIngredientId) {
-      throw new Error('The order modifier is added after burger assembly.');
+      throw new Error('The order modifier is added after food assembly.');
     }
     this.selection.toggle(ingredientId);
     this.refreshFood();
@@ -157,7 +161,7 @@ export class OrderSession {
     this.requirePhase('assembly');
     this.refreshFood();
     if (!this.food) throw new Error('Food cannot be assembled before ingredients are selected.');
-    const result = assembleBurger(this.food, this.order.expectedIngredientOrder, this.order.baseAssembledAssetKey);
+    const result = assembleFood(this.food, this.order.expectedIngredientOrder, this.order.baseAssembledAssetKey);
     this.food = result.food;
     this.assembled = true;
     this.phase = 'modifier-selection';
@@ -174,6 +178,10 @@ export class OrderSession {
   }
 
   public serve(): void {
+    if (this.phase === 'modifier-selection' && !this.isModifierRequired() &&
+        !this.selection.includes(this.order.modifierIngredientId)) {
+      this.phase = 'assembly';
+    }
     this.requirePhase('assembly');
     if (!this.assembled) throw new Error('Assemble the burger before serving it.');
     this.lifecycle.serveOrder();
@@ -232,7 +240,7 @@ export class OrderSession {
       patience: this.patience.snapshot(),
       selectedIngredients: this.selection.getSelected(),
       preparedIngredients: this.prepBoard.getPrepared(),
-      food: this.food ? toFoodSnapshot(this.food) : null,
+      food: this.food ? { ...this.food, tags: [...this.food.tags] } : null,
       grill: this.grillSession.snapshot(),
       assembled: this.assembled,
       scores: this.scores ? { ...this.scores } : null,
@@ -241,6 +249,8 @@ export class OrderSession {
             id: transformation.id,
             resultAppearance: transformation.resultAppearance,
             appearanceAssets: [...transformation.appearanceAssets],
+            appearanceMode: transformation.appearanceMode ?? 'overlay',
+            effectAssets: [...(transformation.effectAssets ?? [])],
             reactionSequence: transformation.reactionSequence,
           }
         : null,
@@ -270,21 +280,17 @@ export class OrderSession {
       const visualAsset = this.selection.includes(this.order.modifierIngredientId)
         ? this.order.assembledAssetKey
         : this.order.baseAssembledAssetKey;
-      this.food = assembleBurger(this.food, this.order.expectedIngredientOrder, visualAsset).food;
+      this.food = assembleFood(this.food, this.order.expectedIngredientOrder, visualAsset).food;
     }
   }
 
   private isCustomerWaiting(): boolean {
-    return ['ingredient-selection', 'prep-board', 'grilling', 'assembly', 'modifier-selection']
-      .includes(this.phase);
+    return ['ingredient-selection', 'prep-board', 'grilling', 'assembly', 'modifier-selection'].includes(this.phase);
   }
+
+  private isModifierRequired(): boolean { return this.order.modifierRequired ?? true; }
 
   private requirePhase(expected: OrderPhase): void {
     if (this.phase !== expected) throw new Error(`Order is in ${this.phase}; expected ${expected}.`);
   }
-}
-
-function toFoodSnapshot(food: FoodInstance): FoodInstanceSnapshot {
-  const { tags, ...rest } = food;
-  return { ...rest, tags: [...tags] };
 }

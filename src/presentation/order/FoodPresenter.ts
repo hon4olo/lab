@@ -1,31 +1,34 @@
 import Phaser from 'phaser';
 import type { CookState } from '../../game/cooking/GrillSession';
 
-const PATTY_ASSETS: Readonly<Record<CookState, string>> = {
+const DEFAULT_COOK_ASSETS: Readonly<Record<CookState, string>> = {
   raw: 'food.burger.patty.raw',
   cooked: 'food.burger.patty.cooked',
   perfect: 'food.burger.patty.perfect',
   burned: 'food.burger.patty.burned',
 };
 
-export class BurgerPresenter {
+export class FoodPresenter {
   private readonly foodImage: Phaser.GameObjects.Image;
   private currentAsset = '';
 
-  public constructor(private readonly scene: Phaser.Scene) {
-    this.foodImage = scene.add.image(0, 0, PATTY_ASSETS.raw).setVisible(false).setDepth(11);
+  public constructor(
+    private readonly scene: Phaser.Scene,
+    private readonly cookAssetKeys: Readonly<Record<CookState, string>> = DEFAULT_COOK_ASSETS,
+  ) {
+    this.foodImage = scene.add.image(0, 0, cookAssetKeys.raw).setVisible(false).setDepth(11);
   }
 
   public layout(x: number, y: number, width: number, assembled: boolean, assembledAssetKey: string): void {
     this.foodImage.setPosition(x, y);
     this.foodImage.setVisible(true);
     if (assembled) this.setAsset(assembledAssetKey);
-    else if (!this.currentAsset) this.setAsset(PATTY_ASSETS.raw);
+    else if (!this.currentAsset) this.setAsset(this.cookAssetKeys.raw);
     this.setImageSize(width);
   }
 
   public setCookState(state: CookState): void {
-    this.setAsset(PATTY_ASSETS[state]);
+    this.setAsset(this.cookAssetKeys[state]);
   }
 
   public setAssembled(assetKey: string): void {

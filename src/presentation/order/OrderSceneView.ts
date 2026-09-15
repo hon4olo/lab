@@ -6,7 +6,7 @@ import type { CustomerDefinition } from '../../game/customers/CustomerDefinition
 import type { ShiftPhase } from '../../game/shifts/ShiftSession';
 import type { TranslationKey } from '../../localization/createTranslator';
 import { CustomerPresenter } from './CustomerPresenter';
-import { BurgerPresenter } from './BurgerPresenter';
+import { FoodPresenter } from './FoodPresenter';
 import { IngredientTrayPresenter } from './IngredientTrayPresenter';
 import { OrderHudPresenter } from './OrderHudPresenter';
 import type { OrderAction } from './orderActions';
@@ -17,7 +17,8 @@ export class OrderSceneView {
   private readonly counter: Phaser.GameObjects.Image;
   private readonly station: Phaser.GameObjects.Image;
   private readonly customer: CustomerPresenter;
-  private readonly burger: BurgerPresenter;
+  private readonly customerDefinition: CustomerDefinition;
+  private readonly food: FoodPresenter;
   private readonly tray: IngredientTrayPresenter;
   private readonly hud: OrderHudPresenter;
   private layoutState: OrderLayout;
@@ -33,6 +34,7 @@ export class OrderSceneView {
     private readonly onAction: (action: OrderAction) => void,
     private readonly reducedMotion: boolean,
   ) {
+    this.customerDefinition = customerDefinition;
     const width = scene.scale.width;
     const height = scene.scale.height;
     this.layoutState = finalizeOrderLayout(calculateOrderLayout(width, height));
@@ -43,8 +45,8 @@ export class OrderSceneView {
       const action = this.hud.getStationAction();
       if (action) this.onAction(action);
     });
-    this.customer = new CustomerPresenter(scene, customerDefinition.appearanceAssets);
-    this.burger = new BurgerPresenter(scene);
+    this.customer = new CustomerPresenter(scene, customerDefinition);
+    this.food = new FoodPresenter(scene, order.grillAssetKeys);
     this.hud = new OrderHudPresenter(scene, order, customerDefinition.displayNameKey, onAction);
     this.tray = new IngredientTrayPresenter(scene, ingredients, (ingredientId, x, y) => {
       if (this.currentPhase === 'modifier-selection' && ingredientId === this.order.modifierIngredientId) {
@@ -88,17 +90,25 @@ export class OrderSceneView {
       : snapshot.phase === 'modifier-selection' ? [this.order.modifierIngredientId] : [];
     this.tray.render(snapshot.selectedIngredients, availableIngredients, this.localize);
     this.hud.render(snapshot, coins, shiftPhase, this.localize);
-    this.customer.setMutation(snapshot.transformationResult?.appearanceAssets ?? []);
+    this.customer.setMutation(
+      snapshot.transformationResult?.appearanceAssets ?? [],
+      snapshot.transformationResult?.appearanceMode ?? 'overlay',
+    );
+    const reactionSequence = snapshot.transformationResult?.reactionSequence ??
+      (snapshot.phase === 'payment' || snapshot.phase === 'next-order-ready'
+        ? this.order.reactionSequence ?? this.customerDefinition.defaultReactionSequence ?? null
+        : null);
+    this.customer.setReaction(reactionSequence);
 
     const showFood = ['grilling', 'assembly', 'modifier-selection', 'anticipation']
       .includes(snapshot.phase);
     if (!showFood) {
-      this.burger.hide();
+      this.food.hide();
       return;
     }
 
     this.layoutFood(snapshot);
-    if (isGrilling) this.burger.setCookState(snapshot.grill.state);
+    if (isGrilling) this.food.setCookState(snapshot.grill.state);
   }
 
   public updatePatience(snapshot: OrderSnapshot): void {
@@ -122,8 +132,8 @@ export class OrderSceneView {
     return this.customer.getPosition();
   }
 
-  public assembledBurger(assetKey: string): void {
-    this.burger.setAssembled(assetKey);
+  public assembledFood(assetKey: string): void {
+    this.food.setAssembled(assetKey);
   }
 
   public isReducedMotion(): boolean {
@@ -135,7 +145,7 @@ export class OrderSceneView {
     this.counter.destroy();
     this.station.destroy();
     this.customer.destroy();
-    this.burger.destroy();
+    this.food.destroy();
     this.tray.destroy();
     this.hud.destroy();
   }
@@ -151,6 +161,6 @@ export class OrderSceneView {
       : modifierPhase ? layout.height * 0.59 : layout.stationY - layout.stationHeight * 0.08;
     const size = finalPhase ? layout.customerSize * 0.62 : layout.stationWidth * (assembled ? 0.58 : 0.38);
     const assetKey = snapshot?.food?.visualVariant ?? this.order.baseAssembledAssetKey;
-    this.burger.layout(x, y, size, assembled, assetKey);
+    this.food.layout(x, y, size, assembled, assetKey);
   }
 }

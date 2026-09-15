@@ -1,4 +1,4 @@
-import type { OrderDefinition } from '../../game/orders/OrderDefinition';
+import type { OrderActionLabel, OrderDefinition } from '../../game/orders/OrderDefinition';
 import type { OrderPhase, OrderSnapshot } from '../../game/orders/OrderSession';
 
 export type OrderAction =
@@ -16,7 +16,7 @@ export function hasOrderAction(phase: OrderPhase): boolean {
   return ['ingredient-selection', 'prep-board', 'grilling', 'assembly', 'modifier-selection'].includes(phase);
 }
 
-export function getActionLabel(snapshot: OrderSnapshot, order: OrderDefinition): string {
+export function getActionLabel(snapshot: OrderSnapshot, order: OrderDefinition): OrderActionLabel {
   switch (snapshot.phase) {
     case 'ingredient-selection': return 'action.open-prep';
     case 'prep-board':
@@ -26,7 +26,9 @@ export function getActionLabel(snapshot: OrderSnapshot, order: OrderDefinition):
         ? 'action.prepare-ingredient'
         : 'action.continue-grill';
     case 'grilling': return snapshot.grill.active ? 'action.stop-grill' : 'action.start-grill';
-    case 'modifier-selection': return 'action.add-modifier';
+    case 'modifier-selection': return order.modifierRequired === false
+      ? 'action.serve'
+      : 'action.add-modifier';
     case 'assembly': return snapshot.assembled ? 'action.serve' : 'action.assemble';
     default: return 'action.open-prep';
   }

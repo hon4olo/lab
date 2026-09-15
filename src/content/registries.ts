@@ -1,7 +1,11 @@
 import { BUSINESS_CAT } from './customers/businessCat';
+import { PICKY_PIGEON } from './customers/pickyPigeon';
 import { HOT_CHEESE_BURGER_INGREDIENTS } from './ingredients/hotCheeseBurger';
+import { CHEESY_STREET_HOT_DOG_INGREDIENTS } from './ingredients/cheesyStreetHotDog';
 import { HOT_CHEESE_BURGER } from './recipes/hotCheeseBurger';
+import { CHEESY_STREET_HOT_DOG } from './recipes/cheesyStreetHotDog';
 import { HOT_CHEESE_BURGER_EXTRA_SPICY } from './orders/hotCheeseBurgerExtraSpicy';
+import { CHEESY_STREET_HOT_DOG_ORDER } from './orders/cheesyStreetHotDog';
 import { FIRST_SHIFT } from './shifts/firstShift';
 import { FIRST_CHAPTER } from './chapters/firstChapter';
 import { TRANSFORMATIONS } from './transformations';
@@ -25,10 +29,10 @@ export interface SnackLabContentRegistries {
 }
 
 export const SNACK_LAB_CONTENT_REGISTRIES: SnackLabContentRegistries = {
-  customers: new ContentRegistry([BUSINESS_CAT]),
-  ingredients: new ContentRegistry(HOT_CHEESE_BURGER_INGREDIENTS),
-  recipes: new ContentRegistry([HOT_CHEESE_BURGER]),
-  orders: new ContentRegistry([HOT_CHEESE_BURGER_EXTRA_SPICY]),
+  customers: new ContentRegistry([BUSINESS_CAT, PICKY_PIGEON]),
+  ingredients: new ContentRegistry([...HOT_CHEESE_BURGER_INGREDIENTS, ...CHEESY_STREET_HOT_DOG_INGREDIENTS]),
+  recipes: new ContentRegistry([HOT_CHEESE_BURGER, CHEESY_STREET_HOT_DOG]),
+  orders: new ContentRegistry([HOT_CHEESE_BURGER_EXTRA_SPICY, CHEESY_STREET_HOT_DOG_ORDER]),
   shifts: new ContentRegistry([FIRST_SHIFT]),
   chapters: new ContentRegistry([FIRST_CHAPTER]),
   transformations: new ContentRegistry(TRANSFORMATIONS),

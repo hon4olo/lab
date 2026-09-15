@@ -10,13 +10,15 @@ successful build for an actual browser check.
 
 ```bash
 npm run typecheck
+npm run validate:assets
 npm test
 npm run build
 npm run test:browser
 ```
 
-`npm run check` runs typecheck, unit tests, and production build. Browser/visual/performance checks
-remain explicit because they require a running server and viewport/device context.
+`npm run check` runs typecheck, manifest/PNG validation, unit tests, and the production build.
+Browser/visual/performance checks remain explicit because they require a running server and
+viewport/device context.
 
 ## Domain tests
 
@@ -34,14 +36,19 @@ ingredients, deterministic Flaming Business Cat resolution, ORDER/COOK/CHAOS sco
 stable production asset references. Campaign/save tests cover V1 → V2 migration, valid save loading,
 corrupt-save fallback, staging/backup recovery, safe active-order restart, completed-shift restore,
 first discovery idempotency, duplicate settlement prevention, wallet persistence, and replay. Content
-registry tests cover duplicate IDs, broken references, recipe/order mismatches, prep requirements,
-customer compatibility, and unapproved assets. Patience tests cover expiry, pause/resume, and
-continuing an order after the timer reaches zero.
+registry tests cover duplicate IDs, broken references, recipe/order mismatches, hot-dog grill
+configuration, prep requirements, customer compatibility, and unapproved assets. Patience tests
+cover expiry, pause/resume, and continuing an order after the timer reaches zero. Batch 02 domain
+tests cover Picky Pigeon registry resolution, hot-dog raw/cooked/perfect/burned states, Glow Sauce
+tags, normal versus Neon transformation payments, and two-order sequencing.
+
+`npm run validate:assets` decodes every manifest PNG, checks unique IDs/paths, exact dimensions,
+readability, required alpha channels, transparent pixels, and transparent image borders.
 
 ## Browser checks
 
-The automated Playwright smoke suite runs the complete authored order in Chromium at all required
-viewports:
+The automated Playwright smoke suite runs the complete two-order authored shift in Chromium at all
+required viewports:
 
 | Profile | Viewport | Purpose |
 |---|---:|---|
@@ -50,14 +57,15 @@ viewports:
 | 720p desktop | 1280×720 | desktop composition |
 | Large desktop | 1440×900 | wider desktop composition |
 
-At each viewport it uses real pointer clicks to select ingredients, prepare the patty, stop a
-perfect-state patty, assemble the burger, add Extra Spicy, serve, wait through
-transformation/payment, reload the completed shift, and replay it. It asserts ORDER 100 and CHAOS
-140, a non-burned perfect cook state, one unique payment per run, balance equal to the persisted
-payment result after reload, first-time transformation discovery, localized shift completion, no
-failed asset requests, HTTP errors, page errors, console errors, document overflow, or repeated
-first-load asset requests. Replay must not request textures again. The deterministic domain test
-asserts the exact ideal-stop result ORDER 100 / COOK 100 / CHAOS 140 = 55 coins.
+At each viewport it uses real pointer clicks to select ingredients, prepare both grill ingredients,
+stop perfect-state patty and sausage, assemble the burger and hot dog, exercise Glow Sauce → Neon
+Pigeon, reload the completed shift, and replay it without Glow Sauce. It asserts both order paths,
+the Picky Pigeon base and Neon outcomes, one unique payment per order/run, persistent
+wallet/discoveries, localized shift completion, no failed asset requests, HTTP errors, page errors,
+console errors, document overflow, or repeated first-load asset requests. Domain coverage asserts
+the unchanged Business Cat ORDER 100 / COOK 100 / CHAOS 140 = 55 baseline. A dedicated
+development-only browser check opens Asset QA and confirms all approved Batch 01+02 assets load on
+dark/light previews with no loader failures. Replay must not request textures again.
 
 Pointer/touch equivalence, resize/orientation without reload, audio unlock, keyboard behavior, and
 visual screenshot review remain separate follow-up checks.
@@ -121,13 +129,15 @@ reason. A claim appears only if the check actually ran.
 
 ## First-session baseline — 2026-09-15
 
-- `npm run check`: passed typecheck, 43 domain/content tests across 10 files, production build, and
-  the production-bundle DEV-tooling guard.
-- `npm run test:browser`: passed 4/4 complete order → Flaming reaction → payment → reload → replay
-  runs at 360×640, 844×390, 1280×720, and 1440×900. No failed requests, HTTP errors, uncaught page
-  errors, console errors, or document overflow were observed.
-- Production JavaScript: 1,458,061 bytes (1,458.06 kB); Vite reports 381.16 kB gzip. It remains a
+- `npm run check`: passed typecheck, manifest/PNG validation, 49 domain/content tests across 11
+  files, production build, and the production-bundle DEV-tooling guard.
+- `npm run test:browser`: passed the dedicated Batch 02 Asset QA check plus the complete two-order
+  shift at 360×640, 844×390, 1280×720, and 1440×900. The suite covered Flaming and Neon
+  transformations, the no-Glow replay path, reload persistence, and one-time payments. No failed
+  requests, HTTP errors, uncaught page errors, console errors, or document overflow were observed.
+- Production JavaScript: 1,470,463 bytes (1,470.46 kB); Vite reports 383.82 kB gzip. It remains a
   single chunk above Vite's 500 kB warning threshold.
-- First-session preload requests all 38 production-approved PNGs: 6,292,360 bytes total on disk
-  (6.00 MiB), plus the manifest. The browser suite observed 39 unique asset/manifest requests on
-  first load, no duplicate texture requests, and no new asset requests during replay.
+- First-session preload requests all 62 production-approved PNGs: 9,454,051 bytes total on disk
+  (9.02 MiB), including 3,161,691 bytes (3.02 MiB) from Batch 02, plus the manifest. The browser
+  suite observes 63 unique asset/manifest requests on first load, each once; replay adds no new
+  texture/network requests.

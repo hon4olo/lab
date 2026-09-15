@@ -154,11 +154,12 @@ export class OrderHudPresenter {
     this.title.setVisible(showOrder).setText(localize(this.order.displayNameKey as TranslationKey));
     this.modifier.setVisible(showOrder).setText(localize(this.order.modifierKey as TranslationKey));
     this.instruction.setVisible(showOrder);
-    this.instruction.setText(localize(
-      snapshot.phase === 'payment' && snapshot.transformationResult
-        ? 'reaction.flaming'
-        : `order.phase.${snapshot.phase}` as TranslationKey,
-    ));
+    const phaseInstruction = snapshot.phase === 'payment'
+      ? snapshot.transformationResult?.reactionSequence ?? this.order.reactionSequence ?? 'order.phase.payment'
+      : snapshot.phase === 'modifier-selection' && this.order.modifierRequired === false
+        ? 'order.phase.modifier-selection.optional'
+        : this.order.instructionKeys?.[snapshot.phase] ?? `order.phase.${snapshot.phase}`;
+    this.instruction.setText(localize(phaseInstruction as TranslationKey));
     this.nextOrderText.setVisible(snapshot.phase === 'next-order-ready')
       .setText(localize(shiftPhase === 'completed' ? 'shift.completed' : 'order.phase.next-order-ready'));
     this.coinValue.setText(String(coins));
@@ -170,7 +171,8 @@ export class OrderHudPresenter {
     this.actionButton.setVisible(showAction);
     this.actionLabel.setVisible(showAction);
     const actionKey = getActionLabel(snapshot, this.order);
-    const actionText = localize(actionKey as TranslationKey);
+    const displayedActionKey = this.order.actionLabelKeys?.[actionKey] ?? actionKey;
+    const actionText = localize(displayedActionKey as TranslationKey);
     this.actionLabel.setText(canReplay
       ? localize('action.replay-shift')
       : actionKey === 'action.add-modifier'

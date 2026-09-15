@@ -128,13 +128,14 @@ export class CampaignSession {
     if (!order || !slot || order.phase !== 'next-order-ready' || !order.payment) {
       throw new Error('The active order is not ready to settle.');
     }
-    this.activeOrderResults.push({
+    const settledResult: SavedOrderResult = {
       slotId: slot.id,
       customerId: slot.customerId,
       orderId: slot.orderId,
       snapshot: structuredClone(order),
-    });
+    };
     shift.completeActiveOrder();
+    this.activeOrderResults.push(settledResult);
     this.activeShiftSnapshot = shift.shiftSnapshot;
     if (this.activeShiftSnapshot.phase === 'completed') {
       this.completedShiftIds.add(this.activeShiftSnapshot.shiftId);

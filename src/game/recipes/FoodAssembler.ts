@@ -5,7 +5,7 @@ export interface AssemblyResult {
   readonly orderedLayers: readonly string[];
 }
 
-export function assembleBurger(
+export function assembleFood(
   food: FoodInstance,
   expectedIngredientOrder: readonly string[],
   assembledAssetKey: string,

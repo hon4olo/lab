@@ -1,11 +1,11 @@
-# First playable order
+# First playable shift
 
 ## Scope
 
-The first authored shift contains one order: Business Cat asks for a Hot Cheese Burger — Extra
-Spicy. After payment and customer exit, the localized shift-complete result appears with a replay
-action. Replaying the same shift keeps the wallet, unlocks, and discovery history and creates a new
-transaction identity for the new run.
+The first authored shift contains two orders: Business Cat asks for a Hot Cheese Burger — Extra
+Spicy, then Picky Pigeon asks for a Cheesy Street Hot Dog. After both payments and customer exits,
+the localized shift-complete result appears with a replay action. Replaying the same shift keeps the
+wallet, unlocks, and discovery history and creates new transaction identities for the new run.
 
 The content is data-driven through typed registries in `src/content/registries.ts`, with authored
 customer, ingredient, recipe, order, shift, chapter, and transformation definitions. Startup
@@ -22,7 +22,7 @@ customer-entering → ingredient-selection → prep-board → grilling → assem
 ```
 
 `OrderSession` is renderer-free authoritative order state. It composes ingredient selection, Prep
-Board state, `GrillSession`, the burger assembler, customer lifecycle, scoring, payment transaction
+Board state, `GrillSession`, the shared food assembler, customer lifecycle, scoring, payment transaction
 creation, and the transformation resolver. It does not own or increment the player's coins.
 `EconomySession` owns the runtime wallet and applies an identified payment transaction at most once.
 `ShiftSession` tracks the authored sequence, active order index, completed order slots, earnings, and
@@ -32,12 +32,13 @@ wallet snapshot, unlock context, completed runs, and discovered transformations.
 coordinates actions and presentation. Phaser owns pointer events, elapsed-frame input to the grill,
 sprites, tweens, and effect playback; no Phaser object is stored in domain state.
 
-Players first select the five base ingredients: bottom bun, patty, cheese, sauce, and top bun. They
-prepare the patty on the Prep Board, grill it, and stop the grill before it burns. The assembled
-base burger is shown before the player adds the requested Extra Spicy modifier. Adding the chili
-updates the FoodInstance tags, Chaos, ingredient order, and finished-burger asset. The grill exposes
-the same large tap target as its start/stop button; the order can be served after the modifier is
-added.
+Players first select the five base burger ingredients: bottom bun, patty, cheese, sauce, and top
+bun. They prepare the patty on the Prep Board, grill it, and stop the grill before it burns. The
+assembled base burger is shown before the player adds the requested Extra Spicy modifier. Adding
+the chili updates the FoodInstance tags, Chaos, ingredient order, and finished-burger asset. Picky
+Pigeon then selects bun, sausage, cheese, pickle, and mustard, prepares and grills the sausage, and
+may optionally add Glow Sauce before serving. Both orders use the same Prep Board and Grill seams;
+their timing curves and asset mappings are authored content.
 
 ## Cooking
 
@@ -54,15 +55,20 @@ Stopping records the cook state, elapsed processing time, heat quality, and gril
 `FoodInstance`. Leaving the patty on the grill crosses deterministically into `burned`. The exact
 ideal stop at 3600 ms produces quality 100; tests exercise that deterministic domain boundary.
 
+The hot-dog sausage uses its authored curve: cooked at 1000 ms, perfect at 2200 ms, ideal stop at
+3200 ms, and burned at 5200 ms. Both recipes still resolve through the shared raw → cooked → perfect
+→ burned state machine and record the result on `FoodInstance`.
+
 ## Customer patience and persistence
 
 Each customer instance receives `basePatienceMs` from content. `CustomerPatienceSession` pauses while
 the page is hidden and resumes from its prior remaining time. It clamps to zero but never rejects an
 order or forces the customer to leave; the player can finish after patience expires.
 
-The first Flaming Business Cat result is recorded as a discovery in the campaign save. Repeated
-reactions and shift replays retain the discovery without adding it again. The local versioned save
-keeps applied payment IDs and run IDs; a duplicate transaction cannot credit the wallet twice.
+The first Flaming Business Cat and Neon Pigeon results are recorded as discoveries in the campaign
+save. Repeated reactions and shift replays retain each discovery without adding it again. The local
+versioned save keeps applied payment IDs and run IDs; a duplicate transaction cannot credit the
+wallet twice.
 Reloading during an unsettled order restores the active shift at that order's entry using the same
 run identity. Selection, prep, and grill work from that unsettled order restart; previously settled
 order results and coins are retained.
@@ -79,6 +85,13 @@ branch on a customer/recipe pair.
 The appearance keeps the neutral Business Cat stack and adds its manifest-defined fire accents,
 glow eyes, and singed tie. The presentation plays an anticipation beat, transformation flash/fire
 burst (suppressed under reduced motion), then coin sparkle and customer exit.
+
+Glow Sauce is optional on the Picky Pigeon order. It contributes `GLOW` and `ELECTRIC` plus 100
+Chaos; with the correct base hot dog this reaches CHAOS 100 and resolves the authored
+`transformation.picky-pigeon.neon` definition (minimum Chaos 80, compatible with `picky-pigeon`).
+Without Glow Sauce the normal skeptical reaction and base hot-dog payment are used and no
+transformation is eligible. Neon Pigeon uses its full authored appearance and electric-sparks/neon-
+burst effects.
 
 ## Scoring and payment
 
@@ -98,6 +111,11 @@ burst (suppressed under reduced motion), then coin sparkle and customer exit.
 
 For a fully correct order, a 100 COOK, and the 140 CHAOS result produced by the prepared chili, the
 payment is 55 coins: 24 base, 9 quality, 3 Chaos, 9 transformation, and 10 tip.
+
+The fully correct base Cheesy Street Hot Dog pays 36 coins (20 base, 8 quality, 0 Chaos, 0
+transformation, and 8 tip). With Glow Sauce and Neon Pigeon, the same 100/100/100 result pays 49
+coins after the authored 1.35 transformation modifier (20 base, 8 quality, 2 Chaos, 11
+transformation, and 8 tip).
 
 ## Localization and diagnostics
 

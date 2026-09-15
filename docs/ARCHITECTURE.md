@@ -97,10 +97,10 @@ extra engine-specific mirror tree.
   configuration, and the external `EconomySession`. The scene coordinates the sequence and focused
   Phaser presenters; it does not construct authored customer values or own gameplay rules.
 
-The initial production slice is documented in `GAMEPLAY.md`. The current authored shift includes
-one Business Cat order and finishes after it. `ShiftController` already sequences order sessions
-from content, so a later order can be added to the shift definition without putting order rules in
-the scene.
+The initial production slice is documented in `GAMEPLAY.md`. The current authored first shift
+contains two authored order slots (Business Cat and Picky Pigeon) and finishes after both. Each
+slot is resolved through the same controller/content boundary, so a later order can be added to a
+shift definition without putting customer or recipe rules in the scene.
 
 Both DOM and canvas fill the available safe viewport. Portrait and landscape/desktop select
 different layout compositions through CSS/container sizing, not a stretched fixed screenshot.
@@ -124,18 +124,21 @@ history, quality, tags, Chaos score, mistakes, and visual variant. Definitions a
 instances hold runtime state.
 
 The first `OrderSession` composes focused domain systems for ingredient selection, prep, grilling,
-burger assembly, scoring, payment transaction creation, and customer lifecycle. It never owns player
-coins. `EconomySession` applies payment transactions once, owns the runtime wallet balance, and
-exposes a plain snapshot suitable for the save boundary. `ShiftSession` owns the authored order
-sequence, active index, completed slots, phase, and shift earnings; `ShiftController` coordinates
-those systems and creates the next order session from content. `OrderSnapshot` is a cloned,
-renderer-free view of one order.
+assembly, scoring, payment transaction creation, and customer lifecycle. It never owns player coins.
+`EconomySession` applies payment transactions once, owns the runtime wallet balance, and exposes a
+plain snapshot suitable for the save boundary. `ShiftSession` owns the authored order sequence,
+active index, completed slots, phase, and shift earnings; `ShiftController` coordinates those
+systems and creates the next order session from content. `OrderSnapshot` is a cloned,
+renderer-free view of one order. Grill timing and state artwork are authored on recipe/order data,
+so the same grill session supports the burger patty and hot-dog sausage without a recipe-specific
+branch.
 
 `CustomerDefinition` content stores authored customer type, variant, `basePatienceMs`, display key,
-and appearance asset IDs. `CustomerPatienceSession` is a reusable plain-TypeScript timer: it pauses
-with platform visibility, resumes without charging hidden time, and clamps at zero without ending
-or failing an order. The Phaser presenter displays its current ratio. The first shift is authored in
-`src/content/shifts/firstShift.ts` and currently has exactly one Business Cat order.
+appearance asset IDs, and optional reaction head swaps. `CustomerPatienceSession` is a reusable
+plain-TypeScript timer: it pauses with platform visibility, resumes without charging hidden time,
+and clamps at zero without ending or failing an order. The Phaser presenter displays its current
+ratio. The first shift is authored in `src/content/shifts/firstShift.ts` and contains exactly the
+Business Cat burger slot followed by the Picky Pigeon hot-dog slot.
 
 ## Data-driven transformations
 
@@ -148,8 +151,10 @@ later approved, receives an injected seeded RNG so named scenarios and replays s
 Shared scoring and payment tuning lives in typed `src/game/balance/BalanceConfig.ts`. Sessions
 receive that configuration as data instead of embedding tuning constants in score and payment code.
 
-Definitions carry appearance and reaction sequence IDs. The resolver never creates art and never
-switches on individual transformation names.
+Definitions carry appearance, reaction sequence, and optional effect asset IDs. The resolver never
+creates art and never switches on individual transformation names. The first two authored results
+are Flaming Business Cat (HOT + FIRE, Chaos ≥ 60) and Neon Pigeon (GLOW + ELECTRIC, Chaos ≥ 80,
+Picky Pigeon).
 
 ## Cooking stations and input
 
@@ -178,7 +183,8 @@ shake affect visual roots only, never interaction geometry or domain positions.
 
 Stable manifest IDs are the public asset API. Content references `assetKey`; it never builds paths.
 The first-session preload currently loads all production-approved manifest entries once and retains
-them for the application lifetime. Chapter-scoped lazy loading and release are not implemented yet.
+them for the application lifetime. Batch 02 adds the Picky Pigeon, hot-dog, and neon effect families;
+chapter-scoped lazy loading and release are not implemented yet.
 Related sprites are atlased only after measurement and visual QA. See `ASSET_PIPELINE.md` and
 `public/assets/manifest.json`.
 

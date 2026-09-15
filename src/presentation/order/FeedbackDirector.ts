@@ -30,10 +30,12 @@ export class FeedbackDirector {
     });
   }
 
-  public transformation(x: number, y: number): void {
+  public transformation(x: number, y: number, effectAssets: readonly string[] = ['fx.fire-burst']): void {
     if (this.reducedMotion) {
-      const fire = this.spawn('fx.fire-burst', x, y, 0.42, 14, 130);
-      this.scene.time.delayedCall(260, () => fire.destroy());
+      for (const assetKey of effectAssets) {
+        const effect = this.spawn(assetKey, x, y, 0.42, 14, 130);
+        this.scene.time.delayedCall(260, () => effect.destroy());
+      }
       return;
     }
 
@@ -46,15 +48,18 @@ export class FeedbackDirector {
       onComplete: () => flash.destroy(),
     });
 
-    const fire = this.spawn('fx.fire-burst', x, y, 0.92, 14, 190);
-    this.scene.tweens.add({
-      targets: fire,
-      scale: 1.5,
-      alpha: 0,
-      duration: 640,
-      ease: 'Cubic.Out',
-      onComplete: () => fire.destroy(),
-    });
+    for (const [index, assetKey] of effectAssets.entries()) {
+      const effect = this.spawn(assetKey, x, y, 0.92, 14, index === 0 ? 190 : 150);
+      this.scene.tweens.add({
+        targets: effect,
+        scale: index === 0 ? 1.5 : 1.35,
+        alpha: 0,
+        duration: 640,
+        delay: index * 40,
+        ease: 'Cubic.Out',
+        onComplete: () => effect.destroy(),
+      });
+    }
   }
 
   public payment(x: number, y: number): void {

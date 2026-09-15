@@ -14,6 +14,8 @@ export interface TransformationDefinition {
   readonly compatibleCustomerTypes: readonly string[];
   readonly resultAppearance: string;
   readonly appearanceAssets: readonly string[];
+  readonly appearanceMode?: 'overlay' | 'full';
+  readonly effectAssets?: readonly string[];
   readonly reactionSequence: string;
   readonly rewardModifier: number;
   readonly requiredUnlocks: readonly string[];

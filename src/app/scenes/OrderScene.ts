@@ -145,11 +145,11 @@ export class OrderScene extends Phaser.Scene {
         break;
       case 'assemble':
         session.assemble();
-        this.view.assembledBurger(this.order.baseAssembledAssetKey);
+        this.view.assembledFood(this.order.baseAssembledAssetKey);
         break;
       case 'add-modifier':
         session.addModifier(action.ingredientId);
-        this.view.assembledBurger(this.order.assembledAssetKey);
+        this.view.assembledFood(this.order.assembledAssetKey);
         this.feedback.ingredientSelected(this.scale.width * 0.5, this.scale.height * 0.72);
         break;
       case 'serve':
@@ -182,7 +182,9 @@ export class OrderScene extends Phaser.Scene {
     await this.flushSave();
     this.renderCurrentOrder();
     const customer = this.view.customerPosition();
-    if (snapshot.transformationResult) this.feedback.transformation(customer.x, customer.y);
+    if (snapshot.transformationResult) {
+      this.feedback.transformation(customer.x, customer.y, snapshot.transformationResult.effectAssets ?? []);
+    }
     this.feedback.payment(customer.x, customer.y + 28);
     this.time.delayedCall(this.reducedMotion ? 500 : 1250, () => this.beginCustomerExit());
   }

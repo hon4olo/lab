@@ -5,4 +5,7 @@ export interface CustomerDefinition {
   readonly displayNameKey: string;
   readonly basePatienceMs: number;
   readonly appearanceAssets: readonly string[];
+  readonly headAssetId?: string;
+  readonly reactionAssets?: Readonly<Record<string, string>>;
+  readonly defaultReactionSequence?: string;
 }

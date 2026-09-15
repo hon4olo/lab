@@ -94,6 +94,10 @@ Allowed statuses: `planned`, `seed-review`, `source-approved`, `normalized`, `in
 The manifest contains batch plans and import records. The runtime shell loads only
 `production-approved` entries, so unreviewed source art is not presented as gameplay art.
 
+Batch 02 is recorded in `ASSET_BATCH_02.md`. Its 24 Picky Pigeon, hot-dog, and neon-effect PNGs
+were imported at their manifest-defined paths after contact-sheet and in-engine dark/light review;
+the archive QA sheets and notes remain outside the runtime asset tree.
+
 ## Generation and normalization
 
 When a new player-visible asset is in scope, use the project `create-game-assets` workflow and an

@@ -15,7 +15,14 @@ export interface GrillSnapshot {
   readonly result: GrillResult | null;
 }
 
-export const GRILL_TIMING = {
+export interface GrillTiming {
+  readonly cookedAtMs: number;
+  readonly perfectAtMs: number;
+  readonly burnedAtMs: number;
+  readonly idealStopAtMs: number;
+}
+
+export const GRILL_TIMING: GrillTiming = {
   cookedAtMs: 1200,
   perfectAtMs: 2500,
   burnedAtMs: 6000,
@@ -27,6 +34,10 @@ export class GrillSession {
   private ingredientId: string | null = null;
   private elapsedMs = 0;
   private result: GrillResult | null = null;
+
+  public constructor(private readonly timing: GrillTiming = GRILL_TIMING) {
+    validateTiming(timing);
+  }
 
   public start(ingredientId: string): void {
     if (this.active) throw new Error('The grill is already running.');
@@ -44,38 +55,47 @@ export class GrillSession {
   public stop(): GrillResult {
     if (!this.active || !this.ingredientId) throw new Error('The grill is not running.');
     this.active = false;
-    const state = stateAt(this.elapsedMs);
+    const state = stateAt(this.elapsedMs, this.timing);
     this.result = {
       ingredientId: this.ingredientId,
       state,
       elapsedMs: this.elapsedMs,
-      quality: qualityAt(this.elapsedMs, state),
+      quality: qualityAt(this.elapsedMs, state, this.timing),
     };
     return this.result;
   }
 
   public snapshot(): GrillSnapshot {
-    const state = stateAt(this.elapsedMs);
+    const state = stateAt(this.elapsedMs, this.timing);
     return {
       active: this.active,
       elapsedMs: this.elapsedMs,
       state,
-      progress: Math.min(1, this.elapsedMs / GRILL_TIMING.burnedAtMs),
+      progress: Math.min(1, this.elapsedMs / this.timing.burnedAtMs),
       result: this.result ? { ...this.result } : null,
     };
   }
 }
 
-function stateAt(elapsedMs: number): CookState {
-  if (elapsedMs >= GRILL_TIMING.burnedAtMs) return 'burned';
-  if (elapsedMs >= GRILL_TIMING.perfectAtMs) return 'perfect';
-  if (elapsedMs >= GRILL_TIMING.cookedAtMs) return 'cooked';
+function stateAt(elapsedMs: number, timing: GrillTiming): CookState {
+  if (elapsedMs >= timing.burnedAtMs) return 'burned';
+  if (elapsedMs >= timing.perfectAtMs) return 'perfect';
+  if (elapsedMs >= timing.cookedAtMs) return 'cooked';
   return 'raw';
 }
 
-function qualityAt(elapsedMs: number, state: CookState): number {
+function qualityAt(elapsedMs: number, state: CookState, timing: GrillTiming): number {
   if (state === 'burned') return 0;
   if (state === 'raw') return 25;
   if (state === 'cooked') return 60;
-  return Math.max(60, Math.round(100 - Math.abs(elapsedMs - GRILL_TIMING.idealStopAtMs) * 0.025));
+  return Math.max(60, Math.round(100 - Math.abs(elapsedMs - timing.idealStopAtMs) * 0.025));
+}
+
+function validateTiming(timing: GrillTiming): void {
+  const values = [timing.cookedAtMs, timing.perfectAtMs, timing.burnedAtMs, timing.idealStopAtMs];
+  if (!values.every((value) => Number.isFinite(value) && value >= 0) ||
+      timing.cookedAtMs >= timing.perfectAtMs || timing.perfectAtMs >= timing.burnedAtMs ||
+      timing.idealStopAtMs < timing.perfectAtMs || timing.idealStopAtMs >= timing.burnedAtMs) {
+    throw new Error('Grill timing must progress raw → cooked → perfect → burned with a valid ideal stop.');
+  }
 }

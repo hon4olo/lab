@@ -11,6 +11,7 @@ import type { PaymentTransaction } from '../../src/game/economy/PaymentTransacti
 import { createProgressionContext } from '../../src/game/progression/ProgressionContext';
 import { ShiftController } from '../../src/game/shifts/ShiftController';
 import { ShiftSession } from '../../src/game/shifts/ShiftSession';
+import type { ShiftDefinition } from '../../src/game/shifts/ShiftDefinition';
 
 describe('shift and economy boundaries', () => {
   it('applies order payment to external economy and completes a one-order shift', () => {
@@ -76,8 +77,12 @@ describe('shift and economy boundaries', () => {
 });
 
 function createFirstShift(economy: EconomySession): ShiftController {
+  const oneOrderShift: ShiftDefinition = {
+    ...FIRST_SHIFT,
+    orderSequence: [FIRST_SHIFT.orderSequence[0]!],
+  };
   return new ShiftController({
-    definition: FIRST_SHIFT,
+    definition: oneOrderShift,
     orders: new Map([[HOT_CHEESE_BURGER_EXTRA_SPICY.id, {
       definition: HOT_CHEESE_BURGER_EXTRA_SPICY,
       ingredients: HOT_CHEESE_BURGER_INGREDIENTS,

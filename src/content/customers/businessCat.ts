@@ -6,6 +6,7 @@ export const BUSINESS_CAT: CustomerDefinition = {
   variantId: 'customer.business-cat.neutral',
   displayNameKey: 'order.customer',
   basePatienceMs: 120_000,
+  headAssetId: 'customer.business-cat.head',
   appearanceAssets: [
     'customer.business-cat.body',
     'customer.business-cat.head',

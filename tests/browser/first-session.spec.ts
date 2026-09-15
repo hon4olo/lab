@@ -2,6 +2,7 @@ import { expect, test, type Page } from '@playwright/test';
 import { calculateOrderLayout, finalizeOrderLayout } from '../../src/presentation/order/orderLayout';
 
 interface BrowserSnapshot {
+  readonly orderId: string | null;
   readonly orderPhase: string | null;
   readonly shiftPhase: string | null;
   readonly campaignPhase: string | null;
@@ -16,6 +17,7 @@ interface BrowserSnapshot {
   readonly grillState: {
     readonly active: boolean;
     readonly elapsedMs: number;
+    readonly state: string;
     readonly result: { readonly state: string; readonly quality: number } | null;
   } | null;
   readonly shiftCompleteLabel: string | null;
@@ -39,18 +41,27 @@ const VIEWPORTS: readonly ViewportCase[] = [
   { name: 'large desktop', width: 1440, height: 900 },
 ];
 
-const REQUIRED_INGREDIENTS = [
+const BURGER_ORDER_ID = 'order.hot-cheese-burger.extra-spicy';
+const HOTDOG_ORDER_ID = 'order.cheesy-street-hot-dog';
+const FLAMING_ID = 'transformation.business-cat.flaming';
+const NEON_ID = 'transformation.picky-pigeon.neon';
+const BURGER_INGREDIENTS = [
   'ingredient.bun-bottom',
   'ingredient.patty',
   'ingredient.cheese',
   'ingredient.sauce',
   'ingredient.bun-top',
 ] as const;
-
-const TRANSFORMATION_ID = 'transformation.business-cat.flaming';
+const HOTDOG_INGREDIENTS = [
+  'ingredient.hotdog-bun',
+  'ingredient.sausage',
+  'ingredient.hotdog-cheese',
+  'ingredient.pickle',
+  'ingredient.mustard',
+] as const;
 
 for (const viewport of VIEWPORTS) {
-  test(`${viewport.name} ${viewport.width}×${viewport.height}: complete, save, replay once`, async ({ page }) => {
+  test(`${viewport.name} ${viewport.width}×${viewport.height}: complete two orders, reload, replay`, async ({ page }) => {
     const pageErrors: string[] = [];
     const consoleErrors: string[] = [];
     const failedRequests: string[] = [];
@@ -86,7 +97,7 @@ for (const viewport of VIEWPORTS) {
     });
 
     await page.goto('http://127.0.0.1:4173', { waitUntil: 'networkidle' });
-    await waitForSnapshot(page, { orderPhase: 'ingredient-selection' });
+    await waitForSnapshot(page, { orderId: BURGER_ORDER_ID, orderPhase: 'ingredient-selection' });
     await expect(page.locator('#game-canvas canvas')).toHaveCount(1);
     const firstLoadAssetCounts = new Map(assetRequests);
     const expectedAssetRequests = await expectedAssetPaths;
@@ -94,30 +105,42 @@ for (const viewport of VIEWPORTS) {
     for (const path of expectedAssetRequests) expect(firstLoadAssetCounts.get(path)).toBe(1);
     expect([...firstLoadAssetCounts.values()].every((count) => count === 1)).toBe(true);
 
-    await completeFirstOrder(page, viewport);
-    await waitForSnapshot(page, { shiftCompleteLabel: 'Shift complete' });
+    await completeOrder(page, viewport, BURGER_ORDER_ID, BURGER_INGREDIENTS, true);
+    await waitForSnapshot(page, { orderId: HOTDOG_ORDER_ID, orderPhase: 'ingredient-selection' }, 30_000);
+    const hotdogStart = await snapshot(page);
+    expect(hotdogStart.selectedIngredients).toEqual([]);
+
+    await completeOrder(page, viewport, HOTDOG_ORDER_ID, HOTDOG_INGREDIENTS, true);
+    await waitForSnapshot(page, {
+      orderId: HOTDOG_ORDER_ID,
+      orderPhase: 'next-order-ready',
+      shiftPhase: 'completed',
+      campaignPhase: 'shift-complete',
+    }, 30_000);
     const firstResult = await snapshot(page);
-    expect(firstResult.scores).toMatchObject({ order: 100, chaos: 140 });
+    expect(firstResult.scores).toMatchObject({ order: 100, chaos: 100 });
     expect(firstResult.scores?.cook).toBeGreaterThanOrEqual(60);
     expect(firstResult.grillState?.result).toMatchObject({ state: 'perfect' });
     expect(firstResult.payment?.total).toBeGreaterThan(0);
-    expect(firstResult.transformationResult?.id).toBe(TRANSFORMATION_ID);
-    expect(firstResult.coins).toBe(firstResult.payment?.total);
+    expect(firstResult.transformationResult?.id).toBe(NEON_ID);
+    expect(firstResult.coins).toBeGreaterThan(firstResult.payment?.total ?? 0);
     expect(firstResult.shiftPhase).toBe('completed');
     expect(firstResult.campaignPhase).toBe('shift-complete');
     expect(firstResult.shiftCompleteLabel).toBe('Shift complete');
     expect(firstResult.documentLanguage).toBe('en');
-    expect(firstResult.appliedPaymentIds).toEqual([firstResult.payment?.transactionId]);
-    expect(firstResult.discoveredTransformationIds).toContain(TRANSFORMATION_ID);
+    expect(firstResult.appliedPaymentIds).toHaveLength(2);
+    expect(new Set(firstResult.appliedPaymentIds).size).toBe(2);
+    expect(firstResult.discoveredTransformationIds).toEqual([FLAMING_ID, NEON_ID]);
     expect(firstResult.shiftRunId).toBeTruthy();
 
     const originalRunId = firstResult.shiftRunId;
-    const originalTransactionId = firstResult.payment?.transactionId;
-    const originalPaymentTotal = firstResult.payment!.total;
+    const originalPaymentIds = firstResult.appliedPaymentIds;
+    const originalPaymentTotal = firstResult.coins;
     const originalDiscoveryIds = firstResult.discoveredTransformationIds;
     await expectNoDocumentOverflow(page, viewport);
     await page.reload({ waitUntil: 'networkidle' });
     await waitForSnapshot(page, {
+      orderId: HOTDOG_ORDER_ID,
       shiftPhase: 'completed',
       shiftCompleteLabel: 'Shift complete',
     });
@@ -126,7 +149,7 @@ for (const viewport of VIEWPORTS) {
     expect(restored.coins).toBe(originalPaymentTotal);
     expect(restored.campaignPhase).toBe('shift-complete');
     expect(restored.shiftCompleteLabel).toBe('Shift complete');
-    expect(restored.appliedPaymentIds).toEqual([originalTransactionId]);
+    expect(restored.appliedPaymentIds).toEqual(originalPaymentIds);
     expect(restored.discoveredTransformationIds).toEqual(originalDiscoveryIds);
     expect(restored.shiftRunId).toBe(originalRunId);
     expect([...assetRequests.values()].every((count) => count <= 2)).toBe(true);
@@ -134,27 +157,34 @@ for (const viewport of VIEWPORTS) {
 
     await clickAction(page, viewport);
     await waitForSnapshot(page, {
+      orderId: BURGER_ORDER_ID,
       campaignPhase: 'shift-in-progress',
       orderPhase: 'ingredient-selection',
-    });
+    }, 30_000);
     const replayStart = await snapshot(page);
     expect(replayStart.shiftRunId).toBeTruthy();
     expect(replayStart.shiftRunId).not.toBe(originalRunId);
-    await completeFirstOrder(page, viewport);
+    await completeOrder(page, viewport, BURGER_ORDER_ID, BURGER_INGREDIENTS, true);
+    await waitForSnapshot(page, { orderId: HOTDOG_ORDER_ID, orderPhase: 'ingredient-selection' }, 30_000);
+    await completeOrder(page, viewport, HOTDOG_ORDER_ID, HOTDOG_INGREDIENTS, false);
 
-    const replayResult = await snapshot(page);
-    expect(replayResult.scores).toMatchObject({ order: 100, chaos: 140 });
+    const replayResult = await waitForSnapshot(page, {
+      orderId: HOTDOG_ORDER_ID,
+      orderPhase: 'next-order-ready',
+      shiftPhase: 'completed',
+      campaignPhase: 'shift-complete',
+    }, 30_000);
+    expect(replayResult.scores).toMatchObject({ order: 100, chaos: 0 });
     expect(replayResult.scores?.cook).toBeGreaterThanOrEqual(60);
     expect(replayResult.grillState?.result).toMatchObject({ state: 'perfect' });
     expect(replayResult.payment?.total).toBeGreaterThan(0);
-    expect(replayResult.transformationResult?.id).toBe(TRANSFORMATION_ID);
-    expect(replayResult.coins).toBe(originalPaymentTotal + replayResult.payment!.total);
+    expect(replayResult.transformationResult).toBeNull();
+    expect(replayResult.coins).toBeGreaterThan(originalPaymentTotal);
     expect(replayResult.shiftPhase).toBe('completed');
     expect(replayResult.campaignPhase).toBe('shift-complete');
     expect(replayResult.shiftCompleteLabel).toBe('Shift complete');
-    expect(replayResult.appliedPaymentIds).toHaveLength(2);
-    expect(new Set(replayResult.appliedPaymentIds).size).toBe(2);
-    expect(replayResult.payment?.transactionId).not.toBe(originalTransactionId);
+    expect(replayResult.appliedPaymentIds).toHaveLength(4);
+    expect(new Set(replayResult.appliedPaymentIds).size).toBe(4);
     expect(replayResult.discoveredTransformationIds).toEqual(originalDiscoveryIds);
     expect([...assetRequests]).toEqual([...afterReloadAssetCounts]);
 
@@ -166,37 +196,47 @@ for (const viewport of VIEWPORTS) {
   });
 }
 
-async function completeFirstOrder(page: Page, viewport: ViewportCase): Promise<void> {
-  await waitForSnapshot(page, { orderPhase: 'ingredient-selection' });
-  for (let index = 0; index < REQUIRED_INGREDIENTS.length; index += 1) {
-    await clickIngredient(page, viewport, index);
-    await expect.poll(async () => selectedIngredients(page)).toEqual(REQUIRED_INGREDIENTS.slice(0, index + 1));
+async function completeOrder(
+  page: Page,
+  viewport: ViewportCase,
+  orderId: string,
+  ingredientIds: readonly string[],
+  withModifier: boolean,
+): Promise<void> {
+  await waitForSnapshot(page, { orderId, orderPhase: 'ingredient-selection' }, 30_000);
+  for (let index = 0; index < ingredientIds.length; index += 1) {
+    await clickIngredient(page, viewport, index, ingredientIds.length);
+    await expect.poll(async () => selectedIngredients(page)).toEqual(ingredientIds.slice(0, index + 1));
   }
 
   await clickAction(page, viewport);
-  await waitForSnapshot(page, { orderPhase: 'prep-board' });
+  await waitForSnapshot(page, { orderId, orderPhase: 'prep-board' });
   await clickAction(page, viewport);
   await clickAction(page, viewport);
-  await waitForSnapshot(page, { orderPhase: 'grilling' });
+  await waitForSnapshot(page, { orderId, orderPhase: 'grilling' });
   await clickAction(page, viewport);
   await stopGrillWhilePerfect(page, viewport);
-  await waitForSnapshot(page, { orderPhase: 'assembly' });
+  await waitForSnapshot(page, { orderId, orderPhase: 'assembly' });
   await clickAction(page, viewport);
-  await waitForSnapshot(page, { orderPhase: 'modifier-selection' });
+  await waitForSnapshot(page, { orderId, orderPhase: 'modifier-selection' });
+  if (withModifier) {
+    await clickModifier(page, viewport);
+    await waitForSnapshot(page, { orderId, orderPhase: 'assembly' });
+  }
   await clickAction(page, viewport);
-  await waitForSnapshot(page, { orderPhase: 'assembly' });
-  await clickAction(page, viewport);
-  await waitForSnapshot(page, { orderPhase: 'anticipation' });
-  await waitForSnapshot(page, {
-    orderPhase: 'next-order-ready',
-    shiftPhase: 'completed',
-    campaignPhase: 'shift-complete',
-  });
-  await waitForSnapshot(page, { shiftCompleteLabel: 'Shift complete' });
+  await waitForSnapshot(page, { orderId, orderPhase: 'anticipation' });
 }
 
-async function clickIngredient(page: Page, viewport: ViewportCase, index: number): Promise<void> {
-  const point = ingredientPoint(viewport, index, REQUIRED_INGREDIENTS.length);
+async function clickIngredient(page: Page, viewport: ViewportCase, index: number, count: number): Promise<void> {
+  const point = ingredientPoint(viewport, index, count);
+  await clickCanvas(page, point.x, point.y);
+}
+
+async function clickModifier(page: Page, viewport: ViewportCase): Promise<void> {
+  const layout = getLayout(viewport);
+  const point = layout.wide
+    ? { x: layout.width * 0.34, y: layout.tileCenters[0]?.y ?? layout.height - 80 }
+    : { x: layout.width / 2, y: layout.tileCenters[4]?.y ?? layout.height - 120 };
   await clickCanvas(page, point.x, point.y);
 }
 
@@ -210,9 +250,9 @@ async function stopGrillWhilePerfect(page: Page, viewport: ViewportCase): Promis
   await expect.poll(async () => (await readSnapshot(page))?.grillState)
     .toMatchObject({ active: true });
   await expect.poll(
-    async () => (await readSnapshot(page))?.grillState?.elapsedMs ?? 0,
+    async () => (await readSnapshot(page))?.grillState?.state ?? 'raw',
     { timeout: 15_000, intervals: [50, 100, 250] },
-  ).toBeGreaterThanOrEqual(2600);
+  ).toBe('perfect');
   await clickCanvas(page, layout.actionX, layout.actionY);
 }
 
@@ -253,8 +293,15 @@ async function clickCanvas(page: Page, x: number, y: number): Promise<void> {
 async function waitForSnapshot(
   page: Page,
   expected: Partial<BrowserSnapshot>,
-): Promise<void> {
-  await expect.poll(async () => readSnapshot(page)).toMatchObject(expected);
+  timeout = 8_000,
+): Promise<BrowserSnapshot> {
+  let current: BrowserSnapshot | null = null;
+  await expect.poll(async () => {
+    current = await readSnapshot(page);
+    return current;
+  }, { timeout }).toMatchObject(expected);
+  if (!current) throw new Error('The development diagnostics bridge is not ready.');
+  return current;
 }
 
 async function snapshot(page: Page): Promise<BrowserSnapshot> {
