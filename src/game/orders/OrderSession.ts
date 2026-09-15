@@ -112,6 +112,25 @@ export class OrderSession {
     this.phase = 'prep-board';
   }
 
+  /**
+   * Hands-on flow does not ask the player to pre-select every future Build component.
+   * Only the ingredient that physically moves through Prep/Grill is staged here;
+   * final ingredient correctness is synchronized from the spatial Build result.
+   */
+  public openHandsOnPrepBoard(): void {
+    this.requirePhase('ingredient-selection');
+    const selectable = new Set(selectableBaseIngredientIds(this.order));
+    const staged = new Set([
+      ...(this.order.requiredPrepIngredientIds ?? []),
+      this.order.grillIngredientId,
+    ]);
+    for (const ingredientId of staged) {
+      if (selectable.has(ingredientId)) this.selection.select(ingredientId);
+    }
+    this.phase = 'prep-board';
+    this.refreshFood();
+  }
+
   public prepareIngredient(ingredientId: string): void {
     this.requirePhase('prep-board');
     this.prepBoard.prepare(ingredientId, this.selection.getSelected());
