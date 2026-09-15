@@ -20,6 +20,7 @@ import {
 } from './stationPresentation';
 import { BuildStationController } from '../stations/BuildStationController';
 import { GrillStationController } from '../stations/GrillStationController';
+import { PrepStationController } from '../stations/PrepStationController';
 import type { AssemblyWorkspaceRect } from '../stations/AssemblyWorkspaceMapper';
 import {
   buildStationGroupsForRecipe,
@@ -41,6 +42,7 @@ export class OrderSceneView {
   private readonly stationRail: StationRailPresenter;
   private readonly buildController: BuildStationController | null;
   private readonly grillController: GrillStationController | null;
+  private readonly prepController: PrepStationController | null;
   private layoutState: OrderLayout;
   private stationAsset = '';
   private backgroundAsset = LEGACY_BACKGROUND_ASSET;
@@ -72,6 +74,11 @@ export class OrderSceneView {
     this.food = new FoodPresenter(scene, order.grillAssetKeys);
     const handsOnBuildEnabled = this.hasHandsOnBuildTextures();
     const handsOnGrillEnabled = this.hasHandsOnGrillTextures();
+    const prepIngredientId = this.handsOnPrepIngredientId();
+    const prepSourceAsset = order.grillAssetKeys?.raw ?? null;
+    const handsOnPrepEnabled = prepIngredientId !== null
+      && prepSourceAsset !== null
+      && this.hasHandsOnPrepTextures(prepSourceAsset);
     this.hud = new OrderHudPresenter(
       scene,
       order,
@@ -79,6 +86,7 @@ export class OrderSceneView {
       onAction,
       handsOnBuildEnabled,
       handsOnGrillEnabled,
+      handsOnPrepEnabled,
     );
     this.stationRail = new StationRailPresenter(scene);
     this.tray = new IngredientTrayPresenter(scene, ingredients, (ingredientId, x, y) => {
@@ -94,6 +102,9 @@ export class OrderSceneView {
     this.grillController = handsOnGrillEnabled && order.grillAssetKeys
       ? new GrillStationController(scene, order.grillAssetKeys, onAction)
       : null;
+    this.prepController = handsOnPrepEnabled && prepIngredientId && prepSourceAsset
+      ? new PrepStationController(scene, prepIngredientId, prepSourceAsset, onAction)
+      : null;
     this.layout(width, height);
   }
 
@@ -106,6 +117,7 @@ export class OrderSceneView {
     this.tray.layout(layout);
     this.buildController?.layout(width, height, this.buildWorkspace());
     this.grillController?.layout(width, height);
+    this.prepController?.layout(width, height);
     this.applyPresentationMode(this.currentMode);
     this.stationRail.render(this.currentMode, this.localize);
     if (this.currentSnapshot) this.layoutFood(this.currentSnapshot);
@@ -121,10 +133,13 @@ export class OrderSceneView {
 
     const handsOnBuildActive = this.isHandsOnBuildActive(snapshot);
     const handsOnGrillActive = this.grillController !== null && snapshot.phase === 'grilling';
+    const handsOnPrepActive = this.prepController !== null && snapshot.phase === 'prep-board';
     this.buildController?.setVisible(handsOnBuildActive);
     if (handsOnBuildActive) this.buildController?.render(snapshot);
     this.grillController?.setVisible(handsOnGrillActive);
     if (handsOnGrillActive) this.grillController?.render(snapshot.grill);
+    this.prepController?.setVisible(handsOnPrepActive);
+    if (handsOnPrepActive) this.prepController?.render(snapshot);
 
     const availableIngredients = snapshot.phase === 'ingredient-selection' && !this.isHandsOnCookingEnabled()
       ? selectableBaseIngredientIds(this.order)
@@ -141,7 +156,7 @@ export class OrderSceneView {
         : null);
     this.customer.setReaction(reactionSequence);
 
-    if (handsOnBuildActive || handsOnGrillActive) {
+    if (handsOnBuildActive || handsOnGrillActive || handsOnPrepActive) {
       this.station.setVisible(false);
       if (this.station.input) this.station.input.enabled = false;
       this.food.hide();
@@ -199,7 +214,9 @@ export class OrderSceneView {
   }
 
   public isHandsOnCookingEnabled(): boolean {
-    return this.hasPrepShellTextures() && this.buildController !== null && this.grillController !== null;
+    const prepRequired = (this.order.requiredPrepIngredientIds?.length ?? 0) > 0;
+    const prepReady = !prepRequired || this.prepController !== null;
+    return prepReady && this.buildController !== null && this.grillController !== null;
   }
 
   public isReducedMotion(): boolean {
@@ -209,6 +226,7 @@ export class OrderSceneView {
   public destroy(): void {
     this.buildController?.destroy();
     this.grillController?.destroy();
+    this.prepController?.destroy();
     this.background.destroy();
     this.counter.destroy();
     this.station.destroy();
@@ -273,6 +291,16 @@ export class OrderSceneView {
 
   private hasPrepShellTextures(): boolean {
     return requiredStationAssetIds('prep-shell').every((id) => this.scene.textures.exists(id));
+  }
+
+  private hasHandsOnPrepTextures(sourceAssetKey: string): boolean {
+    return this.hasPrepShellTextures() && this.scene.textures.exists(sourceAssetKey);
+  }
+
+  private handsOnPrepIngredientId(): string | null {
+    const required = this.order.requiredPrepIngredientIds ?? [];
+    if (required.length !== 1 || required[0] !== this.order.grillIngredientId) return null;
+    return required[0] ?? null;
   }
 
   private hasHandsOnGrillTextures(): boolean {
