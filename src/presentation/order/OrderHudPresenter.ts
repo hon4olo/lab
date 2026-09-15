@@ -43,6 +43,7 @@ export class OrderHudPresenter {
     private readonly customerNameKey: string,
     onAction: (action: OrderAction) => void,
     private readonly handsOnBuildEnabled = false,
+    private readonly handsOnGrillEnabled = false,
   ) {
     this.orderBubble = scene.add.image(0, 0, 'ui.order-bubble.street').setDepth(30);
     this.customerName = this.makeText(0, 0, '', 11, '#5e3158');
@@ -56,7 +57,7 @@ export class OrderHudPresenter {
     this.actionButton = scene.add.zone(0, 0, 180, 56).setDepth(32);
     this.actionLabel = this.makeText(0, 0, '', 15, '#fff7e8');
     this.actionButton.setInteractive({ useHandCursor: true }).on('pointerdown', () => {
-      const action = getOrderAction(this.snapshot, this.order, this.handsOnBuildEnabled);
+      const action = this.getStationAction();
       if (action) onAction(action);
       else if (this.snapshot.phase === 'next-order-ready') onAction({ type: 'replay-shift' });
     });
@@ -170,8 +171,9 @@ export class OrderHudPresenter {
     this.stationName.setText(localize(snapshot.phase === 'grilling' ? 'station.grill' : 'station.prep-board'));
     this.stationName.setVisible(['ingredient-selection', 'prep-board', 'grilling'].includes(snapshot.phase));
     const canReplay = snapshot.phase === 'next-order-ready' && shiftPhase === 'completed';
-    const showAction = hasOrderAction(snapshot.phase) || canReplay;
-    const orderAction = getOrderAction(snapshot, this.order, this.handsOnBuildEnabled);
+    const handsOnGrillActive = this.handsOnGrillEnabled && snapshot.phase === 'grilling';
+    const showAction = (hasOrderAction(snapshot.phase) || canReplay) && !handsOnGrillActive;
+    const orderAction = this.getStationAction();
     const actionEnabled = canReplay || orderAction !== null;
     this.actionPanel.setVisible(showAction).setAlpha(actionEnabled ? 1 : 0.52);
     this.actionButton.setVisible(showAction);
@@ -218,6 +220,7 @@ export class OrderHudPresenter {
   }
 
   public getStationAction(): OrderAction | null {
+    if (this.handsOnGrillEnabled && this.snapshot.phase === 'grilling') return null;
     return getOrderAction(this.snapshot, this.order, this.handsOnBuildEnabled);
   }
 
