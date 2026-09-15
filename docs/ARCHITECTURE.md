@@ -88,8 +88,9 @@ extra engine-specific mirror tree.
 
 - `main.ts` creates the application composition root.
 - `BootScene` performs synchronous engine setup and immediately starts preload.
-- `PreloadScene` validates typed content references against the asset manifest, then loads every
-  production-approved asset once by stable ID.
+- `PreloadScene` validates typed content references against the full asset manifest, then resolves
+  the retained texture bundle for the active authored shift and loads it once by stable ID. It does
+  not reload textures while that shift advances between order slots.
 - The application composition root restores a `CampaignSession` and injects it into `OrderScene`.
   The campaign owns chapter/shift progress, the runtime economy, unlock context, and discovered
   transformations. It creates a `ShiftController`, which composes `ShiftSession`, the current plain
@@ -115,9 +116,12 @@ transformations. `CampaignContent` injects registries and a shift-controller fac
 expansion does not require the Phaser scene to construct a customer, recipe, or order.
 
 `src/content/registries.ts` exposes typed registries for customers, ingredients, recipes, orders,
-shifts, chapters, and transformations. `validateSnackLabContent` checks duplicate IDs, authored
-references, recipe/order agreement, customer compatibility, prep/grill requirements, and approved
-manifest asset IDs. Preload runs this validation before the player enters the order.
+shifts, chapters, and transformations. Recipe content separates base ingredients from its full
+allowed contract. An order declares required, optional, and forbidden ingredients plus an optional
+authored variation with zero or more modifiers; `OrderContent` resolves the exact selectable pool.
+`validateSnackLabContent` checks duplicate IDs, authored references, recipe-contract membership,
+canonical ingredient order, customer compatibility, prep/grill requirements, and approved manifest
+asset IDs. Preload runs this full validation before the player enters the order.
 
 `FoodInstance` is plain serializable data containing ordered ingredient IDs, cook states, station
 history, quality, tags, Chaos score, mistakes, and visual variant. Definitions are immutable;
@@ -128,10 +132,11 @@ assembly, scoring, payment transaction creation, and customer lifecycle. It neve
 `EconomySession` applies payment transactions once, owns the runtime wallet balance, and exposes a
 plain snapshot suitable for the save boundary. `ShiftSession` owns the authored order sequence,
 active index, completed slots, phase, and shift earnings; `ShiftController` coordinates those
-systems and creates the next order session from content. `OrderSnapshot` is a cloned,
-renderer-free view of one order. Grill timing and state artwork are authored on recipe/order data,
-so the same grill session supports the burger patty and hot-dog sausage without a recipe-specific
-branch.
+systems and creates the next order session from content. It reads a live, read-only
+`ProgressionContextProvider` as each session is created, so an unlock earned after one order can be
+used by the next order in the same shift. `OrderSnapshot` is a cloned, renderer-free view of one
+order. Grill timing and state artwork are authored on recipe/order data, so the same grill session
+supports the burger patty and hot-dog sausage without a recipe-specific branch.
 
 `CustomerDefinition` content stores authored customer type, variant, `basePatienceMs`, display key,
 appearance asset IDs, and optional reaction head swaps. `CustomerPatienceSession` is a reusable
@@ -182,11 +187,13 @@ shake affect visual roots only, never interaction geometry or domain positions.
 ## Asset loading
 
 Stable manifest IDs are the public asset API. Content references `assetKey`; it never builds paths.
-The first-session preload currently loads all production-approved manifest entries once and retains
-them for the application lifetime. Batch 02 adds the Picky Pigeon, hot-dog, and neon effect families;
-chapter-scoped lazy loading and release are not implemented yet.
-Related sprites are atlased only after measurement and visual QA. See `ASSET_PIPELINE.md` and
-`public/assets/manifest.json`.
+`AssetBundleResolver` combines shared street-snack-bar UI/FX with the active shift's resolved order
+ingredients, customer appearances/reactions, grill states, finished variants, and compatible
+transformation effects. Full manifest and registry validation still runs before this narrowed load.
+The current first shift retains its bundle across both orders; `ui.station-tab` is intentionally not
+loaded because no current scene uses it. Future chapter/shift bundles can use the same resolver
+without making `PreloadScene` a content owner. Related sprites are atlased only after measurement
+and visual QA. See `ASSET_PIPELINE.md` and `public/assets/manifest.json`.
 
 ## Audio
 

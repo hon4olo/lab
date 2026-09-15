@@ -23,7 +23,6 @@ export function createFoodInstance(input: FoodBuildInput): FoodInstance {
       for (const tag of ingredient.tags) tags.add(tag);
     }
   }
-  if (input.selectedIds.length > 0) tags.add('CAT');
 
   const cookStates: IngredientCookState[] = input.grillResult
     ? [{

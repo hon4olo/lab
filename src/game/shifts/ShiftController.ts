@@ -4,7 +4,7 @@ import { createCustomerInstance } from '../customers/createCustomerInstance';
 import type { EconomySession, EconomySnapshot } from '../economy/EconomySession';
 import type { OrderContent } from '../orders/OrderContent';
 import { OrderSession, type OrderSnapshot } from '../orders/OrderSession';
-import type { ProgressionContext } from '../progression/ProgressionContext';
+import type { ProgressionContextProvider } from '../progression/ProgressionContext';
 import type { TransformationDefinition } from '../transformations/TransformationDefinition';
 import type { ShiftDefinition, ShiftOrderSlot } from './ShiftDefinition';
 import { ShiftSession, type ShiftSnapshot } from './ShiftSession';
@@ -15,7 +15,7 @@ export interface ShiftControllerOptions {
   readonly customers: ReadonlyMap<string, CustomerDefinition>;
   readonly transformations: readonly TransformationDefinition[];
   readonly economy: EconomySession;
-  readonly progression: ProgressionContext;
+  readonly progression: ProgressionContextProvider;
   readonly balance: BalanceConfig;
   readonly runId?: string;
   readonly restoredShift?: ShiftSnapshot;
@@ -126,7 +126,7 @@ export class ShiftController {
       this.options.transformations,
       {
         transactionId: `${this.options.definition.id}:${this.runId}:${slot.id}`,
-        progression: this.options.progression,
+        progression: this.options.progression.getContext(),
         balance: this.options.balance,
       },
     );

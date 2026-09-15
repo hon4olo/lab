@@ -10,6 +10,10 @@ import { EconomySession } from '../../src/game/economy/EconomySession';
 import { scoreOrder } from '../../src/game/scoring/OrderScoring';
 import { resolveTransformation } from '../../src/game/transformations/resolveTransformation';
 import { OrderSession } from '../../src/game/orders/OrderSession';
+import {
+  requiredIngredientIds,
+  resolveOrderAvailableIngredientIds,
+} from '../../src/game/orders/OrderRequirements';
 import { createProgressionContext } from '../../src/game/progression/ProgressionContext';
 
 const businessCat: CustomerInstance = {
@@ -38,7 +42,8 @@ describe('Snack Lab first order vertical slice domain', () => {
       transformationResult: { id: 'transformation.business-cat.flaming' },
       payment: { total: 55 },
     });
-    expect(session.snapshot().food?.tags).toEqual(expect.arrayContaining(['HOT', 'FIRE', 'CAT']));
+    expect(session.snapshot().food?.tags).toEqual(expect.arrayContaining(['HOT', 'FIRE']));
+    expect(session.snapshot().food?.tags).not.toContain('CAT');
     expect(session.snapshot()).not.toHaveProperty('coins');
     const economy = new EconomySession(20);
     expect(economy.applyPayment(session.snapshot().payment!)).toBe(true);
@@ -55,7 +60,7 @@ describe('Snack Lab first order vertical slice domain', () => {
   });
 
   it('penalizes an order with a missing ingredient', () => {
-    const selected = HOT_CHEESE_BURGER_EXTRA_SPICY.requiredIngredientIds.filter(
+    const selected = resolveOrderAvailableIngredientIds(HOT_CHEESE_BURGER_EXTRA_SPICY).filter(
       (id) => id !== 'ingredient.sauce',
     );
     const food = createFood(selected, 100, 70);
@@ -70,7 +75,7 @@ describe('Snack Lab first order vertical slice domain', () => {
   });
 
   it('resolves the same Flaming Business Cat definition on repeated runs', () => {
-    const food = createFood(HOT_CHEESE_BURGER_EXTRA_SPICY.requiredIngredientIds, 100, 70);
+    const food = createFood(resolveOrderAvailableIngredientIds(HOT_CHEESE_BURGER_EXTRA_SPICY), 100, 70);
     const first = resolveTransformation(food, businessCat, { unlockedIds: new Set() }, TRANSFORMATIONS);
     const second = resolveTransformation(food, businessCat, { unlockedIds: new Set() }, [...TRANSFORMATIONS].reverse());
     expect(first?.id).toBe('transformation.business-cat.flaming');
@@ -78,7 +83,7 @@ describe('Snack Lab first order vertical slice domain', () => {
   });
 
   it('calculates ORDER, COOK, and CHAOS scores from food and requirements', () => {
-    const selected = HOT_CHEESE_BURGER_EXTRA_SPICY.requiredIngredientIds;
+    const selected = resolveOrderAvailableIngredientIds(HOT_CHEESE_BURGER_EXTRA_SPICY);
     const result = scoreOrder({
       order: HOT_CHEESE_BURGER_EXTRA_SPICY,
       selectedIngredients: selected,
@@ -165,8 +170,7 @@ function createSession(
 
 function prepareOrder(session: OrderSession): void {
   session.customerEntered();
-  for (const ingredientId of HOT_CHEESE_BURGER_EXTRA_SPICY.requiredIngredientIds
-    .filter((id) => id !== 'ingredient.extra-spicy')) {
+  for (const ingredientId of requiredIngredientIds(HOT_CHEESE_BURGER_EXTRA_SPICY)) {
     session.toggleIngredient(ingredientId);
   }
   session.openPrepBoard();
@@ -186,7 +190,7 @@ function createFood(
     cookStates: [],
     stationHistory: [],
     quality,
-    tags: new Set(['HOT', 'FIRE', 'CAT']),
+    tags: new Set(['HOT', 'FIRE']),
     chaosScore,
     mistakes: [],
     visualVariant: 'food.burger.extra-spicy',

@@ -3,7 +3,7 @@ import type { OrderContent } from '../orders/OrderContent';
 import type { OrderSnapshot } from '../orders/OrderSession';
 import type { CustomerDefinition } from '../customers/CustomerDefinition';
 import type { ProgressionContext } from '../progression/ProgressionContext';
-import { createProgressionContext } from '../progression/ProgressionContext';
+import { createProgressionContext, createProgressionContextProvider } from '../progression/ProgressionContext';
 import type { CampaignContent, CampaignPhase, CampaignRestoreState, CampaignSnapshot } from './CampaignContracts';
 import type { ChapterDefinition } from './ChapterDefinition';
 import type { ShiftController } from '../shifts/ShiftController';
@@ -86,6 +86,15 @@ export class CampaignSession {
 
   public get lastShiftCompletion(): ShiftCompletionRecord | null {
     return this.lastCompletion ? structuredClone(this.lastCompletion) : null;
+  }
+
+  /** The authored shift whose retained textures are needed for the current campaign state. */
+  public getLoadingShiftDefinition(): ShiftDefinition {
+    const chapter = this.requireChapter(this.chapterId);
+    const shiftId = this.activeShiftController?.definition.id ?? this.activeShiftId ??
+      this.lastCompletion?.shiftId ?? chapter.shiftIds[0];
+    if (!shiftId) throw new Error(`Chapter ${chapter.id} has no authored shifts to load.`);
+    return this.requireShiftInChapter(chapter, shiftId);
   }
 
   public getOrderContent(id: string): OrderContent {
@@ -244,7 +253,7 @@ export class CampaignSession {
       definition,
       runId,
       economy: this.economy,
-      progression: this.progressionContext(),
+      progression: createProgressionContextProvider(() => this.progressionContext()),
       ...(restored ? { restoredShift: restored } : {}),
     });
     this.activeShiftController = controller;

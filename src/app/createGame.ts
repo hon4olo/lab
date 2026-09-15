@@ -27,6 +27,6 @@ export function createGame(
       mode: Phaser.Scale.RESIZE,
       autoCenter: Phaser.Scale.CENTER_BOTH,
     },
-    scene: [BootScene, PreloadScene, new OrderScene(translate, campaign, flushSave)],
+    scene: [BootScene, new PreloadScene(campaign), new OrderScene(translate, campaign, flushSave)],
   });
 }

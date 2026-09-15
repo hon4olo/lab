@@ -1,5 +1,11 @@
 import { expect, test, type Page } from '@playwright/test';
+import { getProductionAssets } from '../../src/assets/assetManifest';
+import { resolveShiftAssetBundle } from '../../src/assets/AssetBundleResolver';
+import { createCampaignSession } from '../../src/app/createCampaignSession';
+import { FIRST_CHAPTER } from '../../src/content/chapters/firstChapter';
+import { SNACK_LAB_CONTENT_REGISTRIES } from '../../src/content/registries';
 import { calculateOrderLayout, finalizeOrderLayout } from '../../src/presentation/order/orderLayout';
+import { createDefaultSaveData } from '../../src/save/SaveSchema';
 
 interface BrowserSnapshot {
   readonly orderId: string | null;
@@ -67,7 +73,7 @@ for (const viewport of VIEWPORTS) {
     const failedRequests: string[] = [];
     const badResponses: string[] = [];
     const assetRequests = new Map<string, number>();
-    let expectedAssetPaths: Promise<string[]> = Promise.resolve([]);
+    let expectedAssetPaths: Promise<readonly string[]> = Promise.resolve([]);
 
     await page.setViewportSize({ width: viewport.width, height: viewport.height });
     page.on('pageerror', (error) => pageErrors.push(error.message));
@@ -87,12 +93,7 @@ for (const viewport of VIEWPORTS) {
       if (new URL(response.url()).pathname === '/assets/manifest.json') {
         expectedAssetPaths = response.json().then((manifest: {
           readonly assets: readonly { readonly path: string; readonly status: string }[];
-        }) => [
-          ...manifest.assets
-            .filter((asset) => asset.status === 'production-approved')
-            .map((asset) => `/${asset.path}`),
-          '/assets/manifest.json',
-        ]);
+        }) => expectedFirstShiftAssetPaths(manifest));
       }
     });
 
@@ -196,6 +197,17 @@ for (const viewport of VIEWPORTS) {
   });
 }
 
+function expectedFirstShiftAssetPaths(manifest: unknown): readonly string[] {
+  const campaign = createCampaignSession(createDefaultSaveData(FIRST_CHAPTER.id));
+  campaign.startOrRestore();
+  const bundle = resolveShiftAssetBundle(getProductionAssets(manifest), {
+    getOrderContent: (id) => campaign.getOrderContent(id),
+    getCustomerDefinition: (id) => campaign.getCustomerDefinition(id),
+    transformations: SNACK_LAB_CONTENT_REGISTRIES.transformations.all,
+  }, campaign.getLoadingShiftDefinition());
+  return [...bundle.assets.map((asset) => `/${asset.path}`), '/assets/manifest.json'];
+}
+
 async function completeOrder(
   page: Page,
   viewport: ViewportCase,
@@ -221,7 +233,7 @@ async function completeOrder(
   await waitForSnapshot(page, { orderId, orderPhase: 'modifier-selection' });
   if (withModifier) {
     await clickModifier(page, viewport);
-    await waitForSnapshot(page, { orderId, orderPhase: 'assembly' });
+    await waitForSnapshot(page, { orderId, orderPhase: 'modifier-selection' });
   }
   await clickAction(page, viewport);
   await waitForSnapshot(page, { orderId, orderPhase: 'anticipation' });

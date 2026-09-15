@@ -6,20 +6,21 @@ import { ShiftController } from '../game/shifts/ShiftController';
 import type { CustomerDefinition } from '../game/customers/CustomerDefinition';
 import type { IngredientDefinition } from '../game/ingredients/IngredientDefinition';
 import type { OrderContent } from '../game/orders/OrderContent';
+import { resolveOrderAvailableIngredientIds } from '../game/orders/OrderRequirements';
 import type { CurrentSaveData, SavedOrderResult, ShiftCompletionRecord } from '../save/SaveSchema';
 import { FIRST_CHAPTER } from '../content/chapters/firstChapter';
 
 export function createCampaignSession(save: CurrentSaveData): CampaignSession {
   const ingredientById = SNACK_LAB_CONTENT_REGISTRIES.ingredients.toMap();
   const orders = new Map(SNACK_LAB_CONTENT_REGISTRIES.orders.all.map((definition) => {
-    const ingredientIds = new Set([...definition.requiredIngredientIds, definition.modifierIngredientId]);
-    const ingredients = [...ingredientIds]
+    const availableIngredientIds = resolveOrderAvailableIngredientIds(definition);
+    const ingredients = availableIngredientIds
       .map((id) => ingredientById.get(id))
       .filter((ingredient): ingredient is IngredientDefinition => ingredient !== undefined);
-    if (ingredients.length !== ingredientIds.size) {
+    if (ingredients.length !== availableIngredientIds.length) {
       throw new Error(`Order ${definition.id} references an ingredient missing from the registry.`);
     }
-    return [definition.id, { definition, ingredients }] as const;
+    return [definition.id, { definition, availableIngredientIds, ingredients }] as const;
   }));
   const chapters = SNACK_LAB_CONTENT_REGISTRIES.chapters.toMap();
   const shifts = SNACK_LAB_CONTENT_REGISTRIES.shifts.toMap();

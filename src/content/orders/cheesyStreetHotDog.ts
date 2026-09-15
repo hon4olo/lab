@@ -7,9 +7,12 @@ export const CHEESY_STREET_HOT_DOG_ORDER: OrderDefinition = {
   id: 'order.cheesy-street-hot-dog',
   foodInstanceId: 'food.cheesy-street-hot-dog.order-02',
   displayNameKey: 'order.cheesy-street-hot-dog',
-  modifierKey: 'order.glow-sauce',
-  modifierIngredientId: 'ingredient.glow-sauce',
-  modifierRequired: false,
+  requestedVariation: {
+    id: 'variation.cheesy-street-hot-dog.glow',
+    displayNameKey: 'order.glow-sauce',
+    modifiers: [{ ingredientId: 'ingredient.glow-sauce' }],
+    assembledAssetKey: 'food.hotdog.finished-glow',
+  },
   reactionSequence: 'reaction.picky-pigeon.skeptical',
   instructionKeys: {
     'customer-entering': 'order.phase.customer-entering.picky-pigeon',
@@ -29,19 +32,22 @@ export const CHEESY_STREET_HOT_DOG_ORDER: OrderDefinition = {
   },
   grillIngredientId: 'ingredient.sausage',
   recipeId: 'recipe.cheesy-street-hot-dog',
-  requiredIngredientIds: [
-    'ingredient.hotdog-bun',
-    'ingredient.sausage',
-    'ingredient.hotdog-cheese',
-    'ingredient.pickle',
-    'ingredient.mustard',
-  ],
+  ingredientRequirements: {
+    requiredIngredientIds: [
+      'ingredient.hotdog-bun',
+      'ingredient.sausage',
+      'ingredient.hotdog-cheese',
+      'ingredient.pickle',
+      'ingredient.mustard',
+    ],
+  },
   expectedIngredientOrder: [
     'ingredient.hotdog-bun',
     'ingredient.sausage',
     'ingredient.hotdog-cheese',
     'ingredient.pickle',
     'ingredient.mustard',
+    'ingredient.glow-sauce',
   ],
   requiredPrepIngredientIds: ['ingredient.sausage'],
   requiredStations: ['station.prep-board.street', 'station.grill.street'],
@@ -50,7 +56,6 @@ export const CHEESY_STREET_HOT_DOG_ORDER: OrderDefinition = {
   basePayment: 20,
   baseTip: 8,
   baseAssembledAssetKey: 'food.hotdog.finished',
-  assembledAssetKey: 'food.hotdog.finished-glow',
   grillTiming: HOTDOG_GRILL_TIMING,
   grillAssetKeys: HOTDOG_GRILL_ASSETS,
 };

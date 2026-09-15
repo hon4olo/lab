@@ -7,6 +7,7 @@ import { CampaignSaveCoordinator } from '../../src/save/CampaignSaveCoordinator'
 import { createDefaultSaveData, type SaveDataV1 } from '../../src/save/SaveSchema';
 import { migrateSave } from '../../src/save/migrations/migrateSave';
 import { SaveRepository, type SaveStoragePort } from '../../src/save/SaveRepository';
+import { requiredIngredientIds } from '../../src/game/orders/OrderRequirements';
 
 describe('campaign runtime persistence', () => {
   it('restarts an unsettled active order from its safe checkpoint with the same run identity', async () => {
@@ -178,7 +179,7 @@ function completeBurgerOrder(campaign: ReturnType<typeof createCampaignSession>)
   const order = campaign.activeShift!.orderSession;
   expect(campaign.activeShift!.orderContent.definition.id).toBe(HOT_CHEESE_BURGER_EXTRA_SPICY.id);
   order.customerEntered();
-  for (const id of HOT_CHEESE_BURGER_EXTRA_SPICY.requiredIngredientIds.filter((item) => item !== 'ingredient.extra-spicy')) {
+  for (const id of requiredIngredientIds(HOT_CHEESE_BURGER_EXTRA_SPICY)) {
     order.toggleIngredient(id);
   }
   order.openPrepBoard();
@@ -205,7 +206,7 @@ function completeHotDogOrder(
   const order = campaign.activeShift!.orderSession;
   expect(campaign.activeShift!.orderContent.definition.id).toBe(CHEESY_STREET_HOT_DOG_ORDER.id);
   order.customerEntered();
-  for (const id of CHEESY_STREET_HOT_DOG_ORDER.requiredIngredientIds) order.toggleIngredient(id);
+  for (const id of requiredIngredientIds(CHEESY_STREET_HOT_DOG_ORDER)) order.toggleIngredient(id);
   order.openPrepBoard();
   order.prepareIngredient('ingredient.sausage');
   order.continueToGrill();

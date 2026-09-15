@@ -4,7 +4,7 @@ import type { EconomySnapshot, EconomySession } from '../economy/EconomySession'
 import type { CustomerDefinition } from '../customers/CustomerDefinition';
 import type { OrderContent } from '../orders/OrderContent';
 import type { OrderSnapshot } from '../orders/OrderSession';
-import type { ProgressionContext } from '../progression/ProgressionContext';
+import type { ProgressionContextProvider } from '../progression/ProgressionContext';
 import type { ShiftController, ShiftControllerSnapshot } from '../shifts/ShiftController';
 import type { ShiftDefinition } from '../shifts/ShiftDefinition';
 import type { ShiftSnapshot } from '../shifts/ShiftSession';
@@ -20,7 +20,7 @@ export interface CampaignContent {
     readonly definition: ShiftDefinition;
     readonly runId: string;
     readonly economy: EconomySession;
-    readonly progression: ProgressionContext;
+    readonly progression: ProgressionContextProvider;
     readonly restoredShift?: ShiftSnapshot;
   }): ShiftController;
 }

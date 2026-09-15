@@ -1,4 +1,6 @@
 import { describe, expect, it } from 'vitest';
+import { createCampaignSession } from '../../src/app/createCampaignSession';
+import { FIRST_CHAPTER } from '../../src/content/chapters/firstChapter';
 import { CHEESY_STREET_HOT_DOG_INGREDIENTS } from '../../src/content/ingredients/cheesyStreetHotDog';
 import { PICKY_PIGEON } from '../../src/content/customers/pickyPigeon';
 import {
@@ -10,7 +12,9 @@ import { TRANSFORMATIONS } from '../../src/content/transformations';
 import { DEFAULT_BALANCE_CONFIG } from '../../src/game/balance/BalanceConfig';
 import { GrillSession } from '../../src/game/cooking/GrillSession';
 import { OrderSession } from '../../src/game/orders/OrderSession';
+import { requiredIngredientIds } from '../../src/game/orders/OrderRequirements';
 import { createProgressionContext } from '../../src/game/progression/ProgressionContext';
+import { createDefaultSaveData } from '../../src/save/SaveSchema';
 
 describe('Picky Pigeon and Cheesy Street Hot Dog', () => {
   it('resolves authored customer, recipe, order, and second shift slot from registries', () => {
@@ -23,6 +27,21 @@ describe('Picky Pigeon and Cheesy Street Hot Dog', () => {
       orderId: CHEESY_STREET_HOT_DOG_ORDER.id,
       customerId: PICKY_PIGEON.id,
     });
+  });
+
+  it('resolves an explicit order ingredient pool rather than inferring one modifier', () => {
+    const campaign = createCampaignSession(createDefaultSaveData(FIRST_CHAPTER.id));
+    const content = campaign.getOrderContent(CHEESY_STREET_HOT_DOG_ORDER.id);
+
+    expect(content.availableIngredientIds).toEqual([
+      'ingredient.hotdog-bun',
+      'ingredient.sausage',
+      'ingredient.hotdog-cheese',
+      'ingredient.pickle',
+      'ingredient.mustard',
+      'ingredient.glow-sauce',
+    ]);
+    expect(content.ingredients.map((ingredient) => ingredient.id)).toEqual(content.availableIngredientIds);
   });
 
   it('keeps authored sausage states raw, cooked, perfect, and burned', () => {
@@ -79,7 +98,7 @@ function completeHotDog(withGlow: boolean) {
     },
   );
   session.customerEntered();
-  for (const id of CHEESY_STREET_HOT_DOG_ORDER.requiredIngredientIds) session.toggleIngredient(id);
+  for (const id of requiredIngredientIds(CHEESY_STREET_HOT_DOG_ORDER)) session.toggleIngredient(id);
   session.openPrepBoard();
   session.prepareIngredient('ingredient.sausage');
   session.continueToGrill();

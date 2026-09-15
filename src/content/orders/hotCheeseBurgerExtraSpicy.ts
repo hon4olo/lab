@@ -12,19 +12,24 @@ export const HOT_CHEESE_BURGER_EXTRA_SPICY: OrderDefinition = {
   id: 'order.hot-cheese-burger.extra-spicy',
   foodInstanceId: 'food.hot-cheese-burger.order-01',
   displayNameKey: 'order.hot-cheese-burger',
-  modifierKey: 'order.extra-spicy',
-  modifierIngredientId: 'ingredient.extra-spicy',
+  requestedVariation: {
+    id: 'variation.hot-cheese-burger.extra-spicy',
+    displayNameKey: 'order.extra-spicy',
+    modifiers: [{ ingredientId: 'ingredient.extra-spicy', required: true }],
+    assembledAssetKey: 'food.burger.extra-spicy',
+  },
   reactionSequence: 'reaction.flaming',
   grillIngredientId: 'ingredient.patty',
   recipeId: 'recipe.hot-cheese-burger',
-  requiredIngredientIds: [
-    'ingredient.bun-bottom',
-    'ingredient.patty',
-    'ingredient.cheese',
-    'ingredient.sauce',
-    'ingredient.extra-spicy',
-    'ingredient.bun-top',
-  ],
+  ingredientRequirements: {
+    requiredIngredientIds: [
+      'ingredient.bun-bottom',
+      'ingredient.patty',
+      'ingredient.cheese',
+      'ingredient.sauce',
+      'ingredient.bun-top',
+    ],
+  },
   expectedIngredientOrder: [
     'ingredient.bun-bottom',
     'ingredient.patty',
@@ -40,7 +45,6 @@ export const HOT_CHEESE_BURGER_EXTRA_SPICY: OrderDefinition = {
   basePayment: 24,
   baseTip: 10,
   baseAssembledAssetKey: 'food.burger.finished',
-  assembledAssetKey: 'food.burger.extra-spicy',
   grillTiming: GRILL_TIMING,
   grillAssetKeys: BURGER_GRILL_ASSETS,
 };

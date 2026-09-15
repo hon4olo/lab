@@ -149,7 +149,7 @@ export class OrderScene extends Phaser.Scene {
         break;
       case 'add-modifier':
         session.addModifier(action.ingredientId);
-        this.view.assembledFood(this.order.assembledAssetKey);
+        this.view.assembledFood(session.snapshot().food?.visualVariant ?? this.order.baseAssembledAssetKey);
         this.feedback.ingredientSelected(this.scale.width * 0.5, this.scale.height * 0.72);
         break;
       case 'serve':

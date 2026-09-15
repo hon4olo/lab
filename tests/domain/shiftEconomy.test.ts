@@ -8,10 +8,14 @@ import { DEFAULT_BALANCE_CONFIG } from '../../src/game/balance/BalanceConfig';
 import { GRILL_TIMING } from '../../src/game/cooking/GrillSession';
 import { EconomySession } from '../../src/game/economy/EconomySession';
 import type { PaymentTransaction } from '../../src/game/economy/PaymentTransaction';
-import { createProgressionContext } from '../../src/game/progression/ProgressionContext';
+import {
+  createProgressionContext,
+  createStaticProgressionContextProvider,
+} from '../../src/game/progression/ProgressionContext';
 import { ShiftController } from '../../src/game/shifts/ShiftController';
 import { ShiftSession } from '../../src/game/shifts/ShiftSession';
 import type { ShiftDefinition } from '../../src/game/shifts/ShiftDefinition';
+import { requiredIngredientIds, resolveOrderAvailableIngredientIds } from '../../src/game/orders/OrderRequirements';
 
 describe('shift and economy boundaries', () => {
   it('applies order payment to external economy and completes a one-order shift', () => {
@@ -20,8 +24,7 @@ describe('shift and economy boundaries', () => {
     shift.start();
     const order = shift.orderSession;
     order.customerEntered();
-    for (const ingredientId of HOT_CHEESE_BURGER_EXTRA_SPICY.requiredIngredientIds
-      .filter((id) => id !== 'ingredient.extra-spicy')) {
+    for (const ingredientId of requiredIngredientIds(HOT_CHEESE_BURGER_EXTRA_SPICY)) {
       order.toggleIngredient(ingredientId);
     }
     order.openPrepBoard();
@@ -85,12 +88,13 @@ function createFirstShift(economy: EconomySession): ShiftController {
     definition: oneOrderShift,
     orders: new Map([[HOT_CHEESE_BURGER_EXTRA_SPICY.id, {
       definition: HOT_CHEESE_BURGER_EXTRA_SPICY,
+      availableIngredientIds: resolveOrderAvailableIngredientIds(HOT_CHEESE_BURGER_EXTRA_SPICY),
       ingredients: HOT_CHEESE_BURGER_INGREDIENTS,
     }]]),
     customers: new Map([[BUSINESS_CAT.id, BUSINESS_CAT]]),
     transformations: TRANSFORMATIONS,
     economy,
-    progression: createProgressionContext(),
+    progression: createStaticProgressionContextProvider(createProgressionContext()),
     balance: DEFAULT_BALANCE_CONFIG,
   });
 }

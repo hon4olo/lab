@@ -4,7 +4,7 @@ export const TRANSFORMATIONS: readonly TransformationDefinition[] = [
   {
     id: 'transformation.business-cat.flaming',
     requiredTags: ['HOT', 'FIRE'],
-    preferredTags: ['CAT'],
+    preferredTags: [],
     forbiddenTags: ['ICE'],
     minimumChaos: 60,
     priority: 10,

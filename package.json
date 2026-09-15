@@ -11,8 +11,10 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "test:browser": "playwright test --config playwright.config.ts",
+    "test:browser:production": "playwright test --config playwright.production.config.ts",
     "validate:assets": "node scripts/verify-asset-manifest.mjs",
-    "check": "npm run typecheck && npm run validate:assets && npm test && npm run build"
+    "check": "npm run typecheck && npm run validate:assets && npm test && npm run build",
+    "check:ci": "npm run check && npm run test:browser && npm run test:browser:production"
   },
   "dependencies": {
     "phaser": "4.2.1"

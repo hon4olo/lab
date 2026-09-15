@@ -6,6 +6,7 @@ import { HOT_CHEESE_BURGER } from '../../src/content/recipes/hotCheeseBurger';
 import { ContentRegistry } from '../../src/content/ContentRegistry';
 import { SNACK_LAB_CONTENT_REGISTRIES, type SnackLabContentRegistries } from '../../src/content/registries';
 import { validateSnackLabContent } from '../../src/content/validateSnackLabContent';
+import { resolveOrderAvailableIngredientIds } from '../../src/game/orders/OrderRequirements';
 
 describe('Snack Lab content validation', () => {
   it('accepts the authored first chapter and its production-approved assets', () => {
@@ -46,15 +47,135 @@ describe('Snack Lab content validation', () => {
     expect(issues).toContain('Shift shift.street-snack-bar.first references unknown customer customer.missing');
   });
 
-  it('reports recipe/order ingredient and sequence mismatches', () => {
+  it('reports recipe/order ingredient order mismatches', () => {
     const order = SNACK_LAB_CONTENT_REGISTRIES.orders.all[0]!;
     const registries = withRegistries({
       orders: new ContentRegistry([{ ...order, expectedIngredientOrder: [...order.expectedIngredientOrder].reverse() }]),
     });
 
     expect(validateSnackLabContent(registries, manifest).issues.join('\n')).toContain(
-      'Order order.hot-cheese-burger.extra-spicy ingredient order does not match recipe recipe.hot-cheese-burger',
+      'Order order.hot-cheese-burger.extra-spicy ingredient order must follow recipe recipe.hot-cheese-burger',
     );
+  });
+
+  it('accepts an order variation that uses a recipe subset, optional pool, removal, and modifier', () => {
+    const baseOrder = SNACK_LAB_CONTENT_REGISTRIES.orders.get('order.hot-cheese-burger.extra-spicy')!;
+    const variationOrder = {
+      ...baseOrder,
+      id: 'order.hot-cheese-burger.no-sauce.experimental',
+      ingredientRequirements: {
+        requiredIngredientIds: [
+          'ingredient.bun-bottom',
+          'ingredient.patty',
+          'ingredient.bun-top',
+        ],
+        optionalIngredientIds: ['ingredient.cheese'],
+        forbiddenIngredientIds: ['ingredient.sauce'],
+      },
+      requestedVariation: {
+        id: 'variation.hot-cheese-burger.experimental',
+        modifiers: [{ ingredientId: 'ingredient.extra-spicy' }],
+        assembledAssetKey: 'food.burger.extra-spicy',
+      },
+      expectedIngredientOrder: [
+        'ingredient.bun-bottom',
+        'ingredient.patty',
+        'ingredient.cheese',
+        'ingredient.extra-spicy',
+        'ingredient.bun-top',
+      ],
+    };
+    const registries = withRegistries({
+      orders: new ContentRegistry([
+        ...SNACK_LAB_CONTENT_REGISTRIES.orders.all,
+        variationOrder,
+      ]),
+    });
+
+    expect(validateSnackLabContent(registries, manifest)).toEqual({ valid: true, issues: [] });
+    expect(resolveOrderAvailableIngredientIds(variationOrder)).toEqual([
+      'ingredient.bun-bottom',
+      'ingredient.patty',
+      'ingredient.bun-top',
+      'ingredient.cheese',
+      'ingredient.extra-spicy',
+    ]);
+  });
+
+  it('rejects an order requirement outside the recipe ingredient contract', () => {
+    const order = SNACK_LAB_CONTENT_REGISTRIES.orders.get('order.hot-cheese-burger.extra-spicy')!;
+    const registries = withRegistries({
+      orders: new ContentRegistry([{
+        ...order,
+        ingredientRequirements: {
+          ...order.ingredientRequirements,
+          optionalIngredientIds: ['ingredient.glow-sauce'],
+        },
+      }]),
+    });
+
+    expect(validateSnackLabContent(registries, manifest).issues.join('\n')).toContain(
+      "Order order.hot-cheese-burger.extra-spicy ingredient ingredient.glow-sauce is outside recipe recipe.hot-cheese-burger's available ingredient contract.",
+    );
+  });
+
+  it('accepts plain and multi-modifier variations without duplicating the recipe', () => {
+    const baseOrder = SNACK_LAB_CONTENT_REGISTRIES.orders.get('order.hot-cheese-burger.extra-spicy')!;
+    const { requestedVariation, ...plainBaseOrder } = baseOrder;
+    expect(requestedVariation).toBeDefined();
+    const plainOrder = {
+      ...plainBaseOrder,
+      id: 'order.hot-cheese-burger.plain',
+      expectedIngredientOrder: [
+        'ingredient.bun-bottom',
+        'ingredient.patty',
+        'ingredient.cheese',
+        'ingredient.sauce',
+        'ingredient.bun-top',
+      ],
+    };
+    const multiModifierOrder = {
+      ...baseOrder,
+      id: 'order.hot-cheese-burger.double-modified',
+      ingredientRequirements: {
+        requiredIngredientIds: [
+          'ingredient.bun-bottom',
+          'ingredient.patty',
+          'ingredient.cheese',
+          'ingredient.bun-top',
+        ],
+      },
+      requestedVariation: {
+        id: 'variation.hot-cheese-burger.double-modified',
+        modifiers: [
+          { ingredientId: 'ingredient.sauce' },
+          { ingredientId: 'ingredient.extra-spicy' },
+        ],
+        assembledAssetKey: 'food.burger.extra-spicy',
+      },
+      expectedIngredientOrder: [
+        'ingredient.bun-bottom',
+        'ingredient.patty',
+        'ingredient.cheese',
+        'ingredient.sauce',
+        'ingredient.extra-spicy',
+        'ingredient.bun-top',
+      ],
+    };
+    const registries = withRegistries({
+      orders: new ContentRegistry([
+        ...SNACK_LAB_CONTENT_REGISTRIES.orders.all,
+        plainOrder,
+        multiModifierOrder,
+      ]),
+    });
+
+    expect(validateSnackLabContent(registries, manifest)).toEqual({ valid: true, issues: [] });
+    expect(resolveOrderAvailableIngredientIds(plainOrder)).not.toContain('ingredient.extra-spicy');
+    expect(resolveOrderAvailableIngredientIds(multiModifierOrder)).toEqual(expect.arrayContaining([
+      'ingredient.sauce',
+      'ingredient.extra-spicy',
+    ]));
   });
 
   it('requires prep-listed ingredients to exist and actually require prep', () => {

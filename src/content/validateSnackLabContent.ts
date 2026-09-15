@@ -4,7 +4,8 @@ import type { IngredientDefinition } from '../game/ingredients/IngredientDefinit
 import type { TransformationDefinition } from '../game/transformations/TransformationDefinition';
 import type { ContentRegistry } from './ContentRegistry';
 import type { SnackLabContentRegistries } from './registries';
-import { grillConfigIssues, sameGrillAssets, sameGrillTiming } from './grillValidation';
+import { grillConfigIssues } from './grillValidation';
+import { validateOrders } from './validateOrderContent';
 
 export interface SnackLabContentValidationResult {
   readonly valid: boolean;
@@ -102,16 +103,20 @@ function validateRecipes(
   issues: string[],
 ): void {
   for (const recipe of registries.recipes.all) {
-    const ingredientIds = new Set(recipe.ingredientIds);
-    checkDuplicates(`recipe ${recipe.id} ingredient`, recipe.ingredientIds, issues);
-    if (!sameMembers(recipe.ingredientOrder, recipe.ingredientIds)) {
-      issues.push(`Recipe ${recipe.id} ingredientOrder must contain every recipe ingredient exactly once.`);
+    const availableIngredientIds = new Set(recipe.availableIngredientIds);
+    checkDuplicates(`recipe ${recipe.id} base ingredient`, recipe.baseIngredientIds, issues);
+    checkDuplicates(`recipe ${recipe.id} available ingredient`, recipe.availableIngredientIds, issues);
+    if (!recipe.baseIngredientIds.every((id) => availableIngredientIds.has(id))) {
+      issues.push(`Recipe ${recipe.id} base ingredients must belong to its available ingredient contract.`);
     }
-    for (const id of recipe.ingredientIds) {
+    if (!sameMembers(recipe.ingredientOrder, recipe.availableIngredientIds)) {
+      issues.push(`Recipe ${recipe.id} ingredientOrder must contain every available recipe ingredient exactly once.`);
+    }
+    for (const id of recipe.availableIngredientIds) {
       if (!registries.ingredients.has(id)) issues.push(`Recipe ${recipe.id} references unknown ingredient ${id}.`);
     }
     for (const id of recipe.requiredPrepIngredientIds) {
-      if (!ingredientIds.has(id)) issues.push(`Recipe ${recipe.id} requires prep for ingredient ${id} outside its ingredients.`);
+      if (!availableIngredientIds.has(id)) issues.push(`Recipe ${recipe.id} requires prep for ingredient ${id} outside its available ingredients.`);
       const ingredient = registries.ingredients.get(id);
       if (!ingredient) issues.push(`Recipe ${recipe.id} references unknown prep ingredient ${id}.`);
       else if (!ingredient.requiresPrep) issues.push(`Recipe ${recipe.id} requires prep for ${id}, but that ingredient is not prep-required.`);
@@ -128,63 +133,6 @@ function validateRecipes(
     }
     validateAssetReferences(`recipe ${recipe.id}`, [recipe.baseAssembledAssetKey], approved, allAssets, issues);
     issues.push(...grillConfigIssues(`recipe ${recipe.id}`, recipe.grillTiming, recipe.grillAssetKeys, approved, allAssets));
-  }
-}
-
-function validateOrders(
-  registries: Registries,
-  approved: ReadonlySet<string>,
-  allAssets: ReadonlySet<string>,
-  issues: string[],
-): void {
-  for (const order of registries.orders.all) {
-    const recipe = registries.recipes.get(order.recipeId);
-    if (!recipe) issues.push(`Order ${order.id} references unknown recipe ${order.recipeId}.`);
-    else {
-      if (!sameMembers(order.requiredIngredientIds, recipe.ingredientIds)) {
-        issues.push(`Order ${order.id} required ingredients do not match recipe ${recipe.id}.`);
-      }
-      if (!sameSequence(order.expectedIngredientOrder, recipe.ingredientOrder)) {
-        issues.push(`Order ${order.id} ingredient order does not match recipe ${recipe.id}.`);
-      }
-      if (!sameMembers(order.requiredPrepIngredientIds, recipe.requiredPrepIngredientIds)) {
-        issues.push(`Order ${order.id} prep requirements do not match recipe ${recipe.id}.`);
-      }
-      if (order.grillIngredientId !== recipe.grillIngredientId) {
-        issues.push(`Order ${order.id} grill ingredient does not match recipe ${recipe.id}.`);
-      }
-      if (order.baseAssembledAssetKey !== recipe.baseAssembledAssetKey) {
-        issues.push(`Order ${order.id} base assembled asset does not match recipe ${recipe.id}.`);
-      }
-      if (!sameGrillTiming(order.grillTiming, recipe.grillTiming) ||
-          !sameGrillAssets(order.grillAssetKeys, recipe.grillAssetKeys)) {
-        issues.push(`Order ${order.id} grill configuration does not match recipe ${recipe.id}.`);
-      }
-    }
-    const modifierRequired = order.modifierRequired ?? true;
-    if (modifierRequired && !order.requiredIngredientIds.includes(order.modifierIngredientId)) {
-      issues.push(`Order ${order.id} modifier ${order.modifierIngredientId} is not a required recipe ingredient.`);
-    }
-    if (!registries.ingredients.has(order.modifierIngredientId)) {
-      issues.push(`Order ${order.id} references unknown modifier ingredient ${order.modifierIngredientId}.`);
-    }
-    if (!order.requiredIngredientIds.includes(order.grillIngredientId)) {
-      issues.push(`Order ${order.id} grill ingredient ${order.grillIngredientId} is not required.`);
-    }
-    for (const id of order.requiredIngredientIds) {
-      if (!registries.ingredients.has(id)) issues.push(`Order ${order.id} references unknown ingredient ${id}.`);
-    }
-    for (const id of order.requiredPrepIngredientIds) {
-      const ingredient = registries.ingredients.get(id);
-      if (!order.requiredIngredientIds.includes(id)) issues.push(`Order ${order.id} requires prep for non-required ingredient ${id}.`);
-      if (!ingredient) issues.push(`Order ${order.id} references unknown prep ingredient ${id}.`);
-      else if (!ingredient.requiresPrep) issues.push(`Order ${order.id} requires prep for ${id}, but it is not prep-required.`);
-    }
-    validateAssetReferences(`order ${order.id}`, [order.baseAssembledAssetKey, order.assembledAssetKey], approved, allAssets, issues);
-    issues.push(...grillConfigIssues(`order ${order.id}`, order.grillTiming, order.grillAssetKeys, approved, allAssets));
-    if (order.reactionSequence !== undefined && !order.reactionSequence.trim()) {
-      issues.push(`Order ${order.id} reactionSequence must not be empty.`);
-    }
   }
 }
 
@@ -271,10 +219,6 @@ function sameMembers(left: readonly string[], right: readonly string[]): boolean
     rightSet.size === right.length &&
     left.every((id) => rightSet.has(id))
   );
-}
-
-function sameSequence(left: readonly string[], right: readonly string[]): boolean {
-  return left.length === right.length && left.every((id, index) => id === right[index]);
 }
 
 function errorMessage(error: unknown): string {

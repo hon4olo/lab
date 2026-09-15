@@ -88,7 +88,24 @@ function qualityAt(elapsedMs: number, state: CookState, timing: GrillTiming): nu
   if (state === 'burned') return 0;
   if (state === 'raw') return 25;
   if (state === 'cooked') return 60;
-  return Math.max(60, Math.round(100 - Math.abs(elapsedMs - timing.idealStopAtMs) * 0.025));
+
+  return perfectQualityAt(elapsedMs, timing);
+}
+
+function perfectQualityAt(elapsedMs: number, timing: GrillTiming): number {
+  if (elapsedMs === timing.idealStopAtMs) return 100;
+
+  // Each recipe authors its own cooking windows. Normalize the distance within
+  // the appropriate side of that window so the quality curve scales with the
+  // recipe timing instead of relying on a fixed milliseconds-per-point slope.
+  const boundaryMs = elapsedMs < timing.idealStopAtMs
+    ? timing.perfectAtMs
+    : timing.burnedAtMs;
+  const spanMs = Math.abs(timing.idealStopAtMs - boundaryMs);
+  const distance = Math.abs(elapsedMs - timing.idealStopAtMs);
+  const normalizedDistance = spanMs === 0 ? 1 : Math.min(1, distance / spanMs);
+
+  return Math.round(100 - (40 * normalizedDistance));
 }
 
 function validateTiming(timing: GrillTiming): void {

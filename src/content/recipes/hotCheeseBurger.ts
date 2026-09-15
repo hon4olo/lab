@@ -11,7 +11,14 @@ const BURGER_GRILL_ASSETS = {
 export const HOT_CHEESE_BURGER: RecipeDefinition = {
   id: 'recipe.hot-cheese-burger',
   displayNameKey: 'order.hot-cheese-burger',
-  ingredientIds: [
+  baseIngredientIds: [
+    'ingredient.bun-bottom',
+    'ingredient.patty',
+    'ingredient.cheese',
+    'ingredient.sauce',
+    'ingredient.bun-top',
+  ],
+  availableIngredientIds: [
     'ingredient.bun-bottom',
     'ingredient.patty',
     'ingredient.cheese',

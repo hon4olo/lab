@@ -1,5 +1,9 @@
 import type { FoodInstance } from '../cooking/FoodInstance';
 import type { OrderDefinition } from '../orders/OrderDefinition';
+import {
+  resolveOrderAvailableIngredientIds,
+  scoredRequiredIngredientIds,
+} from '../orders/OrderRequirements';
 import { DEFAULT_BALANCE_CONFIG, type BalanceConfig } from '../balance/BalanceConfig';
 
 export interface ScoreResult {
@@ -22,14 +26,11 @@ export function scoreOrder(
 ): ScoreResult {
   const selected = new Set(input.selectedIngredients);
   const prepared = new Set(input.preparedIngredients);
-  const missing = input.order.requiredIngredientIds.filter((id) => !selected.has(id)).length;
-  const optionalModifier = input.order.modifierRequired === false
-    ? input.order.modifierIngredientId
-    : null;
-  const extras = [...selected].filter((id) =>
-    !input.order.requiredIngredientIds.includes(id) && id !== optionalModifier,
-  ).length;
-  const unprepared = input.order.requiredPrepIngredientIds.filter(
+  const required = scoredRequiredIngredientIds(input.order);
+  const available = new Set(resolveOrderAvailableIngredientIds(input.order));
+  const missing = required.filter((id) => !selected.has(id)).length;
+  const extras = [...selected].filter((id) => !available.has(id)).length;
+  const unprepared = (input.order.requiredPrepIngredientIds ?? []).filter(
     (id) => selected.has(id) && !prepared.has(id),
   ).length;
   const orderScore = clamp(

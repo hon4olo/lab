@@ -13,57 +13,31 @@ import { assembleFood } from '../recipes/FoodAssembler';
 import type { ScoreResult } from '../scoring/OrderScoring';
 import { scoreOrder } from '../scoring/OrderScoring';
 import type { OrderDefinition } from './OrderDefinition';
+import {
+  allRequiredModifiersSelected,
+  hasAppliedVariation,
+  hasModifiers,
+  modifierIngredientIds,
+  orderVariationAssetKey,
+  selectableBaseIngredientIds,
+} from './OrderRequirements';
 import { resolveTransformation } from '../transformations/resolveTransformation';
 import type { ProgressionContext } from '../progression/ProgressionContext';
 import type { BalanceConfig } from '../balance/BalanceConfig';
 import type { PaymentTransaction } from '../economy/PaymentTransaction';
+import type { OrderPhase, OrderSnapshot } from './OrderSnapshot';
+
+export type {
+  FoodInstanceSnapshot,
+  OrderPhase,
+  OrderSnapshot,
+  TransformationSnapshot,
+} from './OrderSnapshot';
 
 export interface OrderSessionOptions {
   readonly transactionId: string;
   readonly progression: ProgressionContext;
   readonly balance: BalanceConfig;
-}
-
-export type OrderPhase =
-  | 'customer-entering'
-  | 'ingredient-selection'
-  | 'prep-board'
-  | 'grilling'
-  | 'assembly'
-  | 'modifier-selection'
-  | 'anticipation'
-  | 'payment'
-  | 'customer-leaving'
-  | 'next-order-ready';
-
-export interface OrderSnapshot {
-  readonly orderId: string;
-  readonly phase: OrderPhase;
-  readonly customerPhase: string;
-  readonly patience: CustomerPatienceSnapshot;
-  readonly selectedIngredients: readonly string[];
-  readonly preparedIngredients: readonly string[];
-  readonly food: FoodInstanceSnapshot | null;
-  readonly grill: GrillSnapshot;
-  readonly assembled: boolean;
-  readonly scores: ScoreResult | null;
-  readonly transformationResult: TransformationSnapshot | null;
-  readonly payment: PaymentTransaction | null;
-}
-
-export interface FoodInstanceSnapshot extends Omit<FoodInstance, 'tags'> {
-  readonly tags: readonly string[];
-}
-
-export interface TransformationSnapshot {
-  readonly id: string;
-  readonly resultAppearance: string;
-  readonly appearanceAssets: readonly string[];
-  /** Optional for compatibility with v2 saves written before Batch 02. */
-  readonly appearanceMode?: 'overlay' | 'full';
-  /** Optional for compatibility with v2 saves written before Batch 02. */
-  readonly effectAssets?: readonly string[];
-  readonly reactionSequence: string;
 }
 
 export class OrderSession {
@@ -115,8 +89,11 @@ export class OrderSession {
 
   public toggleIngredient(ingredientId: string): void {
     this.requirePhase('ingredient-selection');
-    if (ingredientId === this.order.modifierIngredientId) {
+    if (modifierIngredientIds(this.order).includes(ingredientId)) {
       throw new Error('The order modifier is added after food assembly.');
+    }
+    if (!selectableBaseIngredientIds(this.order).includes(ingredientId)) {
+      throw new Error(`Ingredient ${ingredientId} is not available for this order.`);
     }
     this.selection.toggle(ingredientId);
     this.refreshFood();
@@ -164,25 +141,26 @@ export class OrderSession {
     const result = assembleFood(this.food, this.order.expectedIngredientOrder, this.order.baseAssembledAssetKey);
     this.food = result.food;
     this.assembled = true;
-    this.phase = 'modifier-selection';
+    this.phase = hasModifiers(this.order) ? 'modifier-selection' : 'assembly';
   }
 
   public addModifier(ingredientId: string): void {
     this.requirePhase('modifier-selection');
-    if (ingredientId !== this.order.modifierIngredientId) {
+    if (!modifierIngredientIds(this.order).includes(ingredientId)) {
       throw new Error(`Unsupported modifier for this order: ${ingredientId}`);
     }
     this.selection.toggle(ingredientId);
     this.refreshFood();
-    this.phase = 'assembly';
   }
 
   public serve(): void {
-    if (this.phase === 'modifier-selection' && !this.isModifierRequired() &&
-        !this.selection.includes(this.order.modifierIngredientId)) {
-      this.phase = 'assembly';
+    if (this.phase === 'modifier-selection') {
+      if (!allRequiredModifiersSelected(this.order, this.selection.getSelected())) {
+        throw new Error('The order requires additional modifiers before serving.');
+      }
+    } else {
+      this.requirePhase('assembly');
     }
-    this.requirePhase('assembly');
     if (!this.assembled) throw new Error('Assemble the burger before serving it.');
     this.lifecycle.serveOrder();
     this.phase = 'anticipation';
@@ -277,8 +255,9 @@ export class OrderSession {
     };
     this.food = createFoodInstance(foodBuildInput);
     if (this.assembled) {
-      const visualAsset = this.selection.includes(this.order.modifierIngredientId)
-        ? this.order.assembledAssetKey
+      const variationAsset = orderVariationAssetKey(this.order);
+      const visualAsset = hasAppliedVariation(this.order, this.selection.getSelected()) && variationAsset
+        ? variationAsset
         : this.order.baseAssembledAssetKey;
       this.food = assembleFood(this.food, this.order.expectedIngredientOrder, visualAsset).food;
     }
@@ -287,9 +266,6 @@ export class OrderSession {
   private isCustomerWaiting(): boolean {
     return ['ingredient-selection', 'prep-board', 'grilling', 'assembly', 'modifier-selection'].includes(this.phase);
   }
-
-  private isModifierRequired(): boolean { return this.order.modifierRequired ?? true; }
-
   private requirePhase(expected: OrderPhase): void {
     if (this.phase !== expected) throw new Error(`Order is in ${this.phase}; expected ${expected}.`);
   }

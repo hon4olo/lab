@@ -1,11 +1,13 @@
 import Phaser from 'phaser';
 import { getProductionAssets } from '../../assets/assetManifest';
+import { resolveShiftAssetBundle } from '../../assets/AssetBundleResolver';
 import { SNACK_LAB_CONTENT_REGISTRIES } from '../../content/registries';
 import { validateSnackLabContent } from '../../content/validateSnackLabContent';
+import type { CampaignSession } from '../../game/campaign/CampaignSession';
 import { APP_EVENTS } from '../appEvents';
 
 export class PreloadScene extends Phaser.Scene {
-  public constructor() {
+  public constructor(private readonly campaign: CampaignSession) {
     super('PreloadScene');
   }
 
@@ -25,9 +27,14 @@ export class PreloadScene extends Phaser.Scene {
       const validation = validateSnackLabContent(SNACK_LAB_CONTENT_REGISTRIES, manifest);
       if (!validation.valid) throw new Error(`Snack Lab content validation failed: ${validation.issues.join(' ')}`);
       const productionAssets = getProductionAssets(manifest);
-      if (productionAssets.length === 0) throw new Error('No production-approved assets are available.');
+      const bundle = resolveShiftAssetBundle(productionAssets, {
+        getOrderContent: (id) => this.campaign.getOrderContent(id),
+        getCustomerDefinition: (id) => this.campaign.getCustomerDefinition(id),
+        transformations: SNACK_LAB_CONTENT_REGISTRIES.transformations.all,
+      }, this.campaign.getLoadingShiftDefinition());
+      if (bundle.assets.length === 0) throw new Error(`Asset bundle ${bundle.id} has no production-approved assets.`);
 
-      for (const asset of productionAssets) {
+      for (const asset of bundle.assets) {
         this.load.image(asset.id, `${import.meta.env.BASE_URL}${asset.path}`);
       }
 

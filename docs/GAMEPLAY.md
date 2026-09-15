@@ -13,11 +13,17 @@ validation checks registry IDs and references, recipe/order agreement, customer 
 and grill requirements, and production-approved manifest assets. Every image reference is a stable
 ID from `public/assets/manifest.json`.
 
+A recipe owns its base food and station contract plus every approved ingredient it can contain. An
+order owns its requested subset: required, optional, and forbidden ingredients, with an optional
+variation containing zero or more post-assembly modifiers. This lets a future Modified, Weird, or
+Chaos order reuse a recipe instead of duplicating it. `OrderContent` resolves the exact player
+ingredient pool from those authored definitions.
+
 ## Flow and ownership
 
 ```text
 customer-entering → ingredient-selection → prep-board → grilling → assembly
-→ modifier-selection → assembly/serve → anticipation → payment → customer-leaving
+→ modifier-selection → serve → anticipation → payment → customer-leaving
 → next-order-ready
 ```
 
@@ -31,6 +37,10 @@ phase; `ShiftController` applies payment and creates each order session from ord
 wallet snapshot, unlock context, completed runs, and discovered transformations. `OrderScene`
 coordinates actions and presentation. Phaser owns pointer events, elapsed-frame input to the grill,
 sprites, tweens, and effect playback; no Phaser object is stored in domain state.
+
+The shift controller reads progression through a live, read-only provider when it creates each new
+order session. Therefore an unlock recorded after order one is visible to order two without Phaser
+or a scene owning progression state.
 
 Players first select the five base burger ingredients: bottom bun, patty, cheese, sauce, and top
 bun. They prepare the patty on the Prep Board, grill it, and stop the grill before it burns. The
@@ -53,7 +63,9 @@ their timing curves and asset mappings are authored content.
 
 Stopping records the cook state, elapsed processing time, heat quality, and grill visit in the
 `FoodInstance`. Leaving the patty on the grill crosses deterministically into `burned`. The exact
-ideal stop at 3600 ms produces quality 100; tests exercise that deterministic domain boundary.
+ideal stop at 3600 ms produces quality 100; tests exercise that deterministic domain boundary. The
+perfect-state curve normalizes distance to the recipe's authored ideal-to-boundary windows, producing
+60 at either edge and 100 at the ideal rather than relying on a fixed milliseconds-per-quality slope.
 
 The hot-dog sausage uses its authored curve: cooked at 1000 ms, perfect at 2200 ms, ideal stop at
 3200 ms, and burned at 5200 ms. Both recipes still resolve through the shared raw → cooked → perfect
@@ -78,9 +90,10 @@ order results and coins are retained.
 The extra-spicy ingredient contributes 70 Chaos and the `HOT` and `FIRE` tags to the FoodInstance
 when added after assembly. `transformation.business-cat.flaming` is eligible when all its authored requirements
 match: `HOT` and `FIRE`, at least 60 Chaos, compatible customer type `business-cat`, no `ICE`, and
-all required unlocks. It prefers `CAT`. `resolveTransformation` ranks eligible definitions by
-priority, preferred-tag matches, rarity, and stable ID, so selection is deterministic and does not
-branch on a customer/recipe pair.
+all required unlocks. Food tags originate only from selected authored ingredient/effect data;
+Flaming Business Cat has no implicit `CAT` preference. `resolveTransformation` ranks eligible
+definitions by priority, preferred-tag matches, rarity, and stable ID, so selection is deterministic
+and does not branch on a customer/recipe pair.
 
 The appearance keeps the neutral Business Cat stack and adds its manifest-defined fire accents,
 glow eyes, and singed tie. The presentation plays an anticipation beat, transformation flash/fire

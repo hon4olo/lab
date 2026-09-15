@@ -18,12 +18,20 @@ export const HOTDOG_GRILL_ASSETS: Readonly<Record<CookState, string>> = {
 export const CHEESY_STREET_HOT_DOG: RecipeDefinition = {
   id: 'recipe.cheesy-street-hot-dog',
   displayNameKey: 'order.cheesy-street-hot-dog',
-  ingredientIds: [
+  baseIngredientIds: [
     'ingredient.hotdog-bun',
     'ingredient.sausage',
     'ingredient.hotdog-cheese',
     'ingredient.pickle',
     'ingredient.mustard',
+  ],
+  availableIngredientIds: [
+    'ingredient.hotdog-bun',
+    'ingredient.sausage',
+    'ingredient.hotdog-cheese',
+    'ingredient.pickle',
+    'ingredient.mustard',
+    'ingredient.glow-sauce',
   ],
   ingredientOrder: [
     'ingredient.hotdog-bun',
@@ -31,6 +39,7 @@ export const CHEESY_STREET_HOT_DOG: RecipeDefinition = {
     'ingredient.hotdog-cheese',
     'ingredient.pickle',
     'ingredient.mustard',
+    'ingredient.glow-sauce',
   ],
   requiredPrepIngredientIds: ['ingredient.sausage'],
   grillIngredientId: 'ingredient.sausage',

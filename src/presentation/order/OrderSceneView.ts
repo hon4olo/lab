@@ -11,6 +11,7 @@ import { IngredientTrayPresenter } from './IngredientTrayPresenter';
 import { OrderHudPresenter } from './OrderHudPresenter';
 import type { OrderAction } from './orderActions';
 import { calculateOrderLayout, finalizeOrderLayout, type OrderLayout } from './orderLayout';
+import { modifierIngredientIds, selectableBaseIngredientIds } from '../../game/orders/OrderRequirements';
 
 export class OrderSceneView {
   private readonly background: Phaser.GameObjects.Image;
@@ -49,7 +50,7 @@ export class OrderSceneView {
     this.food = new FoodPresenter(scene, order.grillAssetKeys);
     this.hud = new OrderHudPresenter(scene, order, customerDefinition.displayNameKey, onAction);
     this.tray = new IngredientTrayPresenter(scene, ingredients, (ingredientId, x, y) => {
-      if (this.currentPhase === 'modifier-selection' && ingredientId === this.order.modifierIngredientId) {
+      if (this.currentPhase === 'modifier-selection' && modifierIngredientIds(this.order).includes(ingredientId)) {
         this.onAction({ type: 'add-modifier', ingredientId });
       } else {
         this.onAction({ type: 'ingredient', ingredientId, x, y });
@@ -86,8 +87,8 @@ export class OrderSceneView {
     }
     this.station.setVisible(showStation);
     const availableIngredients = snapshot.phase === 'ingredient-selection'
-      ? this.order.requiredIngredientIds.filter((id) => id !== this.order.modifierIngredientId)
-      : snapshot.phase === 'modifier-selection' ? [this.order.modifierIngredientId] : [];
+      ? selectableBaseIngredientIds(this.order)
+      : snapshot.phase === 'modifier-selection' ? modifierIngredientIds(this.order) : [];
     this.tray.render(snapshot.selectedIngredients, availableIngredients, this.localize);
     this.hud.render(snapshot, coins, shiftPhase, this.localize);
     this.customer.setMutation(

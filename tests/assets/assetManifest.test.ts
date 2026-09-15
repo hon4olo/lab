@@ -49,9 +49,9 @@ describe('first order content asset references', () => {
     const referencedIds = [
       ...HOT_CHEESE_BURGER_INGREDIENTS.map((ingredient) => ingredient.assetKey),
       HOT_CHEESE_BURGER_EXTRA_SPICY.baseAssembledAssetKey,
-      HOT_CHEESE_BURGER_EXTRA_SPICY.assembledAssetKey,
+      HOT_CHEESE_BURGER_EXTRA_SPICY.requestedVariation?.assembledAssetKey,
       ...TRANSFORMATIONS.flatMap((transformation) => transformation.appearanceAssets),
     ];
-    expect(referencedIds.every((assetId) => approvedIds.has(assetId))).toBe(true);
+    expect(referencedIds.filter((assetId): assetId is string => Boolean(assetId)).every((assetId) => approvedIds.has(assetId))).toBe(true);
   });
 });

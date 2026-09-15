@@ -5,6 +5,7 @@ import type { TranslationKey } from '../../localization/createTranslator';
 import type { OrderLayout } from './orderLayout';
 import type { ShiftPhase } from '../../game/shifts/ShiftSession';
 import { PatienceMeterPresenter } from './PatienceMeterPresenter';
+import { hasRequiredModifiers, orderVariationDisplayNameKey } from '../../game/orders/OrderRequirements';
 import {
   createEmptyOrderSnapshot,
   getActionLabel,
@@ -152,11 +153,13 @@ export class OrderHudPresenter {
     this.orderBubble.setVisible(showOrder);
     this.customerName.setVisible(showOrder).setText(localize(this.customerNameKey as TranslationKey));
     this.title.setVisible(showOrder).setText(localize(this.order.displayNameKey as TranslationKey));
-    this.modifier.setVisible(showOrder).setText(localize(this.order.modifierKey as TranslationKey));
+    const variationKey = orderVariationDisplayNameKey(this.order);
+    this.modifier.setVisible(showOrder && variationKey !== null)
+      .setText(variationKey ? localize(variationKey as TranslationKey) : '');
     this.instruction.setVisible(showOrder);
     const phaseInstruction = snapshot.phase === 'payment'
       ? snapshot.transformationResult?.reactionSequence ?? this.order.reactionSequence ?? 'order.phase.payment'
-      : snapshot.phase === 'modifier-selection' && this.order.modifierRequired === false
+      : snapshot.phase === 'modifier-selection' && !hasRequiredModifiers(this.order)
         ? 'order.phase.modifier-selection.optional'
         : this.order.instructionKeys?.[snapshot.phase] ?? `order.phase.${snapshot.phase}`;
     this.instruction.setText(localize(phaseInstruction as TranslationKey));
@@ -176,7 +179,7 @@ export class OrderHudPresenter {
     this.actionLabel.setText(canReplay
       ? localize('action.replay-shift')
       : actionKey === 'action.add-modifier'
-      ? actionText.replace('{modifier}', localize(this.order.modifierKey as TranslationKey))
+      ? actionText.replace('{modifier}', variationKey ? localize(variationKey as TranslationKey) : '')
       : actionText);
     this.cookState.setVisible(snapshot.phase === 'grilling');
     this.cookState.setText(localize(`cook.${snapshot.grill.state}` as TranslationKey));

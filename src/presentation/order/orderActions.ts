@@ -1,5 +1,9 @@
 import type { OrderActionLabel, OrderDefinition } from '../../game/orders/OrderDefinition';
 import type { OrderPhase, OrderSnapshot } from '../../game/orders/OrderSession';
+import {
+  allRequiredModifiersSelected,
+  requiredModifierIngredientIds,
+} from '../../game/orders/OrderRequirements';
 
 export type OrderAction =
   | { readonly type: 'ingredient'; readonly ingredientId: string; readonly x: number; readonly y: number }
@@ -20,13 +24,13 @@ export function getActionLabel(snapshot: OrderSnapshot, order: OrderDefinition):
   switch (snapshot.phase) {
     case 'ingredient-selection': return 'action.open-prep';
     case 'prep-board':
-      return order.requiredPrepIngredientIds.some(
+      return (order.requiredPrepIngredientIds ?? []).some(
         (id) => snapshot.selectedIngredients.includes(id) && !snapshot.preparedIngredients.includes(id),
       )
         ? 'action.prepare-ingredient'
         : 'action.continue-grill';
     case 'grilling': return snapshot.grill.active ? 'action.stop-grill' : 'action.start-grill';
-    case 'modifier-selection': return order.modifierRequired === false
+    case 'modifier-selection': return allRequiredModifiersSelected(order, snapshot.selectedIngredients)
       ? 'action.serve'
       : 'action.add-modifier';
     case 'assembly': return snapshot.assembled ? 'action.serve' : 'action.assemble';
@@ -38,7 +42,7 @@ export function getOrderAction(snapshot: OrderSnapshot, order: OrderDefinition):
   switch (getActionLabel(snapshot, order)) {
     case 'action.open-prep': return snapshot.phase === 'ingredient-selection' ? { type: 'open-prep' } : null;
     case 'action.prepare-ingredient': {
-      const ingredientId = order.requiredPrepIngredientIds.find(
+      const ingredientId = (order.requiredPrepIngredientIds ?? []).find(
         (id) => snapshot.selectedIngredients.includes(id) && !snapshot.preparedIngredients.includes(id),
       );
       return ingredientId ? { type: 'prepare-ingredient', ingredientId } : { type: 'continue-grill' };
@@ -47,7 +51,12 @@ export function getOrderAction(snapshot: OrderSnapshot, order: OrderDefinition):
     case 'action.start-grill':
     case 'action.stop-grill': return { type: 'toggle-grill' };
     case 'action.assemble': return { type: 'assemble' };
-    case 'action.add-modifier': return { type: 'add-modifier', ingredientId: order.modifierIngredientId };
+    case 'action.add-modifier': {
+      const ingredientId = requiredModifierIngredientIds(order).find(
+        (id) => !snapshot.selectedIngredients.includes(id),
+      );
+      return ingredientId ? { type: 'add-modifier', ingredientId } : { type: 'serve' };
+    }
     case 'action.serve': return { type: 'serve' };
     default: return null;
   }

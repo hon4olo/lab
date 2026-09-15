@@ -14,11 +14,14 @@ npm run validate:assets
 npm test
 npm run build
 npm run test:browser
+npm run test:browser:production
+npm run check:ci
 ```
 
 `npm run check` runs typecheck, manifest/PNG validation, unit tests, and the production build.
-Browser/visual/performance checks remain explicit because they require a running server and
-viewport/device context.
+`npm run check:ci` adds the development browser matrix and production-preview smoke to that normal
+validation/build suite. Browser/visual/performance checks remain explicit because they require a
+running server and viewport/device context.
 
 ## Domain tests
 
@@ -32,8 +35,10 @@ Vitest runs plain TypeScript tests for:
 
 Domain tests inject elapsed grill time and use no Phaser scene or browser object. Current coverage
 includes the base burger and post-assembly Extra Spicy modifier, perfect and burned cooking, missing
-ingredients, deterministic Flaming Business Cat resolution, ORDER/COOK/CHAOS scoring, payment, and
-stable production asset references. Campaign/save tests cover V1 → V2 migration, valid save loading,
+ingredients, deterministic Flaming Business Cat resolution, no implicit/unrelated food tags,
+timing-relative burger and hot-dog grill boundaries, ORDER/COOK/CHAOS scoring, payment, and stable
+production asset references. Content tests cover recipe base/available contracts, order subsets,
+removals, zero/multiple modifiers, and invalid ingredient contracts. Campaign/save tests cover V1 → V2 migration, valid save loading,
 corrupt-save fallback, staging/backup recovery, safe active-order restart, completed-shift restore,
 first discovery idempotency, duplicate settlement prevention, wallet persistence, and replay. Content
 registry tests cover duplicate IDs, broken references, recipe/order mismatches, hot-dog grill
@@ -41,6 +46,11 @@ configuration, prep requirements, customer compatibility, and unapproved assets.
 cover expiry, pause/resume, and continuing an order after the timer reaches zero. Batch 02 domain
 tests cover Picky Pigeon registry resolution, hot-dog raw/cooked/perfect/burned states, Glow Sauce
 tags, normal versus Neon transformation payments, and two-order sequencing.
+
+The asset-bundle domain test verifies that the first shift retains all shared, customer,
+optional-modifier, and transformation textures while excluding unused production textures. A live
+progression-provider test records an unlock after the first order and proves the second order sees it
+when its `OrderSession` is created.
 
 `npm run validate:assets` decodes every manifest PNG, checks unique IDs/paths, exact dimensions,
 readability, required alpha channels, transparent pixels, and transparent image borders.
@@ -127,17 +137,21 @@ Every milestone records exact commands and results, tested browser/viewports, sc
 console/network findings, measured performance where representative, and any skipped check with a
 reason. A claim appears only if the check actually ran.
 
-## First-session baseline — 2026-09-15
+## First-session hardening baseline — 2026-09-15
 
-- `npm run check`: passed typecheck, manifest/PNG validation, 49 domain/content tests across 11
-  files, production build, and the production-bundle DEV-tooling guard.
-- `npm run test:browser`: passed the dedicated Batch 02 Asset QA check plus the complete two-order
-  shift at 360×640, 844×390, 1280×720, and 1440×900. The suite covered Flaming and Neon
-  transformations, the no-Glow replay path, reload persistence, and one-time payments. No failed
-  requests, HTTP errors, uncaught page errors, console errors, or document overflow were observed.
-- Production JavaScript: 1,470,463 bytes (1,470.46 kB); Vite reports 383.82 kB gzip. It remains a
+- `npm run check:ci`: passed typecheck, manifest/PNG validation, 58 domain/content tests across 14
+  files, the production build and DEV-tooling guard, seven development Chromium checks, and two
+  production-preview Chromium checks.
+- The development browser matrix passed Batch 01+02 in-engine asset QA; the full two-order,
+  reload, and replay flow at 360×640, 844×390, 1280×720, and 1440×900; normal-motion callback
+  lifecycle at 1280×720; and Russian mobile layout at 360×640. No failed asset requests, HTTP
+  errors, uncaught page errors, console errors, or document overflow were observed.
+- The production-preview smoke passed at 360×640 and 1440×900. It verifies boot, canvas render,
+  manifest and selected bundle assets, one request per loaded texture, no errors or overflow, and
+  the absence of the DEV diagnostics bridge.
+- Production JavaScript: 1,474,938 bytes (1,474.94 kB); Vite reports 384.85 kB gzip. It remains a
   single chunk above Vite's 500 kB warning threshold.
-- First-session preload requests all 62 production-approved PNGs: 9,454,051 bytes total on disk
-  (9.02 MiB), including 3,161,691 bytes (3.02 MiB) from Batch 02, plus the manifest. The browser
-  suite observes 63 unique asset/manifest requests on first load, each once; replay adds no new
-  texture/network requests.
+- Full manifest validation still covers 62 production-approved PNGs totaling 9,454,051 bytes
+  (9.02 MiB). The first-shift bundle loads 61 PNGs totaling 9,388,983 bytes (8.95 MiB), excluding
+  the unused 65,068-byte `ui.station-tab`: first-load game-asset requests drop from 63 to 62 when
+  the manifest request is included. The replay adds no texture/network requests in the same page.
