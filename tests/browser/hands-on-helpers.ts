@@ -301,7 +301,7 @@ function grillGeometry(viewport: ViewportCase) {
   return {
     source: {
       x: viewport.width * (portrait ? 0.20 : 0.14),
-      y: viewport.height * (portrait ? 0.82 : 0.80),
+      y: viewport.height * 0.85,
     },
     spatula: {
       x: viewport.width * (portrait ? 0.80 : 0.86),
