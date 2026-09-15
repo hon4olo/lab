@@ -172,8 +172,8 @@ export class OrderScene extends Phaser.Scene {
 
   private serveOrder(): void {
     this.shift.orderSession.serve();
-    this.view.anticipate();
     this.renderCurrentOrder();
+    this.view.anticipate();
     this.time.delayedCall(this.reducedMotion ? 300 : 850, () => void this.revealReaction());
   }
 
@@ -226,6 +226,6 @@ export class OrderScene extends Phaser.Scene {
 
   private viewLayout(): { x: number; y: number } {
     const size = this.scale.gameSize;
-    return { x: size.width * 0.40, y: size.height * 0.72 };
+    return { x: size.width * 0.50, y: size.height * 0.52 };
   }
 }
