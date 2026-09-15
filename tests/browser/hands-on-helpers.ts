@@ -2,6 +2,19 @@ import { expect, type Page } from '@playwright/test';
 import { calculateOrderLayout, finalizeOrderLayout } from '../../src/presentation/order/orderLayout';
 import { createStationPresentation } from '../../src/presentation/order/stationPresentation';
 
+interface AssemblyPlacement {
+  readonly ingredientId: string;
+}
+
+interface AssemblyStroke {
+  readonly ingredientId: string;
+}
+
+interface AssemblySnapshot {
+  readonly placements: readonly AssemblyPlacement[];
+  readonly sauceStrokes: readonly AssemblyStroke[];
+}
+
 export interface BrowserSnapshot {
   readonly orderId: string | null;
   readonly orderPhase: string | null;
@@ -14,6 +27,7 @@ export interface BrowserSnapshot {
   readonly selectedIngredients: readonly string[];
   readonly preparedIngredients: readonly string[];
   readonly assemblyReady: boolean;
+  readonly assembly: AssemblySnapshot | null;
   readonly coins: number;
   readonly appliedPaymentIds: readonly string[];
   readonly discoveredTransformationIds: readonly string[];
@@ -193,6 +207,8 @@ export async function completeHandsOnBuild(
     if (index < 0) throw new Error(`No Build tool for ${ingredientId}.`);
     const tool = tools[index] as BuildTool;
     const shelfPoint = buildShelfPoint(viewport, workspace, index, tools.length);
+    const before = assemblyCount(await snapshot(page), ingredientId, tool.mode);
+
     if (tool.mode === 'sauce') {
       await clickCanvas(page, shelfPoint.x, shelfPoint.y);
       const span = sauceTargetSpread(ingredientId);
@@ -211,10 +227,17 @@ export async function completeHandsOnBuild(
         y: workspace.y + workspace.height * 0.52,
       });
     }
+
+    await expect.poll(async () => assemblyCount(await snapshot(page), ingredientId, tool.mode), {
+      message: `Build interaction did not register ${ingredientId}`,
+      timeout: 3_000,
+      intervals: [50, 100, 250],
+    }).toBe(before + 1);
   }
 
   await expect.poll(async () => (await snapshot(page)).assemblyReady, {
-    timeout: 8_000,
+    message: 'Build contains every requested interaction but assemblyReady stayed false',
+    timeout: 3_000,
     intervals: [50, 100, 250],
   }).toBe(true);
   await clickAction(page, viewport);
@@ -258,6 +281,14 @@ async function canvasBounds(page: Page): Promise<{ x: number; y: number }> {
   const bounds = await canvas.boundingBox();
   if (!bounds) throw new Error('The game canvas is not visible.');
   return { x: bounds.x, y: bounds.y };
+}
+
+function assemblyCount(snapshotValue: BrowserSnapshot, ingredientId: string, mode: BuildTool['mode']): number {
+  const assembly = snapshotValue.assembly;
+  if (!assembly) return 0;
+  return mode === 'sauce'
+    ? assembly.sauceStrokes.filter((stroke) => stroke.ingredientId === ingredientId).length
+    : assembly.placements.filter((placement) => placement.ingredientId === ingredientId).length;
 }
 
 function getLayout(viewport: ViewportCase) {
