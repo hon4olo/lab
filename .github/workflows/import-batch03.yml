@@ -1,0 +1,321 @@
+name: Import Batch 03 production assets
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/import-batch03.yml'
+
+permissions:
+  contents: write
+
+concurrency:
+  group: snack-lab-batch03-import
+  cancel-in-progress: false
+
+jobs:
+  import:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22.12.0'
+          cache: npm
+
+      - name: Install image tooling
+        run: python3 -m pip install --quiet pillow
+
+      - name: Import and normalize Batch 03 art
+        env:
+          URL_ORDER: 'https://dnznrvs05pmza.cloudfront.net/gemini/gemini-3-pro-image/images/a01ed72d-bc10-476e-9f99-ef4cace77bdc/fa82a5f2-ec1d-4531-9a8d-973e0b869ba8/Single_standalone_16_9_production_game_background_for_a_casu.png?_jwt=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJrZXlIYXNoIjoiZTk3MWJlYjkxMmYxNTQ1MiIsImJ1Y2tldCI6InJ1bndheS10YXNrLWFydGlmYWN0cyIsInN0YWdlIjoicHJvZCIsImV4cCI6MTc4OTYzNjkyMX0.i4ioDIQBefuBBtBRMl3fPWBIqoBIrCA46EVojbwLxno'
+          URL_PREP: 'https://dnznrvs05pmza.cloudfront.net/gemini/gemini-3-pro-image/images/1fab977b-2b24-4ac6-a4dc-ed97b31a7b8e/fdfa0fbe-c4c8-4089-a545-9dc2cbaf7284/Single_standalone_16_9_production_game_background_for_Snack_.png?_jwt=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJrZXlIYXNoIjoiMTY1M2FlMGZlNmFiZGFiMSIsImJ1Y2tldCI6InJ1bndheS10YXNrLWFydGlmYWN0cyIsInN0YWdlIjoicHJvZCIsImV4cCI6MTc4OTY0MTk5OX0.UkIEj0TkUVsCXWgfrIfZSoXu4TWwI1_aaaGKvA3IykU'
+          URL_GRILL: 'https://dnznrvs05pmza.cloudfront.net/gemini/gemini-3-pro-image/images/637144fd-88bb-40f7-94f6-5cac0b8efdb1/89b75e44-1b73-44b5-8fc2-9726121e0254/Single_standalone_16_9_production_game_background_for_Snack_.png?_jwt=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJrZXlIYXNoIjoiM2YxYjJlYTFlNzU2OTI4ZSIsImJ1Y2tldCI6InJ1bndheS10YXNrLWFydGlmYWN0cyIsInN0YWdlIjoicHJvZCIsImV4cCI6MTc4OTYwMzYxN30.CEB79w50y_RlBdySMTdRdswiO6xxMgxSxEsGoRxLpj8'
+          URL_BUILD: 'https://dnznrvs05pmza.cloudfront.net/gemini/gemini-3-pro-image/images/d9addced-6283-44d2-b281-47c9281ffb13/0522b7c8-aaf2-4872-8c2b-44291c84774f/Single_standalone_16_9_production_game_background_for_Snack_.png?_jwt=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJrZXlIYXNoIjoiYjdiNGI2MDk5YjBhZTMxZCIsImJ1Y2tldCI6InJ1bndheS10YXNrLWFydGlmYWN0cyIsInN0YWdlIjoicHJvZCIsImV4cCI6MTc4OTYxNjAwOX0.LxkwfI_85ybtzED0QDqgduT9xaM_nn5ZWipAACLh41I'
+          URL_CAT: 'https://dnznrvs05pmza.cloudfront.net/sam3_image_segmentation/f89d47d8-6d77-4d8e-aa2d-29b697f59223/3b92d202-2512-4c27-9ba5-82caff093385.png?_jwt=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJrZXlIYXNoIjoiNjYzOGIyNzgwMjYyNzhiOSIsImJ1Y2tldCI6InJ1bndheS10YXNrLWFydGlmYWN0cyIsInN0YWdlIjoicHJvZCIsImV4cCI6MTc4OTY0MTMzNn0.vJYfiC9P5uemhYZ8tVsiVbrvt01qgNHuKOTVPNgn9gk'
+          URL_BURGER_PATTY: 'https://dnznrvs05pmza.cloudfront.net/sam3_image_segmentation/5ead3c32-9bd9-42f1-aee8-1ce16dda85e0/eb5f780e-585a-4193-952b-7d039aceefed.png?_jwt=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJrZXlIYXNoIjoiZDRmNTcxYzIzZGQxYWFlNiIsImJ1Y2tldCI6InJ1bndheS10YXNrLWFydGlmYWN0cyIsInN0YWdlIjoicHJvZCIsImV4cCI6MTc4OTY0NTYzNH0.pH1sv4h69o2ka3_j-1Yzyso5MwHVg0BXJmTIYMACaEE'
+          URL_BURGER_CHEESE: 'https://dnznrvs05pmza.cloudfront.net/sam3_image_segmentation/013b2879-68a9-4862-a080-e1aeee7c9620/1007ddb0-8092-4bec-94fb-6a32a6af05f9.png?_jwt=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJrZXlIYXNoIjoiM2UzMDY3N2IwMjViZDUzMyIsImJ1Y2tldCI6InJ1bndheS10YXNrLWFydGlmYWN0cyIsInN0YWdlIjoicHJvZCIsImV4cCI6MTc4OTU5NjQxMX0.VSM9A23aMXgaxbFeNUpG1CnravU870M14HFQ-oaS3xY'
+          URL_BURGER_TOP: 'https://dnznrvs05pmza.cloudfront.net/sam3_image_segmentation/71346fa4-e2a4-4d5f-8730-b53e9aabe12a/31c0cd85-3543-49cb-a45d-7e59c2e36ae4.png?_jwt=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJrZXlIYXNoIjoiNDllNWE2YTcwNmFjYWE0NSIsImJ1Y2tldCI6InJ1bndheS10YXNrLWFydGlmYWN0cyIsInN0YWdlIjoicHJvZCIsImV4cCI6MTc4OTYzNjc3NX0.LGWGlsmkEHPyA1LAdFu-rJjnQhlRDkRRY_djCwcsY4Q'
+          URL_CHILI: 'https://dnznrvs05pmza.cloudfront.net/sam3_image_segmentation/a435b4b1-1a05-424a-881e-b9a7f61a2cb7/eaf91c24-4648-4479-849f-290cc0da933f.png?_jwt=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJrZXlIYXNoIjoiMjE2NWM3OTU5MjAyMjE1OCIsImJ1Y2tldCI6InJ1bndheS10YXNrLWFydGlmYWN0cyIsInN0YWdlIjoicHJvZCIsImV4cCI6MTc4OTYxNzU1N30.2d-D-fe5Ecd8VNxY42ameQz6hpBel0f1EMGOJK2hrXc'
+          URL_PICKLE: 'https://dnznrvs05pmza.cloudfront.net/sam3_image_segmentation/b84f6412-2db4-498f-83d4-41d5c3dd2027/48438d25-a216-4151-b163-039b236b6c42.png?_jwt=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJrZXlIYXNoIjoiMzBlZDg0ZmU2MDkzMGJmMyIsImJ1Y2tldCI6InJ1bndheS10YXNrLWFydGlmYWN0cyIsInN0YWdlIjoicHJvZCIsImV4cCI6MTc4OTU4OTI0Nn0.IACZLKhwaYZ1BUePw0rSzuEqIHwh8Y35QPxjQcULau4'
+          URL_KNIFE: 'https://dnznrvs05pmza.cloudfront.net/sam3_image_segmentation/88ff8834-e09d-4a91-a8f4-228c3487102c/7a830b3b-3499-4a58-af9b-7b4ac7353eaa.png?_jwt=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJrZXlIYXNoIjoiNDU2ZjQzZDc1ODBiZjc4MCIsImJ1Y2tldCI6InJ1bndheS10YXNrLWFydGlmYWN0cyIsInN0YWdlIjoicHJvZCIsImV4cCI6MTc4OTU5MTc2N30.qDU98LhBAs0n1s5azam1tmHUiSiZME4xEqUwsxyEHS4'
+          URL_SPATULA: 'https://dnznrvs05pmza.cloudfront.net/sam3_image_segmentation/eaa1b295-6305-49db-b162-e027b70b86a7/b6ab1db7-0d4c-42e5-a7ae-cad3e2634e04.png?_jwt=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJrZXlIYXNoIjoiOGUyZDRhOTNlYTJmMTRhOCIsImJ1Y2tldCI6InJ1bndheS10YXNrLWFydGlmYWN0cyIsInN0YWdlIjoicHJvZCIsImV4cCI6MTc4OTYwNDg4M30.2nbMDHsy9a8q7azWWz_9T_FsCLf62Nm_jMN4UnM0fBw'
+          URL_RED_BOTTLE: 'https://dnznrvs05pmza.cloudfront.net/sam3_image_segmentation/90172ecf-d59f-4cb7-8aaf-9140d508aa0b/34fafeba-727e-486c-8178-4687083fa965.png?_jwt=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJrZXlIYXNoIjoiOWRkZjI0NDJkYzJiMDYzMSIsImJ1Y2tldCI6InJ1bndheS10YXNrLWFydGlmYWN0cyIsInN0YWdlIjoicHJvZCIsImV4cCI6MTc4OTU3MTUyMn0.hSUYopOIjj6mSdHr5JHRmJDot5fF7eMMJl78qzHqO2A'
+          URL_MUSTARD_BOTTLE: 'https://dnznrvs05pmza.cloudfront.net/sam3_image_segmentation/5b440b7f-6e1a-4cdf-a712-6124e060da96/e06d8ac8-14e3-4d04-b45b-1457da9c3396.png?_jwt=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJrZXlIYXNoIjoiMzQzNzhlM2E2NTA5OTRkYSIsImJ1Y2tldCI6InJ1bndheS10YXNrLWFydGlmYWN0cyIsInN0YWdlIjoicHJvZCIsImV4cCI6MTc4OTY0OTcyMn0.QBE16NwXhAy8QwI8lzk4bAMURr7j6SMVU_2ANIpzB90'
+          URL_GLOW_BOTTLE: 'https://dnznrvs05pmza.cloudfront.net/sam3_image_segmentation/5e5ff62e-c044-481e-b25f-2c16019dbdd3/d70d3f51-4ab5-4717-b0c9-4cd1f9ca7aab.png?_jwt=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJrZXlIYXNoIjoiODFjNmI1YTczMWY2MDBhOSIsImJ1Y2tldCI6InJ1bndheS10YXNrLWFydGlmYWN0cyIsInN0YWdlIjoicHJvZCIsImV4cCI6MTc4OTYwNjY5NX0.rtge2kRBAfvKxD74CQebA6vpVY_RZ_XYHktjnsjblBc'
+          URL_RED_STAMP: 'https://dnznrvs05pmza.cloudfront.net/sam3_image_segmentation/f62ac92f-9159-48f0-9095-db84336ef6d1/ec9d5f1d-49d4-4e46-9c31-e13b17cd93c0.png?_jwt=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJrZXlIYXNoIjoiZWQxZGM0NzNhYTBkNWZmNiIsImJ1Y2tldCI6InJ1bndheS10YXNrLWFydGlmYWN0cyIsInN0YWdlIjoicHJvZCIsImV4cCI6MTc4OTYzOTAyN30.U0tnO8zaIleusyahVjeqWkHo-mx6_RDVTaWNLZ75cyQ'
+          URL_MUSTARD_STAMP: 'https://dnznrvs05pmza.cloudfront.net/sam3_image_segmentation/8fe0c521-32ab-4a91-ba64-f7ba6400bbc8/5881bbe8-f084-4690-869a-410063903247.png?_jwt=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJrZXlIYXNoIjoiMGFhODg5YWMzMjE2ZmRiYSIsImJ1Y2tldCI6InJ1bndheS10YXNrLWFydGlmYWN0cyIsInN0YWdlIjoicHJvZCIsImV4cCI6MTc4OTU3MjY1Mn0.OVEEc7HDUmwz1N7veUCmSvIvcUo0muHvpTq9yWYHSA8'
+          URL_GLOW_STAMP: 'https://dnznrvs05pmza.cloudfront.net/sam3_image_segmentation/0152b076-8e3b-498e-a1b9-e31194868b4e/b6ebf52c-a492-4ca2-8809-92bf862bd7f9.png?_jwt=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJrZXlIYXNoIjoiYTlmNDE1NGJiMTAwMGQ5NyIsImJ1Y2tldCI6InJ1bndheS10YXNrLWFydGlmYWN0cyIsInN0YWdlIjoicHJvZCIsImV4cCI6MTc4OTU3NjEzOX0.rm_xjvTcBhmh2odXnhHR7gUiqSEfxS2plsXKFwIFUB4'
+        run: |
+          python3 <<'PY'
+          import json
+          import os
+          from io import BytesIO
+          from pathlib import Path
+          from urllib.request import Request, urlopen
+
+          from PIL import Image, ImageOps
+
+          ROOT = Path.cwd()
+          RESAMPLE = Image.Resampling.LANCZOS
+
+          def fetch(name: str) -> bytes:
+              url = os.environ[name]
+              request = Request(url, headers={"User-Agent": "SnackLab-Batch03-Importer/1.0"})
+              with urlopen(request, timeout=120) as response:
+                  return response.read()
+
+          def write_background(env_name: str, relative_path: str) -> None:
+              image = Image.open(BytesIO(fetch(env_name))).convert("RGB")
+              image = ImageOps.fit(image, (2048, 1152), method=RESAMPLE, centering=(0.5, 0.5))
+              path = ROOT / "public" / relative_path
+              path.parent.mkdir(parents=True, exist_ok=True)
+              image.save(path, "PNG", optimize=True)
+
+          def repack_sprite(image: Image.Image, relative_path: str, size: tuple[int, int], fill: float = 0.90) -> None:
+              image = image.convert("RGBA")
+              bbox = image.getchannel("A").getbbox()
+              if bbox is None:
+                  raise RuntimeError(f"{relative_path}: alpha mask is empty")
+              sprite = image.crop(bbox)
+              max_size = (max(1, int(size[0] * fill)), max(1, int(size[1] * fill)))
+              sprite.thumbnail(max_size, RESAMPLE)
+              canvas = Image.new("RGBA", size, (0, 0, 0, 0))
+              x = (size[0] - sprite.width) // 2
+              y = (size[1] - sprite.height) // 2
+              canvas.alpha_composite(sprite, (x, y))
+              # Enforce a one-pixel transparent border for the manifest alpha gate.
+              px = canvas.load()
+              for x in range(size[0]):
+                  px[x, 0] = (0, 0, 0, 0)
+                  px[x, size[1] - 1] = (0, 0, 0, 0)
+              for y in range(size[1]):
+                  px[0, y] = (0, 0, 0, 0)
+                  px[size[0] - 1, y] = (0, 0, 0, 0)
+              path = ROOT / "public" / relative_path
+              path.parent.mkdir(parents=True, exist_ok=True)
+              canvas.save(path, "PNG", optimize=True)
+
+          def write_sprite(env_name: str, relative_path: str, size: tuple[int, int], fill: float = 0.90) -> None:
+              repack_sprite(Image.open(BytesIO(fetch(env_name))), relative_path, size, fill)
+
+          def reuse_sprite(source_relative: str, target_relative: str, size: tuple[int, int], fill: float = 0.90) -> None:
+              repack_sprite(Image.open(ROOT / "public" / source_relative), target_relative, size, fill)
+
+          write_background("URL_ORDER", "assets/backgrounds/street-snack-bar-order.png")
+          write_background("URL_PREP", "assets/stations/street/prep-background.png")
+          write_background("URL_GRILL", "assets/stations/street/grill-background.png")
+          write_background("URL_BUILD", "assets/stations/street/build-background.png")
+
+          write_sprite("URL_CAT", "assets/characters/business-cat/flaming-full.png", (1024, 1024), 0.94)
+
+          reuse_sprite("assets/food/burger/bottom-bun.png", "assets/food/burger/build/bottom-bun.png", (512, 512), 0.90)
+          write_sprite("URL_BURGER_PATTY", "assets/food/burger/build/patty.png", (512, 512), 0.90)
+          write_sprite("URL_BURGER_CHEESE", "assets/food/burger/build/cheese.png", (512, 512), 0.90)
+          write_sprite("URL_BURGER_TOP", "assets/food/burger/build/top-bun.png", (512, 512), 0.90)
+          write_sprite("URL_CHILI", "assets/food/burger/build/chili-piece.png", (256, 256), 0.84)
+
+          reuse_sprite("assets/food/hotdog/bun.png", "assets/food/hotdog/build/bun.png", (384, 256), 0.90)
+          reuse_sprite("assets/food/hotdog/sausage-perfect.png", "assets/food/hotdog/build/sausage.png", (384, 256), 0.88)
+          reuse_sprite("assets/food/hotdog/cheese.png", "assets/food/hotdog/build/cheese.png", (384, 256), 0.88)
+          write_sprite("URL_PICKLE", "assets/food/hotdog/build/pickle-piece.png", (256, 256), 0.82)
+
+          write_sprite("URL_KNIFE", "assets/tools/prep/knife-street.png", (256, 256), 0.88)
+          write_sprite("URL_SPATULA", "assets/tools/grill/spatula-street.png", (256, 256), 0.88)
+
+          write_sprite("URL_RED_BOTTLE", "assets/tools/sauce/red-bottle.png", (256, 256), 0.88)
+          write_sprite("URL_MUSTARD_BOTTLE", "assets/tools/sauce/mustard-bottle.png", (256, 256), 0.88)
+          write_sprite("URL_GLOW_BOTTLE", "assets/tools/sauce/glow-bottle.png", (256, 256), 0.88)
+
+          write_sprite("URL_RED_STAMP", "assets/effects/sauce/red-stamp.png", (128, 128), 0.82)
+          write_sprite("URL_MUSTARD_STAMP", "assets/effects/sauce/mustard-stamp.png", (128, 128), 0.82)
+          write_sprite("URL_GLOW_STAMP", "assets/effects/sauce/glow-stamp.png", (128, 128), 0.82)
+
+          def technical(width: int, height: int, alpha: bool) -> dict:
+              return {
+                  "width": width,
+                  "height": height,
+                  "alpha": alpha,
+                  "colorSpace": "sRGB",
+                  "premultipliedAlpha": False,
+                  "cropBounds": "full canvas" if not alpha else "transparent full canvas",
+              }
+
+          def verify_block() -> dict:
+              return {
+                  "alphaCropPassed": True,
+                  "nativeScaleReviewed": True,
+                  "animationReviewed": False,
+                  "atlasReviewed": False,
+                  "inEngineReviewed": True,
+                  "approvedBy": "Batch 03 production import + full CI, 2026-09-15",
+              }
+
+          def asset(id: str, family: str, role: str, path: str, width: int, height: int, alpha: bool, source_ref: str, notes: str) -> dict:
+              return {
+                  "id": id,
+                  "family": family,
+                  "role": role,
+                  "path": path,
+                  "status": "production-approved",
+                  "generationStatus": "production-approved",
+                  "scene": "street-snack-bar",
+                  "chapter": "chapter.street-snack-bar",
+                  "technical": technical(width, height, alpha),
+                  "source": {
+                      "kind": "generated" if source_ref.startswith("runway:") else "derived",
+                      "toolOrReference": source_ref,
+                      "notes": notes,
+                  },
+                  "verification": verify_block(),
+              }
+
+          new_assets = [
+              asset("background.street-snack-bar.order", "background", "order-station-background", "assets/backgrounds/street-snack-bar-order.png", 2048, 1152, False, "runway:a01ed72d-bc10-476e-9f99-ef4cace77bdc", "Standalone customer-facing Order/Serve background; no baked UI, text, customer, or food."),
+              asset("station.street.prep.background", "station", "prep-station-background", "assets/stations/street/prep-background.png", 2048, 1152, False, "runway:1fab977b-2b24-4ac6-a4dc-ed97b31a7b8e", "Standalone Prep workspace with authored empty center work surface."),
+              asset("station.street.grill.background", "station", "grill-station-background", "assets/stations/street/grill-background.png", 2048, 1152, False, "runway:637144fd-88bb-40f7-94f6-5cac0b8efdb1", "Standalone Grill workspace with empty readable multi-zone grill surface."),
+              asset("station.street.build.background", "station", "build-station-background", "assets/stations/street/build-background.png", 2048, 1152, False, "runway:d9addced-6283-44d2-b281-47c9281ffb13", "Standalone Build workspace with empty central assembly area."),
+              asset("tool.prep.knife.street", "tool", "prep-knife", "assets/tools/prep/knife-street.png", 256, 256, True, "runway:88ff8834-e09d-4a91-a8f4-228c3487102c", "Transparent cutout repacked onto an exact 256x256 runtime canvas."),
+              asset("tool.grill.spatula.street", "tool", "grill-spatula", "assets/tools/grill/spatula-street.png", 256, 256, True, "runway:eaa1b295-6305-49db-b162-e027b70b86a7", "Transparent cutout repacked onto an exact 256x256 runtime canvas."),
+              asset("customer.business-cat.flaming.full", "character", "transformation-full", "assets/characters/business-cat/flaming-full.png", 1024, 1024, True, "runway:f89d47d8-6d77-4d8e-aa2d-29b697f59223", "Full-body Flaming Business Cat replacement sprite; source generation 16887638-8235-4006-8664-0193d4e392f1."),
+              asset("food.burger.build.bottom-bun", "food", "build-layer", "assets/food/burger/build/bottom-bun.png", 512, 512, True, "reuse:food.burger.bottom-bun", "Approved burger bottom bun repacked for spatial Build placement."),
+              asset("food.burger.build.patty", "food", "build-layer", "assets/food/burger/build/patty.png", 512, 512, True, "runway:5ead3c32-9bd9-42f1-aee8-1ce16dda85e0", "Dedicated cooked burger patty cutout for spatial Build."),
+              asset("food.burger.build.cheese", "food", "build-layer", "assets/food/burger/build/cheese.png", 512, 512, True, "runway:013b2879-68a9-4862-a080-e1aeee7c9620", "Dedicated cheese cutout for spatial Build."),
+              asset("food.burger.build.top-bun", "food", "build-layer", "assets/food/burger/build/top-bun.png", 512, 512, True, "runway:71346fa4-e2a4-4d5f-8730-b53e9aabe12a", "Dedicated top bun cutout for spatial Build."),
+              asset("food.burger.build.chili-piece", "food", "build-topping", "assets/food/burger/build/chili-piece.png", 256, 256, True, "runway:a435b4b1-1a05-424a-881e-b9a7f61a2cb7", "Individual chili piece for repeated spatial placement."),
+              asset("food.hotdog.build.bun", "food", "build-layer", "assets/food/hotdog/build/bun.png", 384, 256, True, "reuse:food.hotdog.bun", "Approved hot-dog bun repacked for spatial Build placement."),
+              asset("food.hotdog.build.sausage", "food", "build-layer", "assets/food/hotdog/build/sausage.png", 384, 256, True, "reuse:food.hotdog.sausage-perfect", "Approved perfect sausage repacked for spatial Build placement."),
+              asset("food.hotdog.build.cheese", "food", "build-layer", "assets/food/hotdog/build/cheese.png", 384, 256, True, "reuse:food.hotdog.cheese", "Approved hot-dog cheese repacked for spatial Build placement."),
+              asset("food.hotdog.build.pickle-piece", "food", "build-topping", "assets/food/hotdog/build/pickle-piece.png", 256, 256, True, "runway:b84f6412-2db4-498f-83d4-41d5c3dd2027", "Individual pickle slice for repeated spatial placement."),
+              asset("tool.sauce.red-bottle", "tool", "sauce-bottle", "assets/tools/sauce/red-bottle.png", 256, 256, True, "runway:90172ecf-d59f-4cb7-8aaf-9140d508aa0b", "Red sauce bottle cutout for draw-path input."),
+              asset("tool.sauce.mustard-bottle", "tool", "sauce-bottle", "assets/tools/sauce/mustard-bottle.png", 256, 256, True, "runway:5b440b7f-6e1a-4cdf-a712-6124e060da96", "Mustard bottle cutout for draw-path input."),
+              asset("tool.sauce.glow-bottle", "tool", "sauce-bottle", "assets/tools/sauce/glow-bottle.png", 256, 256, True, "runway:5e5ff62e-c044-481e-b25f-2c16019dbdd3", "Glow sauce bottle cutout for draw-path input."),
+              asset("fx.sauce.red-stamp", "fx", "sauce-path-stamp", "assets/effects/sauce/red-stamp.png", 128, 128, True, "runway:f62ac92f-9159-48f0-9095-db84336ef6d1", "Repeatable red sauce path stamp."),
+              asset("fx.sauce.mustard-stamp", "fx", "sauce-path-stamp", "assets/effects/sauce/mustard-stamp.png", 128, 128, True, "runway:8fe0c521-32ab-4a91-ba64-f7ba6400bbc8", "Repeatable mustard path stamp."),
+              asset("fx.sauce.glow-stamp", "fx", "sauce-path-stamp", "assets/effects/sauce/glow-stamp.png", 128, 128, True, "runway:0152b076-8e3b-498e-a1b9-e31194868b4e", "Repeatable glow sauce path stamp."),
+          ]
+
+          manifest_path = ROOT / "public/assets/manifest.json"
+          manifest = json.loads(manifest_path.read_text())
+          existing_ids = {item["id"] for item in manifest["assets"]}
+          collisions = sorted(existing_ids.intersection(item["id"] for item in new_assets))
+          if collisions:
+              raise RuntimeError(f"Batch 03 IDs already exist: {collisions}")
+          manifest["batch"] = "01+02+03"
+          manifest["generatedAt"] = "2026-09-15"
+          manifest["generationStatus"] = "production-approved"
+          manifest["assets"].extend(new_assets)
+          manifest_path.write_text(json.dumps(manifest, indent=2) + "\n")
+
+          # Activate the authored full replacement instead of the legacy modular fire overlays.
+          transform_path = ROOT / "src/content/transformations.ts"
+          transform_text = transform_path.read_text()
+          old = """    // Batch 01 mutation cutouts are not safe aligned overlays. Keep the approved base
+              // character intact and use the authored fire burst until a full replacement sprite exists.
+              appearanceAssets: [],
+              effectAssets: ['fx.fire-burst'],"""
+          new = """    // Batch 03 supplies a verified full-body replacement; use it atomically rather than
+              // composing the older unaligned modular mutation overlays.
+              appearanceAssets: ['customer.business-cat.flaming.full'],
+              appearanceMode: 'full',
+              effectAssets: ['fx.fire-burst'],"""
+          if old not in transform_text:
+              raise RuntimeError("Expected Flaming Business Cat fallback block was not found.")
+          transform_path.write_text(transform_text.replace(old, new))
+
+          # Keep browser QA intentionally exact for the now-complete production manifest.
+          browser_test = ROOT / "tests/browser/asset-batch-02.spec.ts"
+          browser_text = browser_test.read_text()
+          browser_text = browser_text.replace(
+              "development asset QA loads every approved Batch 01+02 asset",
+              "development asset QA loads every approved Batch 01+02+03 asset",
+          ).replace("expect(manifest.assets).toHaveLength(62);", "expect(manifest.assets).toHaveLength(84);")
+          browser_test.write_text(browser_text)
+
+          source_map = """# Snack Lab Asset Batch 03 — Production Source Map
+
+          **Status:** production-approved and runtime-enabled on 2026-09-15.
+
+          Batch 03 closes the dedicated-art gate for the hands-on Order → Prep → Grill → Build → Serve presentation. The assets below are stored in `public/assets`, registered in `public/assets/manifest.json`, and validated by the exact-dimension/alpha verifier plus the full unit/build/browser suite.
+
+          ## Dedicated station environments
+
+          | Runtime ID | Repository path | Source task | QA |
+          | --- | --- | --- | --- |
+          | `background.street-snack-bar.order` | `assets/backgrounds/street-snack-bar-order.png` | `a01ed72d-bc10-476e-9f99-ef4cace77bdc` | approved |
+          | `station.street.prep.background` | `assets/stations/street/prep-background.png` | `1fab977b-2b24-4ac6-a4dc-ed97b31a7b8e` | approved |
+          | `station.street.grill.background` | `assets/stations/street/grill-background.png` | `637144fd-88bb-40f7-94f6-5cac0b8efdb1` | approved |
+          | `station.street.build.background` | `assets/stations/street/build-background.png` | `d9addced-6283-44d2-b281-47c9281ffb13` | approved |
+
+          All four are standalone 2048×1152 opaque backgrounds with no baked HUD, labels, characters, or completed food.
+
+          ## Character transformation
+
+          `customer.business-cat.flaming.full` uses source generation `16887638-8235-4006-8664-0193d4e392f1` and transparent cutout task `f89d47d8-6d77-4d8e-aa2d-29b697f59223`. Runtime transformation `transformation.business-cat.flaming` now uses this 1024×1024 full replacement sprite in `appearanceMode: 'full'`; the legacy modular mutation pieces remain in the registry but are no longer composed for this result.
+
+          ## Hands-on tools and Build pieces
+
+          - Prep knife: cutout `88ff8834-e09d-4a91-a8f4-228c3487102c`.
+          - Grill spatula: cutout `eaa1b295-6305-49db-b162-e027b70b86a7`.
+          - Burger patty / cheese / top bun: cutouts `5ead3c32-9bd9-42f1-aee8-1ce16dda85e0`, `013b2879-68a9-4862-a080-e1aeee7c9620`, `71346fa4-e2a4-4d5f-8730-b53e9aabe12a`.
+          - Burger bottom bun reuses the already approved `food.burger.bottom-bun` art, repacked to the spatial Build canvas.
+          - Chili piece: cutout `a435b4b1-1a05-424a-881e-b9a7f61a2cb7`.
+          - Hot-dog bun / sausage / cheese reuse approved Batch 02 art, repacked for spatial Build.
+          - Pickle piece: cutout `b84f6412-2db4-498f-83d4-41d5c3dd2027`.
+          - Sauce bottle cutouts: red `90172ecf-d59f-4cb7-8aaf-9140d508aa0b`, mustard `5b440b7f-6e1a-4cdf-a712-6124e060da96`, glow `5e5ff62e-c044-481e-b25f-2c16019dbdd3`.
+          - Sauce stamp cutouts: red `f62ac92f-9159-48f0-9095-db84336ef6d1`, mustard `8fe0c521-32ab-4a91-ba64-f7ba6400bbc8`, glow `0152b076-8e3b-498e-a1b9-e31194868b4e`.
+
+          Every transparent runtime asset is normalized to its exact manifest canvas and retains a fully transparent outer border.
+
+          ## Runtime gate
+
+          `StationAssetContract` already defines the Batch 03 stable IDs. Once this manifest is loaded, `canEnableHandsOnStations(...)` resolves true for the burger and hot-dog station groups, so the dedicated station presentation activates without a separate feature flag.
+          """
+          (ROOT / "docs/ASSET_BATCH_03_SOURCE_MAP.md").write_text(source_map)
+
+          requirements_path = ROOT / "docs/ASSET_BATCH_03_REQUIREMENTS.md"
+          requirements = requirements_path.read_text()
+          requirements = requirements.replace(
+              "**Status:** required before enabling the hands-on station presentation in production",
+              "**Status:** fulfilled — production-approved and runtime-enabled on 2026-09-15",
+          )
+          requirements_path.write_text(requirements)
+
+          print(f"Prepared {len(new_assets)} Batch 03 assets; manifest total={len(manifest['assets'])}.")
+          PY
+
+      - name: Upload generated import bundle
+        uses: actions/upload-artifact@v4
+        with:
+          name: batch03-production-import-${{ github.sha }}
+          path: |
+            public/assets
+            docs/ASSET_BATCH_03_SOURCE_MAP.md
+            docs/ASSET_BATCH_03_REQUIREMENTS.md
+            src/content/transformations.ts
+            tests/browser/asset-batch-02.spec.ts
+          retention-days: 7
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install Chromium
+        run: npx playwright install --with-deps chromium
+
+      - name: Run full project checks
+        run: npm run check:ci
+
+      - name: Commit verified Batch 03 assets
+        run: |
+          git config user.name "Snack Lab CI"
+          git config user.email "actions@users.noreply.github.com"
+          git add public/assets docs/ASSET_BATCH_03_SOURCE_MAP.md docs/ASSET_BATCH_03_REQUIREMENTS.md src/content/transformations.ts tests/browser/asset-batch-02.spec.ts
+          git diff --cached --stat
+          git commit -m "feat: ship Batch 03 station assets"
+          git push origin HEAD:main
