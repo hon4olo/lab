@@ -1,230 +1,187 @@
-# Snack Lab — Game Design v0.1
+# Snack Lab — Game Design
 
-## Product direction
+## Product
 
-Snack Lab is a fast, mobile-first 2D casual cooking and restaurant-management game for browsers.
-The primary launch target is Yandex Games, followed by other suitable HTML5 portals. This is a
-commercial production game, not a prototype or an MVP.
+Snack Lab is a commercial browser cooking / restaurant-management game with fast hands-on food
+preparation, absurd customer reactions, and deterministic transformation discoveries.
 
-The player begins with a poor street snack bar and grows it into the strangest restaurant in the
-universe. Structural inspiration comes from the readable station flow of classic browser
-restaurant-management games, including Papa's-style games, but Snack Lab must not copy their IP,
-characters, interface, art, layouts, or writing. Snack Lab is an original cartoon universe.
+Primary target: Yandex Games. Secondary HTML5 portals include CrazyGames, Playgama-compatible
+portals, GameDistribution, Y8, GamePix, and similar destinations.
 
-The three promises are:
+The product is not an MVP or throwaway prototype. Build production-ready systems and content
+increments that scale to a long-running campaign.
 
-- **COOK IT:** short, physical, satisfying cooking interactions.
-- **FEED IT:** anticipation and expressive customer reactions.
-- **MUTATE IT:** absurd transformation payoffs and a long-term discovery collection.
+## Player fantasy
 
-Short pitch: *Cook weird food. Feed weird customers. Discover even weirder transformations.*
+The player starts with a cheap street snack bar and grows into increasingly strange restaurants.
+Customers order recognizable food, but optional experimental ingredients can trigger funny,
+family-friendly mutations.
 
-## Audience and experience goals
+The pleasure comes from two things at once:
 
-Primary audience: ages 8–16. Secondary audiences include casual players, mobile-browser players,
-Yandex Games users, and adults who enjoy satisfying, absurd management games.
+1. **manual craft** — physically preparing and assembling food under time pressure;
+2. **curiosity** — discovering what unusual combinations do to customers.
 
-The game must be understandable without long instruction sequences, touch- and mouse-friendly,
-bright, funny, high-stimulation, visually readable on small screens, and deep enough for long-term
-progression. It is not marketed through medical terminology or references to ADHD.
-
-Target cadence:
-
-- every 1–3 seconds: meaningful visual or audio response;
-- every 5–15 seconds: a small success, combo, reaction, or new cooking state;
-- every 25–60 seconds: a completed order and customer payoff;
-- every 3–6 minutes: shift completion, upgrade, unlock, or new content.
-
-Feedback remains proportional. Routine actions receive small responses; discoveries and
-transformations receive the strongest layered effects. Accessibility settings must support
-reduced shake and reduced flashing.
-
-## Core order loop
+## Core loop
 
 ```text
-Customer enters
-→ order appears
-→ player selects ingredients
-→ player uses 1–4 cooking stations
-→ player assembles food
-→ player optionally adds or risk-manages Chaos
-→ player serves the customer
-→ anticipation beat
-→ customer reaction
-→ possible transformation
-→ scoring
-→ payment and tip
+customer arrives
+→ take/read order
+→ Prep Station
+→ Grill/Cook Station
+→ Build Station
+→ optional Chaos ingredient/risk
+→ serve
+→ anticipation
+→ reaction / possible transformation
+→ ORDER / COOK / CHAOS scoring
+→ payment / tip / discovery
 → next customer
 ```
 
-Early orders target roughly 25–45 seconds. Later orders may reach about 60 seconds. Complexity
-comes from station combinations, simultaneous orders, modifiers, patience, special customers,
-difficult recipes, and meaningful Chaos decisions—not long instructions or precision controls.
+Early orders should usually resolve in roughly 25–60 seconds once the full hands-on station loop is
+active. A complete shift should grow toward roughly 3–6 minutes without filling time with fake
+duplicate orders.
 
-Cooking operations are usually 1–5 seconds and provide immediate feedback:
+## Hands-on station design
 
-- prep: drag and swipe;
-- grill/oven/freezer: timing and state stopping;
-- mixer: circular movement;
-- blender: hold and release;
-- sauce: drag path;
-- Mutation Machine: readable risk/reward Chaos control.
+The player does not merely select ingredients and press Assemble.
 
-## Orders and scoring
+Each station is a distinct workspace:
 
-Order families:
+- **Order** — customer, ticket, patience, queue/shift context.
+- **Prep** — recipe-specific cutting/portioning/preparation.
+- **Grill** — place food on cook surfaces, perform authored actions, remove it at the desired state.
+- **Build** — drag/place every component spatially; distribute pieces; draw sauce paths.
+- **Serve / Reaction** — return to the customer, deliver the actual FoodInstance, show reaction and
+  possible transformation.
+- **Results** — scores, coins/tip, discovery, shift progress.
 
-- **Normal:** familiar recipes that establish rules and contrast.
-- **Modified:** exact additions, removals, temperature, or doneness requests.
-- **Weird:** unusual ingredients or treatment.
-- **Chaos:** requests describe a desired transformation or effect rather than an exact recipe.
-- **Secret:** clue-based requests using sensory and tag language.
+See `STATION_GAMEPLAY.md` for the canonical interaction contract.
 
-Each served dish receives:
+## Food skill expression
 
-- **ORDER:** accuracy against requested ingredients, modifiers, and assembly.
-- **COOK:** quality of station execution and cooking states.
-- **CHAOS:** novelty and strength of experimental effects; it may exceed 100%.
+Food quality must reflect what the player physically did.
 
-Example: ORDER 94%, COOK 100%, CHAOS 142%.
+Examples:
 
-A mistake is content, not a dead-end `FAILED` state. It can create a strange reaction, alternate
-transformation, reduced payment, altered tip, or unexpected visual event. One error never causes a
-hard loss by itself.
+- a patty can be removed too early, perfectly, or burned;
+- cheese can be centered or hanging off one side;
+- repeated chili/pickle pieces can be evenly distributed or clumped;
+- sauces can be spread across the food or concentrated in one place;
+- layers can be placed in the wrong order.
 
-## Ingredients and FoodInstance
+The visual dish must reflect those choices. A pre-rendered finished-food PNG is not the gameplay
+truth.
 
-Ingredients are authored data with stable identifiers, localization keys, asset keys, category,
-price, rarity, cooking behavior, visual properties, and typed gameplay tags such as `HOT`, `FIRE`,
-`ICE`, `SLIME`, `SPACE`, `ROBOT`, `CAT`, `DRAGON`, `ELECTRIC`, `GLOW`, `SWEET`, `TOXIC`, and
-`MAGIC`. Tags are controlled identifiers, never scattered free-form strings.
+## Scoring pillars
 
-A runtime `FoodInstance` records ingredients and their order, per-ingredient cook states, station
-history, quality, accumulated tags, Chaos score, mistakes, and visual variant. The same plain-data
-record feeds scoring, reactions, transformation resolution, saves where appropriate, and analytics.
+### ORDER
+
+Measures fulfillment and build accuracy. Over time it can include:
+
+- required/forbidden ingredients;
+- prep requirements;
+- layer order;
+- spatial centering;
+- repeated-piece distribution;
+- sauce coverage;
+- recipe-specific presentation rules.
+
+### COOK
+
+Measures cooking quality independent of assembly: timing, authored flip/stir/cut actions, burn state,
+and later multi-item station management.
+
+### CHAOS
+
+Measures intentional experimentation, not sloppiness. CHAOS comes from authored experimental
+ingredients/combinations/tags and transformation risk. Dropping cheese crookedly should not be a
+cheap CHAOS strategy.
+
+CHAOS may exceed 100% when the player pushes beyond the order's normal target.
 
 ## Transformation system
 
-Transformations are the central USP. The resolver receives a `FoodInstance`, `CustomerInstance`,
-and current unlock/progression context. It evaluates authored `TransformationDefinition` data and
-selects the best eligible result deterministically, using an explicit tie-break policy.
+Transformations are a core USP and remain deterministic/data-driven.
 
-Definitions can specify:
+Ingredients contribute typed tags such as HOT, FIRE, ICE, SLIME, SPACE, ROBOT, ELECTRIC, GLOW,
+SWEET, TOXIC, MAGIC, and similar authored concepts. The resolver considers FoodInstance tags,
+Chaos, customer compatibility, progression/unlocks, priority, rarity, and forbidden tags.
 
-- required, preferred, and forbidden tags;
-- minimum Chaos;
-- priority and rarity;
-- compatible customer types;
-- result appearance;
-- reaction sequence;
-- reward modifier;
-- unlock or discovery requirements.
+Never implement transformations as a giant customer/recipe `if/else` chain.
 
-Content grows by adding validated definitions, not by expanding a giant conditional chain.
-Runtime does not procedurally assemble low-quality visual results from arbitrary parts. Every
-shippable transformation is an art-directed, authored result compatible with the modular character
-system.
+Transformations use authored production character art. Do not force broken procedural composites or
+misaligned overlays into the reaction view.
 
-Transformation reveal targets 2–4 seconds: bite, pause, facial anticipation, shake and
-squash/stretch, flash/particles, authored appearance swap, new pose/reaction, and reward burst.
-Timing may be shortened for repetition while preserving the payoff.
+## Current first shift
 
-## Customers and characters
+Current authored content:
 
-Initial archetypes include normal, kid, picky, influencer, scientist, monster, alien, VIP, and
-mystery customers. Customers vary in preferences, patience, reward profile, compatible reactions,
-and transformation presentation.
+1. Business Cat — Hot Cheese Burger — Extra Spicy → Flaming Business Cat.
+2. Picky Pigeon — Cheesy Street Hot Dog → normal reaction or optional Glow Sauce → Neon Pigeon.
 
-Characters use modular raster layers: body, head, eyes, pupils, mouth, arms, hands, accessories,
-mutation attachments, and effects. Reusable actions include enter, idle, blink, talk, wait,
-inspect food, bite, chew, anticipate, happy, negative reaction, transform, pay, and leave.
-Layered PNG/WebP sprites, selective sprite sheets, tweens, particles, and short loops are preferred
-over unique full frame-by-frame animation for every variant.
+The current code still contains legacy automatic-assembly behavior from the first vertical slice.
+That path is being replaced by the spatial assembly model before adding Customer #3.
 
-## Stations
+## Session / progression goals
 
-Main planned modules are Prep Board, Grill, Mixer, Blender, Oven, Freezer, and Mutation Machine.
-Later chapters may add Laser Cooker, Gravity Oven, Slime Injector, Portal Fryer, and other authored
-stations. Each station owns its physical interaction, state, rules, and presentation adapter; shift
-scenes only coordinate navigation and lifecycle.
+Long-term architecture should support approximately:
 
-## Shifts, progression, and campaign
+- 5–6 chapters / increasingly absurd restaurant locations;
+- 40–60 shifts;
+- 50+ customer variants;
+- 50+ recipes/orders;
+- 80–120 ingredients;
+- 75–120 transformations;
+- 6–10 major station types;
+- 40+ meaningful upgrades;
+- 60+ decor items;
+- random events and collection/discovery systems.
 
-A shift lasts roughly 3–6 minutes: restaurant opening, customer sequence, escalating conditions,
-special event, final unusual or VIP customer, results, rewards, and upgrade choice. It is the main
-session unit and a natural interstitial boundary.
+The initial restaurant progression concept remains:
 
-Campaign progression:
+Street Snack Bar → Weird Diner / Monster Kitchen → Space Cafe → Mad Food Lab → Interdimensional
+Food Court.
 
-1. Street Snack Bar
-2. Weird Diner
-3. Monster Kitchen
-4. Space Cafe
-5. Mad Food Lab
-6. Interdimensional Food Court
+## Retention / feedback rhythm
 
-Across the campaign the player unlocks ingredients, recipes, stations, upgrades, customers,
-transformations, decorations, restaurant zones, random events, and secrets. The Chaos Cookbook
-tracks recipes, ingredients, customers, transformations, rare orders, partial clues, and discovery
-completion.
+Target a strong but readable feedback cadence:
 
-Architecture targets 5–6 chapters, 40–60 shifts, 50+ customer variants, 50+ recipes/orders,
-80–120 ingredients, 75–120 transformations, 6–10 core stations, 40+ meaningful upgrades, 60+
-decorations, random events, and collections. These are release-scale targets, not the scope of the
-initial scaffold.
+- meaningful response to player manipulation every ~1–3 seconds;
+- small success/reaction every ~5–15 seconds;
+- completed order/reaction/transformation every ~25–60 seconds;
+- shift completion/upgrade/unlock roughly every ~3–6 minutes.
 
-## Economy, upgrades, and monetization
+Do not market around medical/attention conditions.
 
-Coins are the sole launch currency unless a later economy review proves a distinct need. Sources
-include base payment, ORDER/COOK quality bonus, Chaos bonus, tips, shift rewards, and discoveries.
-Sinks include equipment, station upgrades, ingredients, décor, restaurant expansion, new zones,
-and functional absurd items. Early purchases should be reachable in the first session; later
-pricing and ad rewards require measured economy balancing.
+## Audience / tone
 
-Upgrades change visible equipment and meaningful behavior, not only hidden percentages. Décor may
-be cosmetic or grant small, understandable bonuses without creating one mandatory build.
+Broad family-friendly casual audience, roughly readable for ages 8–16 and above.
 
-Advertising is the primary monetization model. Interstitials appear only at completed, natural
-breaks such as shift completion or chapter transition. Rewarded offers are voluntary, clearly
-labelled, and provide an exact bonus such as double shift tips, a rare ingredient, a VIP customer,
-one second chance, or a Chaos boost. The full game remains playable without rewarded ads. No
-manufactured pain, guilt copy, disguised ad buttons, or progression dependency is permitted.
+Visual tone:
 
-## Art, UI, audio, and localization
+- funny, charming, polished;
+- absurd rather than grotesque;
+- readable on phones;
+- appetizing food even when experimental;
+- expressive customers and transformations.
 
-Art direction is original 2D cartoon: bright, chunky shapes; strong silhouettes; expressive faces;
-appetizing but absurd food; exaggerated proportions; controlled chaos; and mobile-scale clarity.
-Food, customer face/reaction, and transformation are the top visual priorities. Existing meme or
-brainrot characters must not be copied.
+## Monetization direction
 
-Gameplay art is production raster PNG/WebP, transparent where a sprite requires it. No SVG game
-assets, programmer-art substitutes, colored-box characters, or temporary food icons enter the
-player-facing pipeline. Code-native UI text and simple technical layout are allowed. All authored
-assets follow the manifest and approval gates in `ASSET_PIPELINE.md`.
+The game is intended for ad-supported browser portals. Monetization systems come after the core
+station loop is genuinely fun and retention-worthy. Ads/rewarded ads must remain behind platform
+capabilities and must not be hardwired into gameplay rules.
 
-Portrait composition flows customer → order → station → ingredients/actions. Desktop uses a
-purposeful multi-column composition: customer/order | active station | ingredients/tools. Desktop
-is not a scaled-up portrait canvas. Critical controls respect safe areas and do not require hover,
-right-click, pixel-perfect placement, or complex gestures.
+## Non-goals right now
 
-Audio uses short UI, cooking, cash, transformation, reaction, combo, and discovery sounds with
-brief non-verbal character vocalizations. Localized full dialogue audio is not required. Mixer
-buses separate Master, Music, SFX, UI, Ambience, and Voice.
+Before Customer #3, do not prioritize:
 
-English and Russian are mandatory release languages. Gameplay uses localization keys, layouts
-allow text expansion, and localizable copy is not baked into raster images without a specific need.
+- more content for its own sake;
+- large upgrade/decor catalogs;
+- portal SDK integration;
+- IAP;
+- elaborate meta systems;
+- visual placeholders.
 
-## Saves, analytics, and platform behavior
-
-Saves cover campaign and restaurant progress, coins, upgrades, unlocked ingredients/recipes/
-transformations, decorations, settings, and collections. Platform cloud storage is preferred where
-available, with a local fallback. Schema versioning, migrations, validation, backup/recovery, and
-conflict policy begin at version 1.
-
-Planned internal analytics events include session/shift start, order received/completed/failed,
-transformation discovered, ingredient unlocked, upgrade bought, shift completed, ad opportunity,
-rewarded started/completed, and interstitial shown. No analytics SDK is selected in this phase.
-
-Core gameplay never imports portal SDKs. Platform capabilities and lifecycle—including game-ready,
-gameplay start/stop, visibility, pause/resume, ads, audio muting, and storage—cross the platform
-boundary described in `ARCHITECTURE.md`.
+Priority is making the first two orders feel like a real hands-on cooking game.
