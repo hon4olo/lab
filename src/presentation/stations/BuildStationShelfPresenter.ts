@@ -78,8 +78,12 @@ export class BuildStationShelfPresenter {
     const slotSize = Math.max(58, Math.min(88, cellWidth * 0.84));
     const rowGap = portrait ? slotSize * 0.9 : 0;
     const startX = screenWidth / 2 - ((columns - 1) * cellWidth) / 2;
+    const bottomRowOffset = (rows - 1) * rowGap;
     const baseY = portrait
-      ? Math.min(screenHeight - slotSize * 0.72, workspace.y + workspace.height + slotSize * 0.66)
+      ? Math.min(
+          screenHeight - slotSize * 0.72 - bottomRowOffset,
+          workspace.y + workspace.height + slotSize * 0.66,
+        )
       : Math.min(screenHeight - slotSize * 0.66, workspace.y + workspace.height + slotSize * 0.62);
 
     this.visuals.forEach((visual, index) => {
