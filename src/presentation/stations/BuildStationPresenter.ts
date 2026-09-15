@@ -1,6 +1,6 @@
 import Phaser from 'phaser';
 import type { FoodAssemblySnapshot, PlacedIngredient, SauceStroke } from '../../game/assembly/AssemblySession';
-import { assemblyPointToScreen, type WorkspaceRect } from './AssemblyWorkspaceMapper';
+import { assemblyPointToScreen, type AssemblyWorkspaceRect } from './AssemblyWorkspaceMapper';
 import {
   BURGER_BUILD_ASSET_IDS,
   HOTDOG_BUILD_ASSET_IDS,
@@ -38,7 +38,7 @@ export class BuildStationPresenter {
   private readonly background: Phaser.GameObjects.Image;
   private readonly placementImages = new Map<string, Phaser.GameObjects.Image>();
   private readonly sauceImages = new Map<string, Phaser.GameObjects.Image[]>();
-  private workspace: WorkspaceRect = { x: 0, y: 0, width: 1, height: 1 };
+  private workspace: AssemblyWorkspaceRect = { x: 0, y: 0, width: 1, height: 1 };
 
   public constructor(
     private readonly scene: Phaser.Scene,
@@ -47,7 +47,7 @@ export class BuildStationPresenter {
     this.background = scene.add.image(0, 0, STREET_STATION_ASSET_IDS.buildBackground).setDepth(4);
   }
 
-  public layout(screenWidth: number, screenHeight: number, workspace: WorkspaceRect): void {
+  public layout(screenWidth: number, screenHeight: number, workspace: AssemblyWorkspaceRect): void {
     this.workspace = workspace;
     const source = this.scene.textures.get(STREET_STATION_ASSET_IDS.buildBackground).getSourceImage();
     const coverScale = Math.max(screenWidth / source.width, screenHeight / source.height);
@@ -99,7 +99,7 @@ export class BuildStationPresenter {
   }
 
   private syncSauces(strokes: readonly SauceStroke[]): void {
-    const activeIds = new Set(strokes.map((stroke) => stroke.id));
+    const activeIds = new Set(strokes.map((stroke) => stroke.strokeId));
     for (const [strokeId, images] of this.sauceImages) {
       if (activeIds.has(strokeId)) continue;
       images.forEach((image) => image.destroy());
@@ -109,9 +109,9 @@ export class BuildStationPresenter {
     for (const stroke of strokes) {
       const assetKey = SAUCE_ASSETS[stroke.ingredientId];
       if (!assetKey) continue;
-      this.sauceImages.get(stroke.id)?.forEach((image) => image.destroy());
+      this.sauceImages.get(stroke.strokeId)?.forEach((image) => image.destroy());
       const images = this.createSauceImages(stroke, assetKey);
-      this.sauceImages.set(stroke.id, images);
+      this.sauceImages.set(stroke.strokeId, images);
     }
   }
 
