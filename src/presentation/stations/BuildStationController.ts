@@ -67,7 +67,7 @@ export class BuildStationController {
 
   public constructor(
     private readonly scene: Phaser.Scene,
-    private readonly recipeId: string,
+    recipeId: string,
     onAction: (action: OrderAction) => void,
   ) {
     this.presenter = new BuildStationPresenter(scene, recipeId);
