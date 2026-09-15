@@ -2,6 +2,12 @@ import type { CustomerDefinition } from '../game/customers/CustomerDefinition';
 import type { OrderContent } from '../game/orders/OrderContent';
 import type { ShiftDefinition } from '../game/shifts/ShiftDefinition';
 import type { TransformationDefinition } from '../game/transformations/TransformationDefinition';
+import {
+  canEnableHandsOnStations,
+  requiredStationAssetIds,
+  stationGroupsForRecipe,
+  type StationAssetGroup,
+} from '../presentation/stations/StationAssetContract';
 import type { ProductionAsset } from './assetManifest';
 
 /** Assets used by the shared street-snack-bar presentation, independent of an authored order. */
@@ -49,12 +55,14 @@ export function resolveShiftAssetBundle(
 ): AssetBundle {
   const requiredIds = new Set<string>(FIRST_SHIFT_SHARED_ASSET_IDS);
   const customerTypes = new Set<string>();
+  const stationGroups = new Set<StationAssetGroup>();
 
   for (const slot of shift.orderSequence) {
     const orderContent = content.getOrderContent(slot.orderId);
     const customer = content.getCustomerDefinition(slot.customerId);
     const order = orderContent.definition;
     customerTypes.add(customer.type);
+    for (const group of stationGroupsForRecipe(order.recipeId)) stationGroups.add(group);
     addAll(requiredIds, customer.appearanceAssets);
     addAll(requiredIds, Object.values(customer.reactionAssets ?? {}));
     addAll(requiredIds, order.grillAssetKeys ? Object.values(order.grillAssetKeys) : []);
@@ -62,6 +70,11 @@ export function resolveShiftAssetBundle(
     const variationAsset = order.requestedVariation?.assembledAssetKey;
     if (variationAsset) requiredIds.add(variationAsset);
     addAll(requiredIds, orderContent.ingredients.map((ingredient) => ingredient.assetKey));
+  }
+
+  const handsOnGroups = [...stationGroups];
+  if (handsOnGroups.length > 0 && canEnableHandsOnStations(productionAssets, handsOnGroups)) {
+    for (const group of handsOnGroups) addAll(requiredIds, requiredStationAssetIds(group));
   }
 
   for (const transformation of content.transformations) {
