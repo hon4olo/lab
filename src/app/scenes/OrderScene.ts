@@ -147,6 +147,18 @@ export class OrderScene extends Phaser.Scene {
         session.assemble();
         this.view.assembledFood(this.order.baseAssembledAssetKey);
         break;
+      case 'build-place':
+        session.placeAssemblyIngredient(action.ingredientId, action.point, action.rotation);
+        break;
+      case 'build-move':
+        session.moveAssemblyIngredient(action.instanceId, action.point, action.rotation);
+        break;
+      case 'build-sauce':
+        session.addAssemblySauceStroke(action.ingredientId, action.points);
+        break;
+      case 'complete-build':
+        session.completeSpatialAssembly();
+        break;
       case 'add-modifier':
         session.addModifier(action.ingredientId);
         this.view.assembledFood(session.snapshot().food?.visualVariant ?? this.order.baseAssembledAssetKey);
