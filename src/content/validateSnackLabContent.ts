@@ -2,6 +2,7 @@ import { getManifestAssets } from '../assets/assetManifest';
 import type { CustomerDefinition } from '../game/customers/CustomerDefinition';
 import type { IngredientDefinition } from '../game/ingredients/IngredientDefinition';
 import type { TransformationDefinition } from '../game/transformations/TransformationDefinition';
+import { assemblyDefinitionIssues } from './assemblyValidation';
 import type { ContentRegistry } from './ContentRegistry';
 import type { SnackLabContentRegistries } from './registries';
 import { grillConfigIssues } from './grillValidation';
@@ -131,6 +132,7 @@ function validateRecipes(
         issues.push(`Recipe ${recipe.id} references unknown compatible customer type ${customerType}.`);
       }
     }
+    issues.push(...assemblyDefinitionIssues(`Recipe ${recipe.id}`, recipe.assembly, availableIngredientIds));
     validateAssetReferences(`recipe ${recipe.id}`, [recipe.baseAssembledAssetKey], approved, allAssets, issues);
     issues.push(...grillConfigIssues(`recipe ${recipe.id}`, recipe.grillTiming, recipe.grillAssetKeys, approved, allAssets));
   }
