@@ -8,7 +8,7 @@ export interface GrillResult {
   /** Authored grill position used by the hands-on station. */
   readonly slotId?: string;
   /** Present when the player used the hands-on flip interaction. */
-  readonly flippedAtMs?: number | null;
+  readonly flippedAtMs?: number;
   /** 0-100 timing quality for the flip. Legacy no-flip cooking omits this field. */
   readonly flipQuality?: number;
 }
@@ -20,11 +20,11 @@ export interface GrillSnapshot {
   readonly progress: number;
   readonly result: GrillResult | null;
   /** Null until an ingredient has been physically placed on the grill. */
-  readonly slotId?: string | null;
+  readonly slotId: string | null;
   /** Null until a hands-on grill item is flipped. */
-  readonly flippedAtMs?: number | null;
-  readonly flipped?: boolean;
-  readonly idealFlipAtMs?: number;
+  readonly flippedAtMs: number | null;
+  readonly flipped: boolean;
+  readonly idealFlipAtMs: number;
 }
 
 export interface GrillTiming {
@@ -87,20 +87,26 @@ export class GrillSession {
     const flipQuality = this.flippedAtMs === null
       ? null
       : flipQualityAt(this.flippedAtMs, this.timing);
-    this.result = {
-      ingredientId: this.ingredientId,
-      state,
-      elapsedMs: this.elapsedMs,
-      quality: flipQuality === null
-        ? baseQuality
-        : Math.round(baseQuality * (flipQuality / 100)),
-      ...(this.slotId ? { slotId: this.slotId } : {}),
-      ...(this.flippedAtMs !== null ? {
-        flippedAtMs: this.flippedAtMs,
-        flipQuality,
-      } : {}),
-    };
-    return this.result;
+
+    const result: GrillResult = flipQuality === null
+      ? {
+          ingredientId: this.ingredientId,
+          state,
+          elapsedMs: this.elapsedMs,
+          quality: baseQuality,
+          ...(this.slotId ? { slotId: this.slotId } : {}),
+        }
+      : {
+          ingredientId: this.ingredientId,
+          state,
+          elapsedMs: this.elapsedMs,
+          quality: Math.round(baseQuality * (flipQuality / 100)),
+          ...(this.slotId ? { slotId: this.slotId } : {}),
+          flippedAtMs: this.flippedAtMs!,
+          flipQuality,
+        };
+    this.result = result;
+    return result;
   }
 
   public snapshot(): GrillSnapshot {
