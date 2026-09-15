@@ -32,10 +32,10 @@ export const HOTDOG_BUILD_ASSET_IDS = {
 } as const;
 
 const ORDER_SHELL_ASSET_IDS = [STREET_STATION_ASSET_IDS.orderBackground] as const;
-const PREP_SHELL_ASSET_IDS = [
-  STREET_STATION_ASSET_IDS.prepBackground,
-  STREET_STATION_ASSET_IDS.prepKnife,
-] as const;
+// Current Street Snack Bar Prep uses direct ingredient staging on the authored prep surface.
+// The knife stays part of the complete Batch 03 art package for future cutting recipes, but
+// recipes that do not use a knife must not be blocked by it.
+const PREP_SHELL_ASSET_IDS = [STREET_STATION_ASSET_IDS.prepBackground] as const;
 const GRILL_SHELL_ASSET_IDS = [
   STREET_STATION_ASSET_IDS.grillBackground,
   STREET_STATION_ASSET_IDS.grillSpatula,
@@ -44,6 +44,7 @@ const BUILD_SHELL_ASSET_IDS = [STREET_STATION_ASSET_IDS.buildBackground] as cons
 const HANDS_ON_STATION_SHELL_ASSET_IDS = [
   ...ORDER_SHELL_ASSET_IDS,
   ...PREP_SHELL_ASSET_IDS,
+  STREET_STATION_ASSET_IDS.prepKnife,
   ...GRILL_SHELL_ASSET_IDS,
   ...BUILD_SHELL_ASSET_IDS,
 ] as const;
@@ -63,7 +64,7 @@ export function requiredStationAssetIds(group: StationAssetGroup): readonly stri
   switch (group) {
     /** Backwards-compatible Batch 03 aggregate, including transformation art. */
     case 'shared': return Object.values(STREET_STATION_ASSET_IDS);
-    /** Backwards-compatible aggregate of all workstation screen/tool assets. */
+    /** Backwards-compatible aggregate of the complete Batch 03 workstation art package. */
     case 'hands-on-shell': return HANDS_ON_STATION_SHELL_ASSET_IDS;
     case 'order-shell': return ORDER_SHELL_ASSET_IDS;
     case 'prep-shell': return PREP_SHELL_ASSET_IDS;
