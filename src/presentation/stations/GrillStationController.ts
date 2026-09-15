@@ -48,7 +48,7 @@ export class GrillStationController {
     private readonly onAction: (action: OrderAction) => void,
   ) {
     this.rawSource = scene.add.image(0, 0, grillAssetKeys.raw).setDepth(18);
-    this.spatula = scene.add.image(0, 0, STREET_STATION_ASSET_IDS.spatula).setDepth(18);
+    this.spatula = scene.add.image(0, 0, STREET_STATION_ASSET_IDS.grillSpatula).setDepth(18);
     this.item = scene.add.image(0, 0, grillAssetKeys.raw).setDepth(16);
     this.dragPreview = scene.add.image(0, 0, grillAssetKeys.raw).setDepth(40).setVisible(false);
 
