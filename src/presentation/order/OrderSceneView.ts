@@ -128,7 +128,7 @@ export class OrderSceneView {
     this.grillController?.setVisible(handsOnGrillActive);
     if (handsOnGrillActive) this.grillController?.render(snapshot.grill);
 
-    const availableIngredients = snapshot.phase === 'ingredient-selection'
+    const availableIngredients = snapshot.phase === 'ingredient-selection' && !this.isHandsOnCookingEnabled()
       ? selectableBaseIngredientIds(this.order)
       : snapshot.phase === 'modifier-selection' ? modifierIngredientIds(this.order) : [];
     this.tray.render(snapshot.selectedIngredients, availableIngredients, this.localize);
@@ -199,6 +199,10 @@ export class OrderSceneView {
 
   public isHandsOnGrillEnabled(): boolean {
     return this.grillController !== null;
+  }
+
+  public isHandsOnCookingEnabled(): boolean {
+    return this.buildController !== null && this.grillController !== null;
   }
 
   public isReducedMotion(): boolean {
