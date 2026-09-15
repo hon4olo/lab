@@ -11,10 +11,8 @@ import {
   clickAction,
   clickModifier,
   completeHandsOnBaseOrder,
-  readSnapshot,
   snapshot,
   waitForSnapshot,
-  type BrowserSnapshot,
   type ViewportCase,
 } from './hands-on-helpers';
 
