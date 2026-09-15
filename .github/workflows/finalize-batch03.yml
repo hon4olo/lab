@@ -1,6 +1,6 @@
 name: Finalize Batch 03 verified assets
 
-# Batch 03 integration retry 3.
+# Batch 03 integration retry 4: nested gameplay build assets are now trackable.
 on:
   push:
     branches: [main]
