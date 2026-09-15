@@ -27,7 +27,11 @@ describe('first-shift asset bundle', () => {
     expect(ids.has('customer.picky-pigeon.mutation.neon')).toBe(true);
     expect(ids.has('fx.electric-sparks')).toBe(true);
     expect(ids.has('fx.neon-burst')).toBe(true);
+
     expect(ids.has('ui.station-tab')).toBe(false);
-    expect(bundle.assets).toHaveLength(productionAssets.length - 1);
+    expect(ids.has('customer.business-cat.mutation.fire-accents')).toBe(false);
+    expect(ids.has('customer.business-cat.mutation.glow-eyes')).toBe(false);
+    expect(ids.has('customer.business-cat.mutation.singed-tie')).toBe(false);
+    expect(bundle.assets).toHaveLength(productionAssets.length - 4);
   });
 });
