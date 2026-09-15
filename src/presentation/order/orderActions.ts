@@ -31,7 +31,7 @@ export function hasOrderAction(phase: OrderPhase): boolean {
 export function getActionLabel(
   snapshot: OrderSnapshot,
   order: OrderDefinition,
-  handsOnBuildEnabled = false,
+  _handsOnBuildEnabled = false,
 ): OrderActionLabel {
   switch (snapshot.phase) {
     case 'ingredient-selection': return 'action.open-prep';
