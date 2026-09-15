@@ -3,6 +3,7 @@ import type { OrderSnapshot } from '../../game/orders/OrderSession';
 import type { OrderAction } from '../order/orderActions';
 import {
   assemblyPointToScreen,
+  buildIngredientDisplayWidth,
   type AssemblyWorkspaceRect,
   type PointerKind,
 } from './AssemblyWorkspaceMapper';
@@ -20,9 +21,11 @@ export class BuildStationController {
   private readonly presenter: BuildStationPresenter;
   private readonly shelf: BuildStationShelfPresenter;
   private readonly input: BuildStationInputSession;
+  private readonly recipeId: string;
   private workspace: AssemblyWorkspaceRect = { x: 0, y: 0, width: 1, height: 1 };
   private visible = false;
   private selectedSauceId: string | null = null;
+  private draggingPlacementId: string | null = null;
   private dragPreview: Phaser.GameObjects.Image | null = null;
   private liveSauceImages: Phaser.GameObjects.Image[] = [];
   private lastLiveSaucePoint: { x: number; y: number } | null = null;
@@ -51,9 +54,13 @@ export class BuildStationController {
   private readonly handlePointerUp = (pointer: Phaser.Input.Pointer): void => {
     if (!this.visible) return;
     if (this.input.isDraggingIngredient()) {
-      if (this.contains(pointer.x, pointer.y)) this.input.dropIngredient(pointer.x, pointer.y);
-      else this.input.cancelIngredientDrag();
-      this.destroyDragPreview();
+      try {
+        if (this.contains(pointer.x, pointer.y)) this.input.dropIngredient(pointer.x, pointer.y);
+        else this.input.cancelIngredientDrag();
+      } finally {
+        this.restoreDraggedPlacement();
+        this.destroyDragPreview();
+      }
       return;
     }
     if (!this.input.isDrawingSauce()) return;
@@ -70,7 +77,10 @@ export class BuildStationController {
     recipeId: string,
     onAction: (action: OrderAction) => void,
   ) {
-    this.presenter = new BuildStationPresenter(scene, recipeId);
+    this.recipeId = recipeId;
+    this.presenter = new BuildStationPresenter(scene, recipeId, (placement, pointer) => {
+      this.beginPlacementDrag(placement, pointer);
+    });
     this.input = new BuildStationInputSession({
       placeIngredient: (ingredientId, point, rotation) => {
         onAction({ type: 'build-place', ingredientId, point, rotation });
@@ -111,6 +121,7 @@ export class BuildStationController {
     this.shelf.selectSauce(null);
     this.input.cancelIngredientDrag();
     this.input.cancelSauceStroke();
+    this.restoreDraggedPlacement();
     this.destroyDragPreview();
     this.clearLiveSauce();
   }
@@ -139,10 +150,34 @@ export class BuildStationController {
     this.shelf.selectSauce(null);
     this.input.cancelSauceStroke();
     this.input.beginIngredientDrag(tool.ingredientId);
+    this.draggingPlacementId = null;
     this.destroyDragPreview();
     this.dragPreview = this.scene.add.image(pointer.x, pointer.y, tool.assetKey).setDepth(40);
     const source = this.scene.textures.get(tool.assetKey).getSourceImage();
-    const width = ingredientPreviewWidth(tool.ingredientId, this.workspace.width);
+    const width = buildIngredientDisplayWidth(this.recipeId, tool.ingredientId, this.workspace.width);
+    this.dragPreview.setDisplaySize(width, source.height * (width / source.width));
+    const preview = this.input.previewIngredientDrag(pointer.x, pointer.y, pointerKind(pointer));
+    this.dragPreview.setPosition(preview.visualX, preview.visualY);
+  }
+
+  private beginPlacementDrag(
+    placement: { readonly instanceId: string; readonly ingredientId: string; readonly rotation: number },
+    pointer: Phaser.Input.Pointer,
+  ): void {
+    if (!this.visible || this.selectedSauceId) return;
+    const assetKey = this.presenter.assetKeyForIngredient(placement.ingredientId);
+    if (!assetKey) return;
+
+    this.selectedSauceId = null;
+    this.shelf.selectSauce(null);
+    this.input.cancelSauceStroke();
+    this.input.beginIngredientDrag(placement.ingredientId, placement.rotation, placement.instanceId);
+    this.draggingPlacementId = placement.instanceId;
+    this.presenter.setPlacementDragging(placement.instanceId, true);
+    this.destroyDragPreview();
+    this.dragPreview = this.scene.add.image(pointer.x, pointer.y, assetKey).setDepth(40);
+    const source = this.scene.textures.get(assetKey).getSourceImage();
+    const width = buildIngredientDisplayWidth(this.recipeId, placement.ingredientId, this.workspace.width);
     this.dragPreview.setDisplaySize(width, source.height * (width / source.width));
     const preview = this.input.previewIngredientDrag(pointer.x, pointer.y, pointerKind(pointer));
     this.dragPreview.setPosition(preview.visualX, preview.visualY);
@@ -163,11 +198,11 @@ export class BuildStationController {
       x: (screenX - this.workspace.x) / this.workspace.width,
       y: (screenY - this.workspace.y) / this.workspace.height,
     });
-    const width = Math.min(this.workspace.width * 0.055, 42);
+    const width = Math.max(24, Math.min(this.workspace.width * 0.065, 54));
     const source = this.scene.textures.get(assetKey).getSourceImage();
     const image = this.scene.add.image(point.x, point.y, assetKey)
       .setDisplaySize(width, source.height * (width / source.width))
-      .setDepth(19);
+      .setDepth(23);
     this.liveSauceImages.push(image);
     this.lastLiveSaucePoint = { x: screenX, y: screenY };
   }
@@ -175,6 +210,12 @@ export class BuildStationController {
   private destroyDragPreview(): void {
     this.dragPreview?.destroy();
     this.dragPreview = null;
+  }
+
+  private restoreDraggedPlacement(): void {
+    if (!this.draggingPlacementId) return;
+    this.presenter.setPlacementDragging(this.draggingPlacementId, false);
+    this.draggingPlacementId = null;
   }
 
   private clearLiveSauce(): void {
@@ -186,13 +227,6 @@ export class BuildStationController {
 
 function pointerKind(pointer: Phaser.Input.Pointer): PointerKind {
   return pointer.wasTouch ? 'touch' : 'mouse';
-}
-
-function ingredientPreviewWidth(ingredientId: string, workspaceWidth: number): number {
-  if (ingredientId === 'ingredient.extra-spicy' || ingredientId === 'ingredient.pickle') {
-    return Math.min(workspaceWidth * 0.075, 54);
-  }
-  return Math.min(workspaceWidth * 0.26, 190);
 }
 
 function sauceStampForIngredient(ingredientId: string): string | null {

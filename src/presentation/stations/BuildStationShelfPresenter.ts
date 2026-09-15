@@ -3,7 +3,7 @@ import {
   BURGER_BUILD_ASSET_IDS,
   HOTDOG_BUILD_ASSET_IDS,
 } from './StationAssetContract';
-import type { AssemblyWorkspaceRect } from './AssemblyWorkspaceMapper';
+import { calculateBuildShelfLayout, type AssemblyWorkspaceRect } from './AssemblyWorkspaceMapper';
 
 export type BuildToolMode = 'ingredient' | 'sauce';
 
@@ -55,11 +55,12 @@ export class BuildStationShelfPresenter {
     onToolPointerDown: (tool: BuildToolDefinition, pointer: Phaser.Input.Pointer) => void,
   ) {
     this.visuals = buildToolsForRecipe(recipeId).map((definition) => {
-      const slot = scene.add.image(0, 0, 'ui.ingredient-slot').setDepth(21);
-      const image = scene.add.image(0, 0, definition.assetKey)
-        .setDepth(22)
+      const slot = scene.add.image(0, 0, 'ui.ingredient-slot')
+        .setDepth(21)
         .setInteractive({ useHandCursor: true })
         .on('pointerdown', (pointer: Phaser.Input.Pointer) => onToolPointerDown(definition, pointer));
+      const image = scene.add.image(0, 0, definition.assetKey)
+        .setDepth(22);
       return { definition, slot, image };
     });
   }
@@ -70,33 +71,17 @@ export class BuildStationShelfPresenter {
     workspace: AssemblyWorkspaceRect,
   ): void {
     if (this.visuals.length === 0) return;
-    const portrait = screenHeight > screenWidth * 1.1;
-    const rows = portrait ? 2 : 1;
-    const columns = Math.ceil(this.visuals.length / rows);
-    const availableWidth = portrait ? screenWidth * 0.92 : Math.min(screenWidth * 0.74, 760);
-    const cellWidth = Math.min(104, availableWidth / columns);
-    const slotSize = Math.max(58, Math.min(88, cellWidth * 0.84));
-    const rowGap = portrait ? slotSize * 0.9 : 0;
-    const startX = screenWidth / 2 - ((columns - 1) * cellWidth) / 2;
-    const bottomRowOffset = (rows - 1) * rowGap;
-    const baseY = portrait
-      ? Math.min(
-          screenHeight - slotSize * 0.72 - bottomRowOffset,
-          workspace.y + workspace.height + slotSize * 0.66,
-        )
-      : Math.min(screenHeight - slotSize * 0.66, workspace.y + workspace.height + slotSize * 0.62);
+    const shelf = calculateBuildShelfLayout(screenWidth, screenHeight, workspace, this.visuals.length);
 
     this.visuals.forEach((visual, index) => {
-      const row = Math.floor(index / columns);
-      const column = index % columns;
-      const x = startX + column * cellWidth;
-      const y = baseY + row * rowGap;
-      visual.slot.setPosition(x, y).setDisplaySize(slotSize, slotSize);
+      const slot = shelf.slots[index];
+      if (!slot) return;
+      visual.slot.setPosition(slot.x, slot.y).setDisplaySize(slot.size, slot.size);
       const source = visual.image.scene.textures.get(visual.definition.assetKey).getSourceImage();
-      const maxWidth = visual.definition.mode === 'sauce' ? slotSize * 0.42 : slotSize * 0.67;
-      const maxHeight = visual.definition.mode === 'sauce' ? slotSize * 0.72 : slotSize * 0.61;
+      const maxWidth = visual.definition.mode === 'sauce' ? slot.size * 0.72 : slot.size * 0.84;
+      const maxHeight = visual.definition.mode === 'sauce' ? slot.size * 0.84 : slot.size * 0.72;
       const scale = Math.min(maxWidth / source.width, maxHeight / source.height);
-      visual.image.setPosition(x, y).setDisplaySize(source.width * scale, source.height * scale);
+      visual.image.setPosition(slot.x, slot.y).setDisplaySize(source.width * scale, source.height * scale);
     });
   }
 
@@ -114,6 +99,7 @@ export class BuildStationShelfPresenter {
       visual.slot.setVisible(visible);
       visual.image.setVisible(visible);
       if (visual.image.input) visual.image.input.enabled = visible;
+      if (visual.slot.input) visual.slot.input.enabled = visible;
     }
   }
 

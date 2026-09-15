@@ -1,6 +1,7 @@
 import { expect, type Page } from '@playwright/test';
 import { calculateOrderLayout, finalizeOrderLayout } from '../../src/presentation/order/orderLayout';
 import { createStationPresentation } from '../../src/presentation/order/stationPresentation';
+import { calculateBuildShelfLayout } from '../../src/presentation/stations/AssemblyWorkspaceMapper';
 
 interface AssemblyPlacement {
   readonly ingredientId: string;
@@ -341,27 +342,10 @@ function buildShelfPoint(
   index: number,
   count: number,
 ): { readonly x: number; readonly y: number } {
-  const portrait = viewport.height > viewport.width * 1.1;
-  const rows = portrait ? 2 : 1;
-  const columns = Math.ceil(count / rows);
-  const availableWidth = portrait ? viewport.width * 0.92 : Math.min(viewport.width * 0.74, 760);
-  const cellWidth = Math.min(104, availableWidth / columns);
-  const slotSize = Math.max(58, Math.min(88, cellWidth * 0.84));
-  const rowGap = portrait ? slotSize * 0.9 : 0;
-  const startX = viewport.width / 2 - ((columns - 1) * cellWidth) / 2;
-  const bottomRowOffset = (rows - 1) * rowGap;
-  const baseY = portrait
-    ? Math.min(
-        viewport.height - slotSize * 0.72 - bottomRowOffset,
-        workspace.y + workspace.height + slotSize * 0.66,
-      )
-    : Math.min(viewport.height - slotSize * 0.66, workspace.y + workspace.height + slotSize * 0.62);
-  const row = Math.floor(index / columns);
-  const column = index % columns;
-  return {
-    x: startX + column * cellWidth,
-    y: baseY + row * rowGap,
-  };
+  const shelf = calculateBuildShelfLayout(viewport.width, viewport.height, workspace, count);
+  const slot = shelf.slots[index];
+  if (!slot) throw new Error(`No Build shelf slot for index ${index}.`);
+  return { x: slot.x, y: slot.y };
 }
 
 function sauceTargetSpread(ingredientId: string): number {
