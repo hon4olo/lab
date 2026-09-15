@@ -66,8 +66,8 @@ export function createStationPresentation(layout: OrderLayout, mode: StationPres
 
   return {
     mode,
-    showWorkspace: mode === 'prep' || mode === 'grill' || mode === 'build',
-    showCounter: mode === 'order' || mode === 'serve' || mode === 'results',
+    showWorkspace: mode === 'prep' || mode === 'grill' || mode === 'build' || mode === 'results',
+    showCounter: mode === 'order' || mode === 'serve',
     showCustomer: mode === 'order' || mode === 'serve',
     showStation: mode === 'prep' || mode === 'grill' || mode === 'build',
     stationAsset: mode === 'grill' ? 'station.grill.street' : 'station.prep-board.street',
