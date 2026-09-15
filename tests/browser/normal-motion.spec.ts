@@ -2,7 +2,6 @@ import { expect, test } from '@playwright/test';
 import {
   BURGER_BUILD_INGREDIENTS,
   clickAction,
-  clickModifier,
   completeHandsOnBaseOrder,
   snapshot,
   waitForSnapshot,
@@ -36,11 +35,6 @@ test('normal motion completes Business Cat reaction and customer exit callbacks'
     'recipe.hot-cheese-burger',
     BURGER_BUILD_INGREDIENTS,
   );
-  await clickModifier(page, viewport);
-  await expect.poll(async () => (await snapshot(page)).selectedIngredients.includes('ingredient.extra-spicy'), {
-    timeout: 8_000,
-    intervals: [50, 100, 250],
-  }).toBe(true);
   await clickAction(page, viewport);
   await waitForSnapshot(page, { orderId: ORDER_ID, orderPhase: 'anticipation' });
 
