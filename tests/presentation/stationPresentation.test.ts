@@ -5,7 +5,7 @@ import { calculateOrderLayout, finalizeOrderLayout } from '../../src/presentatio
 describe('station presentation flow', () => {
   it('maps order phases into distinct player-facing stations', () => {
     expect(stationModeForPhase('customer-entering')).toBe('order');
-    expect(stationModeForPhase('ingredient-selection')).toBe('prep');
+    expect(stationModeForPhase('ingredient-selection')).toBe('order');
     expect(stationModeForPhase('prep-board')).toBe('prep');
     expect(stationModeForPhase('grilling')).toBe('grill');
     expect(stationModeForPhase('assembly')).toBe('build');
@@ -32,8 +32,9 @@ describe('station presentation flow', () => {
       finalizeOrderLayout(calculateOrderLayout(1440, 900)),
       'grill',
     );
-    expect(desktop.stationWidth).toBeLessThanOrEqual(768);
-    expect(desktop.customerSize).toBeLessThanOrEqual(310);
+    expect(desktop.stationWidth).toBeLessThanOrEqual(1440 * 0.90);
+    expect(desktop.stationWidth).toBeGreaterThanOrEqual(1440 * 0.60);
+    expect(desktop.customerSize).toBeLessThanOrEqual(410);
     expect(desktop.counterWidth).toBeLessThanOrEqual(1080);
 
     const mobile = createStationPresentation(
@@ -42,5 +43,36 @@ describe('station presentation flow', () => {
     );
     expect(mobile.workspaceWidth).toBeLessThanOrEqual(360);
     expect(mobile.stationWidth).toBeLessThan(desktop.stationWidth);
+  });
+
+  it('keeps every hands-on surface broad, central, and inside the viewport', () => {
+    const viewports = [
+      [360, 640],
+      [844, 390],
+      [1280, 720],
+      [1440, 900],
+    ] as const;
+
+    for (const [width, height] of viewports) {
+      const layout = finalizeOrderLayout(calculateOrderLayout(width, height));
+      for (const mode of ['prep', 'grill', 'build'] as const) {
+        const presentation = createStationPresentation(layout, mode);
+        const surface = presentation.workSurface;
+        expect(surface.width).toBeGreaterThanOrEqual(width * 0.60);
+        expect(surface.x).toBeGreaterThanOrEqual(0);
+        expect(surface.y).toBeGreaterThanOrEqual(0);
+        expect(surface.x + surface.width).toBeLessThanOrEqual(width);
+        expect(surface.y + surface.height).toBeLessThanOrEqual(height);
+        expect(presentation.backgroundAsset).toMatch(/^station\.street\.|^background\./);
+      }
+    }
+  });
+
+  it('keeps ticket/status controls in a separate top band', () => {
+    const layout = finalizeOrderLayout(calculateOrderLayout(1280, 720));
+    const prep = createStationPresentation(layout, 'prep');
+    expect(prep.hudBand.y + prep.hudBand.height).toBeLessThan(prep.workSurface.y);
+    expect(prep.toolBand.y).toBeGreaterThan(prep.workSurface.y);
+    expect(prep.focusScale).toBeGreaterThan(1);
   });
 });
