@@ -102,8 +102,6 @@ export class BuildStationShelfPresenter {
       const selected = visual.definition.mode === 'sauce' && visual.definition.ingredientId === ingredientId;
       visual.slot.setAlpha(this.selectedSauceId === null || selected ? 1 : 0.62);
       visual.image.setAlpha(this.selectedSauceId === null || selected ? 1 : 0.72);
-      if (selected) visual.slot.setScale(1.06);
-      else visual.slot.setScale(1);
     }
   }
 
