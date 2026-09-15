@@ -1,4 +1,4 @@
-import type { AssetManifestEntry } from '../../assets/assetManifest';
+import type { ProductionAsset } from '../../assets/assetManifest';
 
 export const STREET_STATION_ASSET_IDS = {
   orderBackground: 'background.street-snack-bar.order',
@@ -42,7 +42,7 @@ export function requiredStationAssetIds(group: StationAssetGroup): readonly stri
 }
 
 export function missingApprovedStationAssets(
-  manifest: readonly AssetManifestEntry[],
+  manifest: readonly ProductionAsset[],
   groups: readonly StationAssetGroup[],
 ): readonly string[] {
   const approved = new Set(
@@ -52,7 +52,7 @@ export function missingApprovedStationAssets(
 }
 
 export function canEnableHandsOnStations(
-  manifest: readonly AssetManifestEntry[],
+  manifest: readonly ProductionAsset[],
   groups: readonly StationAssetGroup[],
 ): boolean {
   return missingApprovedStationAssets(manifest, groups).length === 0;
