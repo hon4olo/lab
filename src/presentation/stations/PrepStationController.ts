@@ -60,13 +60,16 @@ export class PrepStationController {
   public layout(width: number, height: number): void {
     const portrait = width < height;
     this.sourceWidth = Math.min(width * (portrait ? 0.30 : 0.15), 170);
-    this.sourceX = width * (portrait ? 0.22 : 0.14);
-    this.sourceY = height * (portrait ? 0.82 : 0.80);
+    this.sourceX = width * (portrait ? 0.20 : 0.14);
+    this.sourceY = height * (portrait ? 0.86 : 0.85);
 
-    const targetWidth = width * (portrait ? 0.70 : 0.48);
-    const targetHeight = height * (portrait ? 0.36 : 0.50);
+    // The approved Prep background already contains the authored wooden work board.
+    // Keep the invisible drop target on that board instead of the old generic
+    // mid-screen workspace so the interaction reads as part of the environment.
+    const targetWidth = width * (portrait ? 0.82 : 0.56);
+    const targetHeight = height * (portrait ? 0.28 : 0.30);
     const centerX = width * 0.5;
-    const centerY = height * (portrait ? 0.45 : 0.48);
+    const centerY = height * (portrait ? 0.68 : 0.69);
     this.target.setTo(
       centerX - targetWidth / 2,
       centerY - targetHeight / 2,
