@@ -115,6 +115,8 @@ export function finalizeOrderLayout(layout: OrderLayout): OrderLayout {
 export function buildActionPosition(layout: OrderLayout): { readonly x: number; readonly y: number } {
   return {
     x: layout.width - layout.safeInset - layout.actionWidth / 2,
-    y: layout.height > layout.width ? layout.height * 0.30 : layout.height * 0.16,
+    // Compact landscape already has a shallow top HUD, so drop the CTA into
+    // the clear band between the patience meter and the central tray.
+    y: layout.height > layout.width || layout.compact ? layout.height * 0.30 : layout.height * 0.16,
   };
 }
