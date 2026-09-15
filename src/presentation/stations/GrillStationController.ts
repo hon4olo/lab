@@ -4,6 +4,8 @@ import type { OrderDefinition } from '../../game/orders/OrderDefinition';
 import type { OrderAction } from '../order/orderActions';
 import { STREET_STATION_ASSET_IDS } from './StationAssetContract';
 
+type GrillAssetKeys = NonNullable<OrderDefinition['grillAssetKeys']>;
+
 interface GrillSlot {
   readonly id: string;
   readonly x: number;
@@ -42,7 +44,7 @@ export class GrillStationController {
 
   public constructor(
     private readonly scene: Phaser.Scene,
-    private readonly grillAssetKeys: OrderDefinition['grillAssetKeys'],
+    private readonly grillAssetKeys: GrillAssetKeys,
     private readonly onAction: (action: OrderAction) => void,
   ) {
     this.rawSource = scene.add.image(0, 0, grillAssetKeys.raw).setDepth(18);
@@ -167,8 +169,7 @@ export class GrillStationController {
   }
 
   private renderToolSelection(): void {
-    this.spatula.setAlpha(this.spatulaSelected ? 1 : 0.86);
-    this.spatula.setScale(this.spatulaSelected ? 1.08 : 1);
+    this.spatula.setAlpha(this.spatulaSelected ? 1 : 0.72);
   }
 
   private assetForState(state: GrillSnapshot['state']): string {
