@@ -1,3 +1,5 @@
+import type { AssemblyEvaluation } from '../assembly/AssemblyEvaluation';
+import type { FoodAssemblySnapshot } from '../assembly/AssemblySession';
 import type { FoodInstance } from '../cooking/FoodInstance';
 import type { GrillSnapshot } from '../cooking/GrillSession';
 import type { CustomerPatienceSnapshot } from '../customers/CustomerPatienceSession';
@@ -26,6 +28,10 @@ export interface OrderSnapshot {
   readonly food: FoodInstanceSnapshot | null;
   readonly grill: GrillSnapshot;
   readonly assembled: boolean;
+  /** Present when the recipe owns a spatial Build Station contract. */
+  readonly assembly?: FoodAssemblySnapshot;
+  /** Present after a spatial assembly has been completed/evaluated. */
+  readonly assemblyEvaluation?: AssemblyEvaluation;
   readonly scores: ScoreResult | null;
   readonly transformationResult: TransformationSnapshot | null;
   readonly payment: PaymentTransaction | null;
