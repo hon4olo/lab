@@ -45,8 +45,12 @@ export class SpatialOrderAssembly {
     this.session.clearSauce(ingredientId);
   }
 
+  public isComplete(): boolean {
+    return this.session.isComplete();
+  }
+
   public complete(): AssemblyEvaluation {
-    if (!this.session.isComplete()) throw new Error('Spatial food assembly is incomplete.');
+    if (!this.isComplete()) throw new Error('Spatial food assembly is incomplete.');
     this.evaluation = evaluateAssembly(this.definition, this.session.snapshot());
     return this.evaluation;
   }
