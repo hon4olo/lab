@@ -80,6 +80,7 @@ function createSpatialSession(): OrderSession {
         extraIngredientPenalty: 6,
         unpreparedIngredientPenalty: 10,
         unassembledPenalty: 20,
+        spatialAssemblyWeight: 0.25,
         qualityBonusScale: 500,
         chaosBonusScale: 1000,
         chaosBonusCap: 200,
