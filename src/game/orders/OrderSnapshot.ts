@@ -30,6 +30,8 @@ export interface OrderSnapshot {
   readonly assembled: boolean;
   /** Present when the recipe owns a spatial Build Station contract. */
   readonly assembly?: FoodAssemblySnapshot;
+  /** True when all minimum authored spatial assembly rules are satisfied. */
+  readonly assemblyReady?: boolean;
   /** Present after a spatial assembly has been completed/evaluated. */
   readonly assemblyEvaluation?: AssemblyEvaluation;
   readonly scores: ScoreResult | null;
