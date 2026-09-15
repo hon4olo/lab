@@ -66,7 +66,14 @@ export class OrderSceneView {
     });
     this.customer = new CustomerPresenter(scene, customerDefinition);
     this.food = new FoodPresenter(scene, order.grillAssetKeys);
-    this.hud = new OrderHudPresenter(scene, order, customerDefinition.displayNameKey, onAction);
+    const handsOnBuildEnabled = this.hasHandsOnBuildTextures();
+    this.hud = new OrderHudPresenter(
+      scene,
+      order,
+      customerDefinition.displayNameKey,
+      onAction,
+      handsOnBuildEnabled,
+    );
     this.stationRail = new StationRailPresenter(scene);
     this.tray = new IngredientTrayPresenter(scene, ingredients, (ingredientId, x, y) => {
       if (this.currentPhase === 'modifier-selection' && modifierIngredientIds(this.order).includes(ingredientId)) {
@@ -75,7 +82,7 @@ export class OrderSceneView {
         this.onAction({ type: 'ingredient', ingredientId, x, y });
       }
     });
-    this.buildController = this.hasHandsOnBuildTextures()
+    this.buildController = handsOnBuildEnabled
       ? new BuildStationController(scene, order.recipeId, onAction)
       : null;
     this.layout(width, height);
