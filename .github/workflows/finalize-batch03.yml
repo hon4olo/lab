@@ -1,6 +1,6 @@
 name: Finalize Batch 03 verified assets
 
-# Batch 03 integration retry 7: restore trackable build art and keep QA geometry aligned with authored stations.
+# Batch 03 integration retry 8: restore trackable build art and align QA geometry with authored stations.
 on:
   push:
     branches: [main]
@@ -60,26 +60,24 @@ jobs:
 
           start = text.index('function grillGeometry(viewport: ViewportCase) {')
           end = text.index('\n\ninterface WorkspaceRect', start)
-          grill = '''function grillGeometry(viewport: ViewportCase) {
-            const portrait = viewport.width < viewport.height;
-            const centerX = viewport.width * 0.5;
-            const centerY = viewport.height * 0.66;
-            return {
-              source: {
-                x: viewport.width * (portrait ? 0.20 : 0.14),
-                y: viewport.height * 0.85,
-              },
-              spatula: {
-                x: viewport.width * (portrait ? 0.80 : 0.86),
-                y: viewport.height * 0.84,
-              },
-              slot: {
-                x: centerX - viewport.width * (portrait ? 0.17 : 0.14),
-                y: centerY - viewport.height * (portrait ? 0.075 : 0.085),
-              },
-            };
-          }'''
-          text = text[:start] + grill + text[end:]
+          section = text[start:end]
+          replacements = [
+              ('  const grillWidth = portrait ? viewport.width * 0.72 : Math.min(viewport.width * 0.52, 720);\n', ''),
+              ('  const grillHeight = portrait ? viewport.height * 0.38 : Math.min(viewport.height * 0.56, 460);\n', ''),
+              ('  const centerY = viewport.height * (portrait ? 0.44 : 0.48);', '  const centerY = viewport.height * 0.66;'),
+              ('      x: viewport.width * (portrait ? 0.23 : 0.15),', '      x: viewport.width * (portrait ? 0.20 : 0.14),'),
+              ('      y: viewport.height * 0.82,', '      y: viewport.height * 0.85,'),
+              ('      x: viewport.width * (portrait ? 0.78 : 0.86),', '      x: viewport.width * (portrait ? 0.80 : 0.86),'),
+              ('      y: viewport.height * 0.80,', '      y: viewport.height * 0.84,'),
+              ('      x: centerX - grillWidth * 0.24,', '      x: centerX - viewport.width * (portrait ? 0.17 : 0.14),'),
+              ('      y: centerY - grillHeight * 0.22,', '      y: centerY - viewport.height * (portrait ? 0.075 : 0.085),'),
+          ]
+          for old, new in replacements:
+              if old in section:
+                  section = section.replace(old, new, 1)
+              elif new and new not in section:
+                  raise RuntimeError(f'Grill QA geometry token changed unexpectedly: {old}')
+          text = text[:start] + section + text[end:]
           path.write_text(text)
           PY
 
