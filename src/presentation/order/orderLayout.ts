@@ -60,7 +60,10 @@ export function calculateOrderLayout(width: number, height: number): OrderLayout
     orderWidth: wide ? Math.min(width * 0.34, 330) : Math.min(width * 0.74, 280),
     orderHeight: 0,
     actionX: wide ? width * 0.84 : width * 0.5,
-    actionY: height - (wide ? 55 : 28),
+    // Compact landscape Build uses the bottom band for six ingredient tools.
+    // Keep the CTA one row above that shelf so an enabled Finish Build button
+    // cannot intercept optional sauce/tool input on the right edge.
+    actionY: height - (wide ? (compact ? 120 : 55) : 28),
     actionWidth: wide ? Math.min(width * 0.20, 220) : width * 0.58,
     actionHeight: Math.min(66, Math.max(50, height * 0.095)),
     tileSize: Math.min(tileSize, wide ? 78 : 72),
