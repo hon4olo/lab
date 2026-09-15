@@ -1,3 +1,6 @@
+import type { AssemblyDefinition, AssemblyPoint } from '../assembly/AssemblyDefinition';
+import type { AssemblyEvaluation } from '../assembly/AssemblyEvaluation';
+import type { PlacedIngredient, SauceStroke } from '../assembly/AssemblySession';
 import type { TransformationDefinition } from '../transformations/TransformationDefinition';
 import type { FoodInstance } from '../cooking/FoodInstance';
 import { GrillSession, type GrillResult, type GrillSnapshot } from '../cooking/GrillSession';
@@ -19,8 +22,10 @@ import {
   hasModifiers,
   modifierIngredientIds,
   orderVariationAssetKey,
+  resolveOrderAvailableIngredientIds,
   selectableBaseIngredientIds,
 } from './OrderRequirements';
+import { SpatialOrderAssembly } from './SpatialOrderAssembly';
 import { resolveTransformation } from '../transformations/resolveTransformation';
 import type { ProgressionContext } from '../progression/ProgressionContext';
 import type { BalanceConfig } from '../balance/BalanceConfig';
@@ -38,6 +43,7 @@ export interface OrderSessionOptions {
   readonly transactionId: string;
   readonly progression: ProgressionContext;
   readonly balance: BalanceConfig;
+  readonly assembly?: AssemblyDefinition;
 }
 
 export class OrderSession {
@@ -47,6 +53,7 @@ export class OrderSession {
   private readonly grillSession: GrillSession;
   private readonly lifecycle = new CustomerLifecycle();
   private readonly patience: CustomerPatienceSession;
+  private readonly spatialAssembly: SpatialOrderAssembly | null;
   private grillResult: GrillResult | null = null;
   private food: FoodInstance | null = null;
   private assembled = false;
@@ -65,6 +72,7 @@ export class OrderSession {
     this.selection = new IngredientSelection(ingredients);
     this.prepBoard = new PrepBoardSession(ingredients);
     this.patience = new CustomerPatienceSession(customer.patienceMs);
+    this.spatialAssembly = options.assembly ? new SpatialOrderAssembly(options.assembly) : null;
     this.lifecycle.beginEntry();
   }
 
@@ -134,6 +142,7 @@ export class OrderSession {
     return this.grillResult;
   }
 
+  /** Legacy one-click assembly retained only until the asset-gated hands-on station is enabled. */
   public assemble(): void {
     this.requirePhase('assembly');
     this.refreshFood();
@@ -142,6 +151,63 @@ export class OrderSession {
     this.food = result.food;
     this.assembled = true;
     this.phase = hasModifiers(this.order) ? 'modifier-selection' : 'assembly';
+  }
+
+  public placeAssemblyIngredient(
+    ingredientId: string,
+    point: AssemblyPoint,
+    rotation = 0,
+    scale?: number,
+  ): PlacedIngredient {
+    this.requirePhase('assembly');
+    return this.requireSpatialAssembly().placeIngredient(ingredientId, point, rotation, scale);
+  }
+
+  public moveAssemblyIngredient(
+    instanceId: string,
+    point: AssemblyPoint,
+    rotation?: number,
+  ): PlacedIngredient {
+    this.requirePhase('assembly');
+    return this.requireSpatialAssembly().moveIngredient(instanceId, point, rotation);
+  }
+
+  public removeAssemblyIngredient(instanceId: string): void {
+    this.requirePhase('assembly');
+    this.requireSpatialAssembly().removeIngredient(instanceId);
+  }
+
+  public addAssemblySauceStroke(
+    ingredientId: string,
+    points: readonly AssemblyPoint[],
+  ): SauceStroke {
+    this.requirePhase('assembly');
+    return this.requireSpatialAssembly().addSauceStroke(ingredientId, points);
+  }
+
+  public clearAssemblySauce(ingredientId: string): void {
+    this.requirePhase('assembly');
+    this.requireSpatialAssembly().clearSauce(ingredientId);
+  }
+
+  public completeSpatialAssembly(): AssemblyEvaluation {
+    this.requirePhase('assembly');
+    const assembly = this.requireSpatialAssembly();
+    const evaluation = assembly.complete();
+    this.syncSelectionToAssembly(assembly.includedIngredientIds());
+    this.refreshFood();
+    if (!this.food) throw new Error('Food cannot be assembled before ingredients are prepared.');
+    const variationAsset = orderVariationAssetKey(this.order);
+    const visualAsset = hasAppliedVariation(this.order, this.selection.getSelected()) && variationAsset
+      ? variationAsset
+      : this.order.baseAssembledAssetKey;
+    this.food = {
+      ...this.food,
+      ingredientOrder: assembly.orderedIngredientIds(),
+      visualVariant: visualAsset,
+    };
+    this.assembled = true;
+    return evaluation;
   }
 
   public addModifier(ingredientId: string): void {
@@ -161,7 +227,7 @@ export class OrderSession {
     } else {
       this.requirePhase('assembly');
     }
-    if (!this.assembled) throw new Error('Assemble the burger before serving it.');
+    if (!this.assembled) throw new Error('Assemble the food before serving it.');
     this.lifecycle.serveOrder();
     this.phase = 'anticipation';
   }
@@ -211,6 +277,7 @@ export class OrderSession {
 
   public snapshot(): OrderSnapshot {
     const transformation = this.transformation;
+    const assemblyEvaluation = this.spatialAssembly?.evaluationSnapshot() ?? null;
     return {
       orderId: this.order.id,
       phase: this.phase,
@@ -221,6 +288,8 @@ export class OrderSession {
       food: this.food ? { ...this.food, tags: [...this.food.tags] } : null,
       grill: this.grillSession.snapshot(),
       assembled: this.assembled,
+      ...(this.spatialAssembly ? { assembly: this.spatialAssembly.snapshot() } : {}),
+      ...(assemblyEvaluation ? { assemblyEvaluation } : {}),
       scores: this.scores ? { ...this.scores } : null,
       transformationResult: transformation
         ? {
@@ -236,6 +305,14 @@ export class OrderSession {
     };
   }
 
+  private syncSelectionToAssembly(includedIngredientIds: readonly string[]): void {
+    const included = new Set(includedIngredientIds);
+    const selected = new Set(this.selection.getSelected());
+    for (const ingredientId of resolveOrderAvailableIngredientIds(this.order)) {
+      if (included.has(ingredientId) !== selected.has(ingredientId)) this.selection.toggle(ingredientId);
+    }
+  }
+
   private refreshFood(): void {
     const history: readonly { stationId: string; result: string; quality: number }[] = [
       ...(this.prepBoard.getPrepared().length > 0
@@ -245,15 +322,14 @@ export class OrderSession {
         ? [{ stationId: 'station.grill.street', result: this.grillResult.state, quality: this.grillResult.quality }]
         : []),
     ];
-    const foodBuildInput = {
+    this.food = createFoodInstance({
       id: this.order.foodInstanceId,
       selectedIds: this.selection.getSelected(),
       preparedIds: this.prepBoard.getPrepared(),
       ingredients: this.ingredients,
       grillResult: this.grillResult,
       stationHistory: history,
-    };
-    this.food = createFoodInstance(foodBuildInput);
+    });
     if (this.assembled) {
       const variationAsset = orderVariationAssetKey(this.order);
       const visualAsset = hasAppliedVariation(this.order, this.selection.getSelected()) && variationAsset
@@ -263,9 +339,15 @@ export class OrderSession {
     }
   }
 
+  private requireSpatialAssembly(): SpatialOrderAssembly {
+    if (!this.spatialAssembly) throw new Error(`Order ${this.order.id} has no spatial assembly contract.`);
+    return this.spatialAssembly;
+  }
+
   private isCustomerWaiting(): boolean {
     return ['ingredient-selection', 'prep-board', 'grilling', 'assembly', 'modifier-selection'].includes(this.phase);
   }
+
   private requirePhase(expected: OrderPhase): void {
     if (this.phase !== expected) throw new Error(`Order is in ${this.phase}; expected ${expected}.`);
   }
