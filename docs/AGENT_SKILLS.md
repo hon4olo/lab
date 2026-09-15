@@ -1,40 +1,70 @@
-# Agent Skills
+# Agent skill routing
 
-Project-local skills are installed under `.agents/skills/` and are discovered by Codex from this
-repository. This file records provenance and routing only; the installed `SKILL.md` files remain the
-source for each skill's instructions.
+Use skills selectively. Do not load the full catalog for routine work.
 
-Current project-local skill count: 25.
+## Default for substantial Snack Lab work
 
-## Built-in
+Start with:
 
-- `develop-web-game` — not available in the current Codex skill catalog or official OpenAI skills
-  repository at bootstrap time.
+- `.agents/skills/snack-lab-production/SKILL.md`
 
-## Game development pack
+This is the project-specific workflow and overrides generic assumptions about station structure,
+assembly, placeholders, and visual QA.
 
-- `router`, `create-game-assets`, `save-systems`, `audio-design`, `level-design`, `input-systems`,
-  `game-feel`, `game-ui-ux`, `performance-optimization`, `prototype-fast`, `puzzle`,
-  `procedural-gen`, `physics-tuning`, `camera-systems`
-  — `gamedev-skills/awesome-gamedev-agent-skills`.
+## Compose only when relevant
 
-- `web-game-foundations` — official OpenAI [Game Studio plugin](https://github.com/openai/plugins),
-  architecture-first browser-game foundation. Its references are vendored inside the skill so
-  relative links remain valid in project-local discovery.
+### UI / station layout
 
-## Platform and review skills
+- `game-ui-ux`
+- `player-cognition-ux-review`
+- `humane-ui-stress-case-review` when appropriate
 
-- `yandex-games-dev` — `Ayubjon/yandex-games-skill`; complete bundle retained.
-- `playgama-bridge-integration` — `Playgama/bridge-claude-plugins`; the source skill is named
-  `integration`, so its local metadata name was made unique without changing its instructions.
-- `web-game-ad-monetization-implementation`, `f2p-monetization-ethics-review`,
-  `ad-consent-privacy-compliance`, `portal-publish-readiness`, `virtual-economy-review`,
-  `multi-lens-design-review`, `player-cognition-ux-review`, `systems-balance-characteristics-review`,
-  `humane-ui-stress-case-review`, `portal-store-page-packaging`, `analytics-retention-instrumentation`,
-  `web-performance-input-qa` — `horn111/web-game-ad-skills`.
+### Pointer/touch manipulation
 
-## Important boundaries
+- `input-systems`
 
-- No engine-specific skills are installed until an engine is selected.
-- No SDK, ad manager, analytics runtime, or Playgama Bridge runtime is part of the project.
-- Official platform documentation remains authoritative over skill references.
+### Feedback / responsiveness
+
+- `game-feel`
+- `audio-design` when audio is in scope
+
+### Asset generation/import
+
+- `create-game-assets`
+
+Always combine with project art/asset docs. Generic asset generation must not override Snack Lab's
+approved style or no-placeholder rule.
+
+### Performance
+
+- `performance-optimization`
+
+Use after measuring startup/runtime behavior; do not prematurely rewrite working Phaser systems.
+
+### Saves
+
+- save-system skill if available/relevant; preserve current versioned/idempotent save architecture.
+
+### Portal integration
+
+Only when explicitly working on a portal:
+
+- `yandex-games-dev` / current official Yandex documentation
+- `playgama-bridge-integration`
+- relevant web-game ad skills
+- `portal-publish-readiness`
+- `portal-store-page-packaging`
+- consent/privacy skills when monetization requires them
+
+Official current portal documentation is the source of truth for changing APIs/policies.
+
+## Current station-development rule
+
+Before implementing Prep/Grill/Build presentation, read:
+
+- `docs/STATION_GAMEPLAY.md`
+- `docs/ARCHITECTURE.md`
+- `docs/ART_DIRECTION.md`
+- `docs/ASSET_BATCH_03_REQUIREMENTS.md`
+
+Do not let a generic skill turn the game back into a single scene or one-click assembly.
