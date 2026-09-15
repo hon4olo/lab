@@ -82,14 +82,7 @@ export class OrderHudPresenter {
 
   public layout(layout: OrderLayout): void {
     this.layoutState = layout;
-    const orderWidth = layout.orderWidth;
-    const orderHeight = layout.orderHeight;
-    this.orderBubble.setPosition(layout.orderX, layout.orderY).setDisplaySize(orderWidth, orderHeight);
-    this.customerName.setPosition(layout.orderX, layout.orderY - orderHeight * 0.30);
-    this.title.setPosition(layout.orderX, layout.orderY - orderHeight * 0.10).setFontSize(layout.compact ? '15px' : '18px');
-    this.modifier.setPosition(layout.orderX, layout.orderY + orderHeight * 0.08).setFontSize(layout.compact ? '12px' : '13px');
-    this.instruction.setPosition(layout.orderX, layout.orderY + orderHeight * 0.22)
-      .setFontSize(layout.compact ? '9px' : '10px');
+    this.layoutOrderReference(false);
     this.coinIcon.setPosition(layout.width - 70, 28).setDisplaySize(28, 28);
     this.coinValue.setPosition(layout.width - 50, 28);
     this.actionButton.setPosition(layout.actionX, layout.actionY).setSize(layout.actionWidth, layout.actionHeight);
@@ -152,14 +145,17 @@ export class OrderHudPresenter {
   ): void {
     this.snapshot = snapshot;
     this.patienceMeter.render(snapshot);
+    const compactTicket = this.isCompactHandsOnTicket(snapshot);
+    this.layoutOrderReference(compactTicket);
     const showOrder = !['customer-leaving', 'next-order-ready'].includes(snapshot.phase);
     this.orderBubble.setVisible(showOrder);
-    this.customerName.setVisible(showOrder).setText(localize(this.customerNameKey as TranslationKey));
+    this.customerName.setVisible(showOrder && !compactTicket)
+      .setText(localize(this.customerNameKey as TranslationKey));
     this.title.setVisible(showOrder).setText(localize(this.order.displayNameKey as TranslationKey));
     const variationKey = orderVariationDisplayNameKey(this.order);
     this.modifier.setVisible(showOrder && variationKey !== null)
       .setText(variationKey ? localize(variationKey as TranslationKey) : '');
-    this.instruction.setVisible(showOrder);
+    this.instruction.setVisible(showOrder && !compactTicket);
     const phaseInstruction = snapshot.phase === 'payment'
       ? snapshot.transformationResult?.reactionSequence ?? this.order.reactionSequence ?? 'order.phase.payment'
       : snapshot.phase === 'modifier-selection' && !hasRequiredModifiers(this.order)
@@ -248,6 +244,36 @@ export class OrderHudPresenter {
       (ingredientId) => snapshot.selectedIngredients.includes(ingredientId)
         && !snapshot.preparedIngredients.includes(ingredientId),
     );
+  }
+
+  private isCompactHandsOnTicket(snapshot: OrderSnapshot): boolean {
+    if (snapshot.phase === 'prep-board') return this.handsOnPrepEnabled;
+    if (snapshot.phase === 'grilling') return this.handsOnGrillEnabled;
+    if (snapshot.phase === 'assembly') return this.handsOnBuildEnabled && snapshot.assembly !== undefined;
+    return false;
+  }
+
+  private layoutOrderReference(compactTicket: boolean): void {
+    const layout = this.layoutState;
+    if (!layout) return;
+    const orderWidth = compactTicket
+      ? Math.min(layout.orderWidth * (layout.wide ? 0.62 : 0.68), 196)
+      : layout.orderWidth;
+    const orderHeight = orderWidth / 2;
+    const orderX = layout.orderX;
+    const orderY = layout.orderY;
+    this.orderBubble.setPosition(orderX, orderY).setDisplaySize(orderWidth, orderHeight);
+    this.customerName.setPosition(orderX, orderY - orderHeight * 0.30)
+      .setFontSize(layout.compact ? '10px' : '11px');
+    this.title.setPosition(orderX, orderY - orderHeight * (compactTicket ? 0.08 : 0.10))
+      .setFontSize(compactTicket ? (layout.compact ? '12px' : '13px') : (layout.compact ? '15px' : '18px'))
+      .setWordWrapWidth(orderWidth * (compactTicket ? 0.82 : 0.90));
+    this.modifier.setPosition(orderX, orderY + orderHeight * (compactTicket ? 0.22 : 0.08))
+      .setFontSize(compactTicket ? '10px' : (layout.compact ? '12px' : '13px'))
+      .setWordWrapWidth(orderWidth * 0.86);
+    this.instruction.setPosition(orderX, orderY + orderHeight * 0.22)
+      .setFontSize(layout.compact ? '9px' : '10px')
+      .setWordWrapWidth(orderWidth * 0.86);
   }
 
   private drawHeat(snapshot: OrderSnapshot): void {
