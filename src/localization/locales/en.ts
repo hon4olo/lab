@@ -50,6 +50,7 @@ export const en = {
   'action.start-grill': 'Start grill',
   'action.stop-grill': 'Stop cooking',
   'action.assemble': 'Assemble burger',
+  'action.finish-build': 'Finish build',
   'action.assemble-hot-dog': 'Assemble hot dog',
   'action.start-grill-sausage': 'Start sausage grill',
   'action.stop-grill-sausage': 'Stop sausage cooking',
