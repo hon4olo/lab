@@ -17,10 +17,10 @@ function buildSnapshot(assemblyReady: boolean, assembled = false) {
 }
 
 describe('hands-on Build Station order actions', () => {
-  it('keeps the legacy assemble action when the production station is not enabled', () => {
+  it('does not expose the legacy one-click assembler when production Build is gated', () => {
     const snapshot = buildSnapshot(false);
-    expect(getActionLabel(snapshot, HOT_CHEESE_BURGER_EXTRA_SPICY, false)).toBe('action.assemble');
-    expect(getOrderAction(snapshot, HOT_CHEESE_BURGER_EXTRA_SPICY, false)).toEqual({ type: 'assemble' });
+    expect(getActionLabel(snapshot, HOT_CHEESE_BURGER_EXTRA_SPICY, false)).toBe('action.finish-build');
+    expect(getOrderAction(snapshot, HOT_CHEESE_BURGER_EXTRA_SPICY, false)).toBeNull();
   });
 
   it('does not expose completion until the spatial build satisfies minimum rules', () => {
