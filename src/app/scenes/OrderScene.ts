@@ -143,6 +143,18 @@ export class OrderScene extends Phaser.Scene {
       case 'toggle-grill':
         this.toggleGrill();
         break;
+      case 'grill-place':
+        if (!session.snapshot().grill.active) session.startGrill(action.slotId);
+        break;
+      case 'grill-flip':
+        if (session.snapshot().grill.active && !session.snapshot().grill.flipped) session.flipGrill();
+        break;
+      case 'grill-remove': {
+        if (!session.snapshot().grill.active) break;
+        const result = session.stopGrill();
+        this.feedback.grillStateChanged(result.state, this.viewLayout().x, this.viewLayout().y);
+        break;
+      }
       case 'assemble':
         if (this.view.isHandsOnBuildEnabled()) {
           if (session.snapshot().assemblyReady) session.completeSpatialAssembly();
