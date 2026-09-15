@@ -42,6 +42,7 @@ export class OrderHudPresenter {
     private readonly order: OrderDefinition,
     private readonly customerNameKey: string,
     onAction: (action: OrderAction) => void,
+    private readonly handsOnBuildEnabled = false,
   ) {
     this.orderBubble = scene.add.image(0, 0, 'ui.order-bubble.street').setDepth(30);
     this.customerName = this.makeText(0, 0, '', 11, '#5e3158');
@@ -55,7 +56,7 @@ export class OrderHudPresenter {
     this.actionButton = scene.add.zone(0, 0, 180, 56).setDepth(32);
     this.actionLabel = this.makeText(0, 0, '', 15, '#fff7e8');
     this.actionButton.setInteractive({ useHandCursor: true }).on('pointerdown', () => {
-      const action = getOrderAction(this.snapshot, this.order);
+      const action = getOrderAction(this.snapshot, this.order, this.handsOnBuildEnabled);
       if (action) onAction(action);
       else if (this.snapshot.phase === 'next-order-ready') onAction({ type: 'replay-shift' });
     });
@@ -170,10 +171,13 @@ export class OrderHudPresenter {
     this.stationName.setVisible(['ingredient-selection', 'prep-board', 'grilling'].includes(snapshot.phase));
     const canReplay = snapshot.phase === 'next-order-ready' && shiftPhase === 'completed';
     const showAction = hasOrderAction(snapshot.phase) || canReplay;
-    this.actionPanel.setVisible(showAction);
+    const orderAction = getOrderAction(snapshot, this.order, this.handsOnBuildEnabled);
+    const actionEnabled = canReplay || orderAction !== null;
+    this.actionPanel.setVisible(showAction).setAlpha(actionEnabled ? 1 : 0.52);
     this.actionButton.setVisible(showAction);
-    this.actionLabel.setVisible(showAction);
-    const actionKey = getActionLabel(snapshot, this.order);
+    if (this.actionButton.input) this.actionButton.input.enabled = showAction && actionEnabled;
+    this.actionLabel.setVisible(showAction).setAlpha(actionEnabled ? 1 : 0.62);
+    const actionKey = getActionLabel(snapshot, this.order, this.handsOnBuildEnabled);
     const displayedActionKey = this.order.actionLabelKeys?.[actionKey] ?? actionKey;
     const actionText = localize(displayedActionKey as TranslationKey);
     this.actionLabel.setText(canReplay
@@ -214,7 +218,7 @@ export class OrderHudPresenter {
   }
 
   public getStationAction(): OrderAction | null {
-    return getOrderAction(this.snapshot, this.order);
+    return getOrderAction(this.snapshot, this.order, this.handsOnBuildEnabled);
   }
 
   public layoutStateSnapshot(): OrderLayout | null {
