@@ -18,6 +18,12 @@ import {
   stationModeForPhase,
   type StationPresentationMode,
 } from './stationPresentation';
+import { BuildStationController } from '../stations/BuildStationController';
+import type { AssemblyWorkspaceRect } from '../stations/AssemblyWorkspaceMapper';
+import {
+  requiredStationAssetIds,
+  stationGroupsForRecipe,
+} from '../stations/StationAssetContract';
 
 export class OrderSceneView {
   private readonly background: Phaser.GameObjects.Image;
@@ -30,6 +36,7 @@ export class OrderSceneView {
   private readonly tray: IngredientTrayPresenter;
   private readonly hud: OrderHudPresenter;
   private readonly stationRail: StationRailPresenter;
+  private readonly buildController: BuildStationController | null;
   private layoutState: OrderLayout;
   private stationAsset = '';
   private currentPhase: OrderSnapshot['phase'] = 'customer-entering';
@@ -68,6 +75,9 @@ export class OrderSceneView {
         this.onAction({ type: 'ingredient', ingredientId, x, y });
       }
     });
+    this.buildController = this.hasHandsOnBuildTextures()
+      ? new BuildStationController(scene, order.recipeId, onAction)
+      : null;
     this.layout(width, height);
   }
 
@@ -81,6 +91,7 @@ export class OrderSceneView {
     this.hud.layout(layout);
     this.stationRail.layout(width, height);
     this.tray.layout(layout);
+    this.buildController?.layout(width, height, this.buildWorkspace());
     this.applyPresentationMode(this.currentMode);
     this.stationRail.render(this.currentMode, this.localize);
     if (this.currentSnapshot) this.layoutFood(this.currentSnapshot);
@@ -93,6 +104,10 @@ export class OrderSceneView {
     this.currentMode = stationModeForPhase(snapshot.phase);
     this.applyPresentationMode(this.currentMode);
     this.stationRail.render(this.currentMode, this.localize);
+
+    const handsOnBuildActive = this.isHandsOnBuildActive(snapshot);
+    this.buildController?.setVisible(handsOnBuildActive);
+    if (handsOnBuildActive) this.buildController?.render(snapshot);
 
     const availableIngredients = snapshot.phase === 'ingredient-selection'
       ? selectableBaseIngredientIds(this.order)
@@ -108,6 +123,14 @@ export class OrderSceneView {
         ? this.order.reactionSequence ?? this.customerDefinition.defaultReactionSequence ?? null
         : null);
     this.customer.setReaction(reactionSequence);
+
+    if (handsOnBuildActive) {
+      this.station.setVisible(false);
+      if (this.station.input) this.station.input.enabled = false;
+      this.workspaceBackdrop.clear();
+      this.food.hide();
+      return;
+    }
 
     const showFood = ['grilling', 'assembly', 'modifier-selection', 'anticipation']
       .includes(snapshot.phase);
@@ -151,11 +174,16 @@ export class OrderSceneView {
     this.food.setAssembled(assetKey);
   }
 
+  public isHandsOnBuildEnabled(): boolean {
+    return this.buildController !== null;
+  }
+
   public isReducedMotion(): boolean {
     return this.reducedMotion;
   }
 
   public destroy(): void {
+    this.buildController?.destroy();
     this.background.destroy();
     this.workspaceBackdrop.destroy();
     this.counter.destroy();
@@ -229,5 +257,29 @@ export class OrderSceneView {
 
     const assetKey = snapshot.food?.visualVariant ?? this.order.baseAssembledAssetKey;
     this.food.layout(x, y, width, assembled, assetKey);
+  }
+
+  private hasHandsOnBuildTextures(): boolean {
+    const ids = new Set(
+      stationGroupsForRecipe(this.order.recipeId).flatMap((group) => requiredStationAssetIds(group)),
+    );
+    return ids.size > 0 && [...ids].every((id) => this.scene.textures.exists(id));
+  }
+
+  private isHandsOnBuildActive(snapshot: OrderSnapshot): boolean {
+    return this.buildController !== null && snapshot.phase === 'assembly' && snapshot.assembly !== undefined;
+  }
+
+  private buildWorkspace(): AssemblyWorkspaceRect {
+    const presentation = createStationPresentation(this.layoutState, 'build');
+    const width = presentation.workspaceWidth * (this.layoutState.wide ? 0.62 : 0.78);
+    const height = presentation.workspaceHeight * (this.layoutState.wide ? 0.56 : 0.48);
+    const centerY = presentation.workspaceY - presentation.workspaceHeight * (this.layoutState.wide ? 0.06 : 0.10);
+    return {
+      x: presentation.workspaceX - width / 2,
+      y: centerY - height / 2,
+      width,
+      height,
+    };
   }
 }
