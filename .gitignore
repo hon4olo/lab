@@ -3,4 +3,5 @@ node_modules/
 dist/
 build/
 coverage/
+artifacts/visual-qa/
 .DS_Store
