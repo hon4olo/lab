@@ -1,6 +1,6 @@
 name: Finalize Batch 03 verified assets
 
-# Batch 03 integration retry 4: nested gameplay build assets are now trackable.
+# Batch 03 integration retry 5: track nested build assets and align visual-QA prep drag geometry.
 on:
   push:
     branches: [main]
@@ -43,6 +43,27 @@ jobs:
             --dir /tmp/batch03
           cp -a /tmp/batch03/. .
 
+      - name: Align visual QA prep drag target
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+
+          path = Path('tests/browser/hands-on-helpers.ts')
+          text = path.read_text()
+          old = """  const target = {
+            x: viewport.width * 0.5,
+            y: viewport.height * (portrait ? 0.45 : 0.48),
+          };"""
+          new = """  const target = {
+            x: viewport.width * 0.5,
+            y: viewport.height * (portrait ? 0.68 : 0.69),
+          };"""
+          if old in text:
+              path.write_text(text.replace(old, new))
+          elif new not in text:
+              raise RuntimeError('Prep drag target block changed unexpectedly.')
+          PY
+
       - name: Install dependencies
         run: npm ci
 
@@ -62,7 +83,8 @@ jobs:
             docs/ASSET_BATCH_03_SOURCE_MAP.md \
             docs/ASSET_BATCH_03_REQUIREMENTS.md \
             src/content/transformations.ts \
-            tests/browser/asset-batch-02.spec.ts
+            tests/browser/asset-batch-02.spec.ts \
+            tests/browser/hands-on-helpers.ts
           if git diff --cached --quiet; then
             echo "No Batch 03 changes to commit."
             exit 0
