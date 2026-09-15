@@ -12,6 +12,9 @@ export type OrderAction =
   | { readonly type: 'prepare-ingredient'; readonly ingredientId: string }
   | { readonly type: 'continue-grill' }
   | { readonly type: 'toggle-grill' }
+  | { readonly type: 'grill-place'; readonly slotId: string }
+  | { readonly type: 'grill-flip' }
+  | { readonly type: 'grill-remove' }
   | { readonly type: 'assemble' }
   | { readonly type: 'build-place'; readonly ingredientId: string; readonly point: AssemblyPoint; readonly rotation: number }
   | { readonly type: 'build-move'; readonly instanceId: string; readonly point: AssemblyPoint; readonly rotation?: number }
@@ -89,7 +92,17 @@ export function createEmptyOrderSnapshot(orderId: string): OrderSnapshot {
     selectedIngredients: [],
     preparedIngredients: [],
     food: null,
-    grill: { active: false, elapsedMs: 0, state: 'raw', progress: 0, result: null },
+    grill: {
+      active: false,
+      elapsedMs: 0,
+      state: 'raw',
+      progress: 0,
+      result: null,
+      slotId: null,
+      flippedAtMs: null,
+      flipped: false,
+      idealFlipAtMs: 0,
+    },
     assembled: false,
     scores: null,
     transformationResult: null,
