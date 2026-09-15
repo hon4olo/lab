@@ -36,3 +36,7 @@ Every transparent runtime asset is normalized to its exact manifest canvas and r
 ## Runtime gate
 
 `StationAssetContract` already defines the Batch 03 stable IDs. Once this manifest is loaded, `canEnableHandsOnStations(...)` resolves true for the burger and hot-dog station groups, so the dedicated station presentation activates without a separate feature flag.
+
+## Integration verification
+
+The production import was finalized on `main` in commit `48c656b1c9e9b4e776e50449775f91d1ba5a1443`. The finalization run verified all 84 manifest PNGs with exact dimensions and alpha bounds, passed the TypeScript/unit/build checks, and passed the focused desktop Order → Prep → Grill → Build visual QA after aligning the browser interaction geometry with the authored Prep and Grill surfaces.
