@@ -39,12 +39,15 @@ export class BuildStationPresenter {
   private readonly placementImages = new Map<string, Phaser.GameObjects.Image>();
   private readonly sauceImages = new Map<string, Phaser.GameObjects.Image[]>();
   private workspace: AssemblyWorkspaceRect = { x: 0, y: 0, width: 1, height: 1 };
+  private visible = false;
 
   public constructor(
     private readonly scene: Phaser.Scene,
     private readonly recipeId: string,
   ) {
-    this.background = scene.add.image(0, 0, STREET_STATION_ASSET_IDS.buildBackground).setDepth(4);
+    this.background = scene.add.image(0, 0, STREET_STATION_ASSET_IDS.buildBackground)
+      .setDepth(4)
+      .setVisible(false);
   }
 
   public layout(screenWidth: number, screenHeight: number, workspace: AssemblyWorkspaceRect): void {
@@ -59,6 +62,13 @@ export class BuildStationPresenter {
   public render(snapshot: FoodAssemblySnapshot): void {
     this.syncPlacements(snapshot.placements);
     this.syncSauces(snapshot.sauceStrokes);
+  }
+
+  public setVisible(visible: boolean): void {
+    this.visible = visible;
+    this.background.setVisible(visible);
+    for (const image of this.placementImages.values()) image.setVisible(visible);
+    for (const images of this.sauceImages.values()) images.forEach((image) => image.setVisible(visible));
   }
 
   public destroy(): void {
@@ -84,7 +94,7 @@ export class BuildStationPresenter {
       const width = Math.min(this.workspace.width * visual.widthRatio, visual.maxWidth) * placement.scale;
       let image = this.placementImages.get(placement.instanceId);
       if (!image) {
-        image = this.scene.add.image(screen.x, screen.y, visual.assetKey);
+        image = this.scene.add.image(screen.x, screen.y, visual.assetKey).setVisible(this.visible);
         this.placementImages.set(placement.instanceId, image);
       } else if (image.texture.key !== visual.assetKey) {
         image.setTexture(visual.assetKey);
@@ -156,7 +166,8 @@ export class BuildStationPresenter {
     const source = this.scene.textures.get(assetKey).getSourceImage();
     return this.scene.add.image(x, y, assetKey)
       .setDisplaySize(width, source.height * (width / source.width))
-      .setDepth(10 + sequence * 0.01);
+      .setDepth(10 + sequence * 0.01)
+      .setVisible(this.visible);
   }
 
   private visualForIngredient(ingredientId: string): IngredientVisual | undefined {
