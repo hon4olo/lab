@@ -82,13 +82,15 @@ export class GrillStationController {
 
   public layout(width: number, height: number): void {
     const portrait = width < height;
-    const grillWidth = portrait ? width * 0.72 : Math.min(width * 0.52, 720);
-    const grillHeight = portrait ? height * 0.38 : Math.min(height * 0.56, 460);
+
+    // The approved Grill background contains a large flat-top grill with four
+    // authored quadrants in the lower-middle of the frame. Map interaction
+    // directly to those quadrants instead of the old generic centered grill box.
     const centerX = width * 0.5;
-    const centerY = height * (portrait ? 0.44 : 0.48);
-    const dx = grillWidth * 0.24;
-    const dy = grillHeight * 0.22;
-    const radius = Math.min(grillWidth, grillHeight) * 0.20;
+    const centerY = height * (portrait ? 0.66 : 0.66);
+    const dx = width * (portrait ? 0.17 : 0.14);
+    const dy = height * (portrait ? 0.075 : 0.085);
+    const radius = Math.min(width * (portrait ? 0.19 : 0.115), height * 0.13);
     this.slots = [
       { id: 'slot-1', x: centerX - dx, y: centerY - dy, hitRadius: radius },
       { id: 'slot-2', x: centerX + dx, y: centerY - dy, hitRadius: radius },
@@ -97,9 +99,9 @@ export class GrillStationController {
     ];
 
     const sourceWidth = Math.min(width * (portrait ? 0.28 : 0.13), 155);
-    this.layoutImage(this.rawSource, width * (portrait ? 0.23 : 0.15), height * 0.82, sourceWidth);
+    this.layoutImage(this.rawSource, width * (portrait ? 0.20 : 0.14), height * 0.85, sourceWidth);
     this.layoutImage(this.dragPreview, this.dragPreview.x, this.dragPreview.y, sourceWidth);
-    this.layoutImage(this.spatula, width * (portrait ? 0.78 : 0.86), height * 0.80, Math.min(sourceWidth * 0.78, 120));
+    this.layoutImage(this.spatula, width * (portrait ? 0.80 : 0.86), height * 0.84, Math.min(sourceWidth * 0.78, 120));
     this.layoutGrillItem();
   }
 
