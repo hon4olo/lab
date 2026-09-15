@@ -12,6 +12,7 @@ import { FIRST_CHAPTER } from '../content/chapters/firstChapter';
 
 export function createCampaignSession(save: CurrentSaveData): CampaignSession {
   const ingredientById = SNACK_LAB_CONTENT_REGISTRIES.ingredients.toMap();
+  const recipeById = SNACK_LAB_CONTENT_REGISTRIES.recipes.toMap();
   const orders = new Map(SNACK_LAB_CONTENT_REGISTRIES.orders.all.map((definition) => {
     const availableIngredientIds = resolveOrderAvailableIngredientIds(definition);
     const ingredients = availableIngredientIds
@@ -20,7 +21,14 @@ export function createCampaignSession(save: CurrentSaveData): CampaignSession {
     if (ingredients.length !== availableIngredientIds.length) {
       throw new Error(`Order ${definition.id} references an ingredient missing from the registry.`);
     }
-    return [definition.id, { definition, availableIngredientIds, ingredients }] as const;
+    const recipe = recipeById.get(definition.recipeId);
+    if (!recipe) throw new Error(`Order ${definition.id} references missing recipe ${definition.recipeId}.`);
+    return [definition.id, {
+      definition,
+      availableIngredientIds,
+      ingredients,
+      ...(recipe.assembly ? { assembly: recipe.assembly } : {}),
+    }] as const;
   }));
   const chapters = SNACK_LAB_CONTENT_REGISTRIES.chapters.toMap();
   const shifts = SNACK_LAB_CONTENT_REGISTRIES.shifts.toMap();
