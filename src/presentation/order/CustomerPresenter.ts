@@ -35,7 +35,12 @@ export class CustomerPresenter {
     }
   }
 
+  public setVisible(visible: boolean): void {
+    this.root.setVisible(visible);
+  }
+
   public enter(targetX: number, targetY: number, reducedMotion: boolean, onComplete: () => void): void {
+    this.root.setVisible(true);
     this.root.setPosition(targetX + Math.max(100, this.scene.scale.width * 0.42), targetY);
     this.root.setAlpha(1);
     if (reducedMotion) {
