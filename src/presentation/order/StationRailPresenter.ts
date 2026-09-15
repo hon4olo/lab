@@ -20,7 +20,7 @@ export class StationRailPresenter {
   private height = 0;
   private mode: StationPresentationMode = 'order';
 
-  public constructor(private readonly scene: Phaser.Scene) {
+  public constructor(scene: Phaser.Scene) {
     this.graphics = scene.add.graphics().setDepth(26);
     this.labels = STAGES.map(() => scene.add.text(0, 0, '', {
       fontFamily: 'system-ui, sans-serif',
@@ -52,7 +52,7 @@ export class StationRailPresenter {
       return;
     }
 
-    const totalWidth = Math.min(520, this.width * 0.46);
+    const totalWidth = Math.min(480, this.width * 0.43);
     const tabWidth = totalWidth / STAGES.length;
     const tabHeight = 30;
     const y = 25;
