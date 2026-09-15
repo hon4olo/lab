@@ -94,7 +94,7 @@ export class OrderSceneView {
     this.buildController = handsOnBuildEnabled
       ? new BuildStationController(scene, order.recipeId, onAction)
       : null;
-    this.grillController = handsOnGrillEnabled
+    this.grillController = handsOnGrillEnabled && order.grillAssetKeys
       ? new GrillStationController(scene, order.grillAssetKeys, onAction)
       : null;
     this.layout(width, height);
@@ -295,8 +295,9 @@ export class OrderSceneView {
   }
 
   private hasHandsOnGrillTextures(): boolean {
-    if (!this.handsOnShellEnabled) return false;
-    return Object.values(this.order.grillAssetKeys).every((id) => this.scene.textures.exists(id));
+    const grillAssetKeys = this.order.grillAssetKeys;
+    if (!this.handsOnShellEnabled || !grillAssetKeys) return false;
+    return Object.values(grillAssetKeys).every((id) => this.scene.textures.exists(id));
   }
 
   private hasHandsOnBuildTextures(): boolean {
