@@ -20,7 +20,6 @@ interface ViewportCase {
   readonly height: number;
 }
 
-const BURGER_ORDER_ID = 'order.hot-cheese-burger.extra-spicy';
 const BURGER_INGREDIENTS = [
   'ingredient.bun-bottom',
   'ingredient.patty',
