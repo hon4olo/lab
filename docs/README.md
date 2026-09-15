@@ -1,18 +1,30 @@
-# Project documentation
+# Snack Lab documentation
 
-This directory uses progressive disclosure. Add a document only when the project has an approved,
-non-speculative decision to record.
+Read documentation progressively; do not load every file for every task.
 
-- `GAME_DESIGN.md` — approved game concept and design
-- `GAMEPLAY.md` — authoritative gameplay rules
-- `ARCHITECTURE.md` — actual technical architecture
-- `PLATFORMS.md` — actual portal integration strategy
-- `TESTING.md` — actual validation workflow
-- `RELEASE.md` — release/build requirements
+## Current source of truth
 
-Current approved documents:
+1. `../AGENTS.md` — repository-wide engineering/product instructions.
+2. `GAME_DESIGN.md` — product concept, scale, progression, retention intent.
+3. `STATION_GAMEPLAY.md` — canonical hands-on Order → Prep → Grill → Build → Serve flow.
+4. `GAMEPLAY.md` — current rules, scoring, transformations, shift behavior, migration status.
+5. `ARCHITECTURE.md` — code ownership and technical boundaries.
+6. `ART_DIRECTION.md` — visual style and station-screen composition rules.
+7. `ASSET_PIPELINE.md` — production asset contract and approval process.
+8. `ASSET_BATCH_03_REQUIREMENTS.md` — exact art required to enable the next station rebuild.
+9. `TESTING.md` — automated/domain/browser/visual QA workflow.
+10. `AGENT_SKILLS.md` — project skill routing.
 
-- `GAME_DESIGN.md` — Snack Lab product direction and gameplay pillars
-- `ARCHITECTURE.md` — Phaser/TypeScript boundaries and production structure
-- `ASSET_PIPELINE.md` — raster art direction, manifest, provenance, and approval gates
-- `TESTING.md` — domain, browser, visual, performance, save, and future platform validation
+## Historical / batch QA documents
+
+- `ASSET_BATCH_01.md`
+- `ASSET_BATCH_02.md`
+
+These record earlier import/QA history. They are not allowed to override newer gameplay, art, or
+station decisions.
+
+## Key current decision
+
+Snack Lab is a hands-on station game. Do not regress to a single cluttered scene or to
+`select ingredients → press Assemble → finished-food PNG`. Spatial food preparation is now an
+authoritative gameplay requirement; see `STATION_GAMEPLAY.md`.
