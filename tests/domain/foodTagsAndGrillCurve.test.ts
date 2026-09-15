@@ -114,6 +114,40 @@ describe('Food tags and timing-relative grill quality', () => {
       expect(grillAt(ingredientId, timing, timing.burnedAtMs)).toMatchObject({ state: 'burned', quality: 0 });
     }
   });
+
+  it('keeps a perfectly timed hands-on flip at full grill quality and records its slot', () => {
+    const grill = new GrillSession(GRILL_TIMING);
+    grill.start('ingredient.patty', 'slot-3');
+    grill.advance(GRILL_TIMING.idealStopAtMs / 2);
+    expect(grill.flip()).toMatchObject({
+      active: true,
+      slotId: 'slot-3',
+      flipped: true,
+      flippedAtMs: GRILL_TIMING.idealStopAtMs / 2,
+    });
+    grill.advance(GRILL_TIMING.idealStopAtMs / 2);
+    expect(grill.stop()).toMatchObject({
+      state: 'perfect',
+      quality: 100,
+      slotId: 'slot-3',
+      flipQuality: 100,
+    });
+  });
+
+  it('penalizes a badly timed hands-on flip without changing legacy no-flip timing', () => {
+    const early = new GrillSession(GRILL_TIMING);
+    early.start('ingredient.patty', 'slot-1');
+    early.advance(100);
+    early.flip();
+    early.advance(GRILL_TIMING.idealStopAtMs - 100);
+    const earlyResult = early.stop();
+
+    const legacy = grillAt('ingredient.patty', GRILL_TIMING, GRILL_TIMING.idealStopAtMs);
+    expect(earlyResult.state).toBe('perfect');
+    expect(earlyResult.quality).toBeLessThan(100);
+    expect(legacy).toMatchObject({ quality: 100 });
+    expect(legacy).not.toHaveProperty('flipQuality');
+  });
 });
 
 function grillAt(ingredientId: string, timing: GrillTiming, elapsedMs: number) {
