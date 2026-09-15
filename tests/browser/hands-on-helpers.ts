@@ -143,7 +143,7 @@ export async function prepareHandsOnIngredient(page: Page, viewport: ViewportCas
   };
   const target = {
     x: viewport.width * 0.5,
-    y: viewport.height * (portrait ? 0.45 : 0.48),
+    y: viewport.height * (portrait ? 0.68 : 0.69),
   };
   await dragCanvas(page, source, target);
   await expect.poll(async () => (await snapshot(page)).preparedIngredients.includes(ingredientId), {
@@ -296,22 +296,20 @@ function getLayout(viewport: ViewportCase) {
 
 function grillGeometry(viewport: ViewportCase) {
   const portrait = viewport.width < viewport.height;
-  const grillWidth = portrait ? viewport.width * 0.72 : Math.min(viewport.width * 0.52, 720);
-  const grillHeight = portrait ? viewport.height * 0.38 : Math.min(viewport.height * 0.56, 460);
   const centerX = viewport.width * 0.5;
-  const centerY = viewport.height * (portrait ? 0.44 : 0.48);
+  const centerY = viewport.height * 0.66;
   return {
     source: {
-      x: viewport.width * (portrait ? 0.23 : 0.15),
-      y: viewport.height * 0.82,
+      x: viewport.width * (portrait ? 0.20 : 0.14),
+      y: viewport.height * 0.85,
     },
     spatula: {
-      x: viewport.width * (portrait ? 0.78 : 0.86),
-      y: viewport.height * 0.80,
+      x: viewport.width * (portrait ? 0.80 : 0.86),
+      y: viewport.height * 0.84,
     },
     slot: {
-      x: centerX - grillWidth * 0.24,
-      y: centerY - grillHeight * 0.22,
+      x: centerX - viewport.width * (portrait ? 0.17 : 0.14),
+      y: centerY - viewport.height * (portrait ? 0.075 : 0.085),
     },
   };
 }
