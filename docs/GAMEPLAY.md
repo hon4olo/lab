@@ -42,6 +42,26 @@ The shift controller reads progression through a live, read-only provider when i
 order session. Therefore an unlock recorded after order one is visible to order two without Phaser
 or a scene owning progression state.
 
+## Station presentation
+
+The authoritative order phases are presented as distinct player-facing workstations instead of one
+cluttered restaurant composition:
+
+```text
+Order → Prep → Grill → Build → Serve / Reaction → Results
+```
+
+`stationPresentation.ts` maps domain phases onto those modes. The Order and Serve modes use the
+restaurant counter and customer. Prep, Grill, and Build hide the customer/counter and show a focused
+work surface over a dimmed restaurant backdrop. Results has its own workspace. A station rail shows
+which part of the flow is active, while compact/mobile layouts show only the current station label.
+This is a presentation-only split; it does not move gameplay rules into Phaser or duplicate domain
+state.
+
+Station and character artwork is capped near authored source dimensions rather than scaling as a
+large percentage of an arbitrary desktop viewport. Food is deliberately smaller on grill/build/serve
+screens so it reads as an object on a workstation instead of filling the scene.
+
 Players first select the five base burger ingredients: bottom bun, patty, cheese, sauce, and top
 bun. They prepare the patty on the Prep Board, grill it, and stop the grill before it burns. The
 assembled base burger is shown before the player adds the requested Extra Spicy modifier. Adding
@@ -95,9 +115,11 @@ Flaming Business Cat has no implicit `CAT` preference. `resolveTransformation` r
 definitions by priority, preferred-tag matches, rarity, and stable ID, so selection is deterministic
 and does not branch on a customer/recipe pair.
 
-The appearance keeps the neutral Business Cat stack and adds its manifest-defined fire accents,
-glow eyes, and singed tie. The presentation plays an anticipation beat, transformation flash/fire
-burst (suppressed under reduced motion), then coin sparkle and customer exit.
+The original Batch 01 fire-accent/glow-eye/singed-tie cutouts were found during visual QA to contain
+misaligned duplicated character fragments. They are therefore not loaded by the current shift.
+Until a coherent full Flaming Business Cat replacement sprite is authored, the transformation keeps
+the neutral Business Cat appearance and uses the approved fire-burst effect. Scoring, discovery and
+reward behavior are unchanged; this is a presentation safety fallback, not a rules change.
 
 Glow Sauce is optional on the Picky Pigeon order. It contributes `GLOW` and `ELECTRIC` plus 100
 Chaos; with the correct base hot dog this reaches CHAOS 100 and resolves the authored
