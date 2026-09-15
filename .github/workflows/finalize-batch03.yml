@@ -1,6 +1,6 @@
 name: Finalize Batch 03 verified assets
 
-# Batch 03 integration retry 5: track nested build assets and align visual-QA prep drag geometry.
+# Batch 03 integration retry 6: track nested build assets and align visual-QA prep drag geometry.
 on:
   push:
     branches: [main]
@@ -50,18 +50,12 @@ jobs:
 
           path = Path('tests/browser/hands-on-helpers.ts')
           text = path.read_text()
-          old = """  const target = {
-            x: viewport.width * 0.5,
-            y: viewport.height * (portrait ? 0.45 : 0.48),
-          };"""
-          new = """  const target = {
-            x: viewport.width * 0.5,
-            y: viewport.height * (portrait ? 0.68 : 0.69),
-          };"""
+          old = 'y: viewport.height * (portrait ? 0.45 : 0.48),'
+          new = 'y: viewport.height * (portrait ? 0.68 : 0.69),'
           if old in text:
-              path.write_text(text.replace(old, new))
+              path.write_text(text.replace(old, new, 1))
           elif new not in text:
-              raise RuntimeError('Prep drag target block changed unexpectedly.')
+              raise RuntimeError('Prep drag target coordinate changed unexpectedly.')
           PY
 
       - name: Install dependencies
