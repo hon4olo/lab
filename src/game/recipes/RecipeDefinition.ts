@@ -1,3 +1,4 @@
+import type { AssemblyDefinition } from '../assembly/AssemblyDefinition';
 import type { CookState, GrillTiming } from '../cooking/GrillSession';
 
 export interface RecipeDefinition {
@@ -14,11 +15,17 @@ export interface RecipeDefinition {
    * base ingredients and any authored variation/modifier ingredients.
    */
   readonly availableIngredientIds: readonly string[];
-  /** Canonical layer order for every ingredient in the available contract. */
+  /** Canonical recipe order. Hands-on assembly may deliberately deviate from it. */
   readonly ingredientOrder: readonly string[];
   readonly requiredPrepIngredientIds: readonly string[];
   readonly grillIngredientId: string;
   readonly baseAssembledAssetKey: string;
+  /**
+   * Spatial assembly contract for the Build Station. Domain coordinates are
+   * normalized and renderer-independent; Phaser only maps them onto a work surface.
+   * This is optional while legacy recipes migrate, but new production recipes should author it.
+   */
+  readonly assembly?: AssemblyDefinition;
   /** Empty or omitted means the recipe is available to any customer type. */
   readonly compatibleCustomerTypes?: readonly string[];
   readonly grillTiming?: GrillTiming;
