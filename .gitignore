@@ -1,7 +1,7 @@
 # Dependencies and generated output (kept ready for the future toolchain).
 node_modules/
 dist/
-build/
+/build/
 coverage/
 artifacts/visual-qa/
 .DS_Store
